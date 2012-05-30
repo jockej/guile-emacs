@@ -670,9 +670,7 @@ malloc_initialize_hook (void)
 	}
 
       malloc_set_state (malloc_state_ptr);
-#ifndef XMALLOC_OVERRUN_CHECK
       free (malloc_state_ptr);
-#endif
     }
   else
     {
