@@ -353,9 +353,6 @@ DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
 #define lisp_h_XPNTR(a) ((void *) (intptr_t) (XLI (a) & VALMASK))
 #define lisp_h_XSYMBOL(a) \
    (eassert (SYMBOLP (a)), (struct Lisp_Symbol *) XUNTAG (a, Lisp_Symbol))
-#ifndef GC_CHECK_CONS_LIST
-# define lisp_h_check_cons_list() ((void) 0)
-#endif
 #if USE_LSB_TAG
 # define lisp_h_make_number(n) \
     XIL ((EMACS_INT) ((EMACS_UINT) (n) << INTTYPEBITS))
@@ -395,9 +392,6 @@ DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
 # define XHASH(a) lisp_h_XHASH (a)
 # define XPNTR(a) lisp_h_XPNTR (a)
 # define XSYMBOL(a) lisp_h_XSYMBOL (a)
-# ifndef GC_CHECK_CONS_LIST
-#  define check_cons_list() lisp_h_check_cons_list ()
-# endif
 # if USE_LSB_TAG
 #  define make_number(n) lisp_h_make_number (n)
 #  define XFASTINT(a) lisp_h_XFASTINT (a)
@@ -1164,17 +1158,10 @@ SCHARS (Lisp_Object string)
   return XSTRING (string)->size;
 }
 
-#ifdef GC_CHECK_STRING_BYTES
-extern ptrdiff_t string_bytes (struct Lisp_String *);
-#endif
 INLINE ptrdiff_t
 STRING_BYTES (struct Lisp_String *s)
 {
-#ifdef GC_CHECK_STRING_BYTES
-  return string_bytes (s);
-#else
   return s->size_byte < 0 ? s->size : s->size_byte;
-#endif
 }
 
 INLINE ptrdiff_t
@@ -3745,11 +3732,6 @@ extern void syms_of_alloc (void);
 extern struct buffer * allocate_buffer (void);
 extern int valid_lisp_object_p (Lisp_Object);
 extern int relocatable_string_data_p (const char *);
-#ifdef GC_CHECK_CONS_LIST
-extern void check_cons_list (void);
-#else
-INLINE void (check_cons_list) (void) { lisp_h_check_cons_list (); }
-#endif
 
 #ifdef REL_ALLOC
 /* Defined in ralloc.c.  */

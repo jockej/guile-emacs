@@ -391,11 +391,7 @@ fi)
 
 AC_ARG_ENABLE(checking,
 [AS_HELP_STRING([--enable-checking@<:@=LIST@:>@],
-		[enable expensive run-time checks.  With LIST,
-		 enable only specific categories of checks.
-		 Categories are: all,yes,no.
-		 Flags are: stringbytes, stringoverrun, stringfreelist,
-		 xmallocoverrun, conslist, glyphs])],
+		[enable expensive run-time checks])]
 [ac_checking_flags="${enableval}"],[])
 IFS="${IFS= 	}"; ac_save_IFS="$IFS"; IFS="$IFS,"
 for check in $ac_checking_flags
@@ -403,27 +399,7 @@ do
 	case $check in
 	# these set all the flags to specific states
 	yes)		ac_enable_checking=1 ;;
-	no)		ac_enable_checking= ;
-			ac_gc_check_stringbytes= ;
-	                ac_gc_check_string_overrun= ;
-	                ac_gc_check_string_free_list= ;
-	                ac_xmalloc_overrun= ;
-	                ac_gc_check_cons_list= ;
-			ac_glyphs_debug= ;;
-	all)		ac_enable_checking=1 ;
-			ac_gc_check_stringbytes=1 ;
-	                ac_gc_check_string_overrun=1 ;
-	                ac_gc_check_string_free_list=1 ;
-	                ac_xmalloc_overrun=1 ;
-	                ac_gc_check_cons_list=1 ;
-			ac_glyphs_debug=1 ;;
-	# these enable particular checks
-	stringbytes) 	ac_gc_check_stringbytes=1 ;;
-	stringoverrun) 	ac_gc_check_string_overrun=1 ;;
-	stringfreelist) ac_gc_check_string_free_list=1 ;;
-	xmallocoverrun)	ac_xmalloc_overrun=1 ;;
-	conslist)	ac_gc_check_cons_list=1 ;;
-	glyphs)		ac_glyphs_debug=1 ;;
+	all)		ac_enable_checking=1 ;;
 	*)	AC_MSG_ERROR(unknown check category $check) ;;
 	esac
 done
@@ -432,32 +408,6 @@ IFS="$ac_save_IFS"
 if test x$ac_enable_checking != x ; then
   AC_DEFINE(ENABLE_CHECKING, 1,
 [Define to 1 if expensive run-time data type and consistency checks are enabled.])
-fi
-if test x$ac_gc_check_stringbytes != x ; then
-  AC_DEFINE(GC_CHECK_STRING_BYTES, 1,
-[Define this temporarily to hunt a bug.  If defined, the size of
-   strings is redundantly recorded in sdata structures so that it can
-   be compared to the sizes recorded in Lisp strings.])
-fi
-if test x$ac_gc_check_string_overrun != x ; then
-  AC_DEFINE(GC_CHECK_STRING_OVERRUN, 1,
-[Define this to check for short string overrun.])
-fi
-if test x$ac_gc_check_string_free_list != x ; then
-  AC_DEFINE(GC_CHECK_STRING_FREE_LIST, 1,
-[Define this to check the string free list.])
-fi
-if test x$ac_xmalloc_overrun != x ; then
-  AC_DEFINE(XMALLOC_OVERRUN_CHECK, 1,
-[Define this to check for malloc buffer overrun.])
-fi
-if test x$ac_gc_check_cons_list != x ; then
-  AC_DEFINE(GC_CHECK_CONS_LIST, 1,
-[Define this to check for errors in cons list.])
-fi
-if test x$ac_glyphs_debug != x ; then
-  AC_DEFINE(GLYPH_DEBUG, 1,
-[Define this to enable glyphs debugging code.])
 fi
 
 AC_ARG_ENABLE(check-lisp-object-type,
