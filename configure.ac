@@ -1432,7 +1432,14 @@ AC_DEFUN([EMACS_CHECK_MODULES],
       m4_default([$3], [HAVE_$1=yes])],
      [m4_default([$4], [HAVE_$1=no])])])
 
+PKG_CHECK_MODULES([BDW_GC], [bdw-gc])
+AC_SUBST(BDW_GC_CFLAGS)
+AC_SUBST(BDW_GC_LIBS)
+CFLAGS="$CFLAGS $BDW_GC_CFLAGS"
+LIBS="$BDW_GC_LIBS $LIBS"
+
 HAVE_SOUND=no
+
 if test "${with_sound}" != "no"; then
   # Sound support for GNU/Linux, the free BSDs, and MinGW.
   AC_CHECK_HEADERS([machine/soundcard.h sys/soundcard.h soundcard.h],
