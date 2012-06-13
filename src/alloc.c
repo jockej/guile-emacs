@@ -127,7 +127,7 @@ EMACS_INT gc_relative_threshold;
 /* Minimum number of bytes of consing since GC before next GC,
    when memory is full.  */
 
-EMACS_INT memory_full_cons_threshold;
+EMACS_INT memory_full_cons_threshold = 1 << 10;
 
 /* True during GC.  */
 
@@ -146,15 +146,14 @@ static EMACS_INT total_free_conses, total_free_markers, total_free_symbols;
 static EMACS_INT total_free_floats, total_floats;
 
 /* Points to memory space allocated as "spare", to be freed if we run
-   out of memory.  We keep one large block, four cons-blocks, and
-   two string blocks.  */
+   out of memory. */
 
-static char *spare_memory[7];
+static void *spare_memory;
 
 /* Amount of spare memory to keep in large reserve block, or to see
    whether this much is available when malloc fails on a larger request.  */
 
-#define SPARE_MEMORY (1 << 14)
+#define SPARE_MEMORY (1 << 15)
 
 /* Initialize it to a nonzero value to force it into data space
    (rather than bss space).  That way unexec will remap it into text
@@ -3696,24 +3695,14 @@ memory_full (size_t nbytes)
 
   if (! enough_free_memory)
     {
-      int i;
-
       Vmemory_full = Qt;
 
-      memory_full_cons_threshold = sizeof (struct cons_block);
-
       /* The first time we get here, free the spare memory.  */
-      for (i = 0; i < ARRAYELTS (spare_memory); i++)
-	if (spare_memory[i])
-	  {
-	    if (i == 0)
-	      free (spare_memory[i]);
-	    else if (i >= 1 && i <= 4)
-	      lisp_align_free (spare_memory[i]);
-	    else
-	      lisp_free (spare_memory[i]);
-	    spare_memory[i] = 0;
-	  }
+      if (spare_memory)
+        {
+          free (spare_memory);
+          spare_memory = NULL;
+        }
     }
 
   /* This used to call error, but if we've run out of memory, we could
@@ -3732,27 +3721,10 @@ void
 refill_memory_reserve (void)
 {
 #ifndef SYSTEM_MALLOC
-  if (spare_memory[0] == 0)
-    spare_memory[0] = malloc (SPARE_MEMORY);
-  if (spare_memory[1] == 0)
-    spare_memory[1] = lisp_align_malloc (sizeof (struct cons_block),
-						  MEM_TYPE_SPARE);
-  if (spare_memory[2] == 0)
-    spare_memory[2] = lisp_align_malloc (sizeof (struct cons_block),
-					 MEM_TYPE_SPARE);
-  if (spare_memory[3] == 0)
-    spare_memory[3] = lisp_align_malloc (sizeof (struct cons_block),
-					 MEM_TYPE_SPARE);
-  if (spare_memory[4] == 0)
-    spare_memory[4] = lisp_align_malloc (sizeof (struct cons_block),
-					 MEM_TYPE_SPARE);
-  if (spare_memory[5] == 0)
-    spare_memory[5] = lisp_malloc (sizeof (struct string_block),
-				   MEM_TYPE_SPARE);
-  if (spare_memory[6] == 0)
-    spare_memory[6] = lisp_malloc (sizeof (struct string_block),
-				   MEM_TYPE_SPARE);
-  if (spare_memory[0] && spare_memory[1] && spare_memory[5])
+  if (spare_memory == NULL)
+    spare_memory = malloc (SPARE_MEMORY);
+
+  if (spare_memory)
     Vmemory_full = Qnil;
 #endif
 }
