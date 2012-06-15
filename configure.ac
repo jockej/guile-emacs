@@ -1192,19 +1192,8 @@ AC_CACHE_CHECK([whether addresses are sanitized],
 
 dnl The function dump-emacs will not be defined and temacs will do
 dnl (load "loadup") automatically unless told otherwise.
-test "x$CANNOT_DUMP" = "x" && CANNOT_DUMP=no
-case "$opsys" in
-  your-opsys-here) CANNOT_DUMP=yes ;;
-esac
-
-if test "$CANNOT_DUMP" = "yes"; then
-  AC_DEFINE(CANNOT_DUMP, 1, [Define if Emacs cannot be dumped on your system.])
-elif test "$emacs_cv_sanitize_address" = yes; then
-  AC_MSG_WARN([[Addresses are sanitized; suggest CANNOT_DUMP=yes]])
-fi
-
-AC_SUBST(CANNOT_DUMP)
-
+AC_DEFINE(CANNOT_DUMP, 1, [Define if Emacs cannot be dumped on your system.])
+AC_SUBST(CANNOT_DUMP, yes)
 
 UNEXEC_OBJ=unexelf.o
 case "$opsys" in
