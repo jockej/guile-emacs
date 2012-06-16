@@ -275,20 +275,9 @@ enum Lisp_Bits
    This can be used in #if, e.g., '#if VAL_MAX < UINTPTR_MAX' below.  */
 #define VAL_MAX (EMACS_INT_MAX >> (GCTYPEBITS - 1))
 
-/* Whether the least-significant bits of an EMACS_INT contain the tag.
-   On hosts where pointers-as-ints do not exceed VAL_MAX, USE_LSB_TAG is:
-    a. unnecessary, because the top bits of an EMACS_INT are unused, and
-    b. slower, because it typically requires extra masking.
-   So, USE_LSB_TAG is true only on hosts where it might be useful.  */
 DEFINE_GDB_SYMBOL_BEGIN (bool, USE_LSB_TAG)
-#define USE_LSB_TAG (EMACS_INT_MAX >> GCTYPEBITS < INTPTR_MAX)
+#define USE_LSB_TAG 1
 DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
-
-#if !USE_LSB_TAG && !defined WIDE_EMACS_INT
-# error "USE_LSB_TAG not supported on this platform; please report this." \
-	"Try 'configure --with-wide-int' to work around the problem."
-error !;
-#endif
 
 #ifndef alignas
 # define alignas(alignment) /* empty */
@@ -296,7 +285,6 @@ error !;
 #  error "USE_LSB_TAG requires alignas"
 # endif
 #endif
-
 
 /* Some operations are so commonly executed that they are implemented
    as macros, not functions, because otherwise runtime performance would
