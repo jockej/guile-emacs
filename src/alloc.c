@@ -143,16 +143,6 @@ extern Lisp_Object which_symbols (Lisp_Object, EMACS_INT) EXTERNALLY_VISIBLE;
 
 struct gcpro *gcprolist;
 
-/* Addresses of staticpro'd variables.  Initialize it to a nonzero
-   value; otherwise some compilers put it into BSS.  */
-
-enum { NSTATICS = 2048 };
-static Lisp_Object *staticvec[NSTATICS] = {&Vpurify_flag};
-
-/* Index of next unused slot in staticvec.  */
-
-static int staticidx;
-
 static void
 XFLOAT_INIT (Lisp_Object f, double n)
 {
@@ -1556,17 +1546,11 @@ DEFUN ("purecopy", Fpurecopy, Spurecopy, 1, 1, 0,
 			  Protection from GC
  ***********************************************************************/
 
-/* Put an entry in staticvec, pointing at the variable with address
-   VARADDRESS.  */
-
 void
 staticpro (Lisp_Object *varaddress)
 {
-  if (staticidx >= NSTATICS)
-    fatal ("NSTATICS too small; try increasing and recompiling Emacs.");
-  staticvec[staticidx++] = varaddress;
+  return;
 }
-
 
 DEFUN ("garbage-collect", Fgarbage_collect, Sgarbage_collect, 0, 0, "",
        doc: /* Reclaim storage for Lisp objects no longer needed.
