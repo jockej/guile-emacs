@@ -653,7 +653,7 @@ struct OpenTypeSpec
 static struct OpenTypeSpec *
 ftfont_get_open_type_spec (Lisp_Object otf_spec)
 {
-  struct OpenTypeSpec *spec = malloc (sizeof *spec);
+  struct OpenTypeSpec *spec = xmalloc_unsafe (sizeof *spec);
   Lisp_Object val;
   int i, j;
   bool negative;
@@ -693,12 +693,12 @@ ftfont_get_open_type_spec (Lisp_Object otf_spec)
       spec->features[i] =
 	(min (PTRDIFF_MAX, SIZE_MAX) / sizeof (int) < XINT (len)
 	 ? 0
-	 : malloc (XINT (len) * sizeof *spec->features[i]));
+	 : xmalloc_unsafe (XINT (len) * sizeof *spec->features[i]));
       if (! spec->features[i])
 	{
 	  if (i > 0 && spec->features[0])
-	    free (spec->features[0]);
-	  free (spec);
+	    xfree (spec->features[0]);
+	  xfree (spec);
 	  return NULL;
 	}
       for (j = 0, negative = 0; CONSP (val); val = XCDR (val))
@@ -868,10 +868,10 @@ ftfont_spec_pattern (Lisp_Object spec, char *otlayout, struct OpenTypeSpec **ots
   if (*otspec)
     {
       if ((*otspec)->nfeatures[0] > 0)
-	free ((*otspec)->features[0]);
+	xfree ((*otspec)->features[0]);
       if ((*otspec)->nfeatures[1] > 0)
-	free ((*otspec)->features[1]);
-      free (*otspec);
+	xfree ((*otspec)->features[1]);
+      xfree (*otspec);
       *otspec = NULL;
     }
 
