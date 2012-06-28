@@ -232,6 +232,17 @@ xfree (void *block)
   return;
 }
 
+/* Allocate uncollectable memory.  */
+
+void *
+xmalloc_uncollectable (size_t size)
+{
+  void *val = GC_MALLOC_UNCOLLECTABLE (size);
+  if (! val && size)
+    memory_full (size);
+  return val;
+}
+
 /* Allocate memory, but if memory is exhausted, return NULL instead of
    signalling an error.  */
 
