@@ -2119,7 +2119,7 @@ make_cl_data (xg_menu_cb_data *cl_data, struct frame *f, GCallback highlight_cb)
 {
   if (! cl_data)
     {
-      cl_data = xmalloc (sizeof *cl_data);
+      cl_data = xmalloc_uncollectable (sizeof *cl_data);
       cl_data->f = f;
       cl_data->menu_bar_vector = f->menu_bar_vector;
       cl_data->menu_bar_items_used = f->menu_bar_items_used;
