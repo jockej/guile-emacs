@@ -3347,7 +3347,7 @@ sys_opendir (const char *filename)
 	return NULL;
     }
 
-  if (!(dirp = (DIR *) malloc (sizeof (DIR))))
+  if (!(dirp = xmalloc (sizeof (DIR))))
     return NULL;
 
   dirp->dd_fd = 0;
