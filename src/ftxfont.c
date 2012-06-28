@@ -78,7 +78,7 @@ ftxfont_get_gcs (struct frame *f, unsigned long foreground, unsigned long backgr
 	}
     }
 
-  new = malloc (sizeof *new);
+  new = xmalloc_unsafe (sizeof *new);
   if (! new)
     return NULL;
   new->next = this;
@@ -88,7 +88,7 @@ ftxfont_get_gcs (struct frame *f, unsigned long foreground, unsigned long backgr
     }
   else if (font_put_frame_data (f, &ftxfont_driver, new) < 0)
     {
-      free (new);
+      xfree (new);
       return NULL;
     }
 
@@ -124,7 +124,7 @@ ftxfont_get_gcs (struct frame *f, unsigned long foreground, unsigned long backgr
 	prev->next = new->next;
       else if (data)
 	font_put_frame_data (f, &ftxfont_driver, new->next);
-      free (new);
+      xfree (new);
       return NULL;
     }
   return new->gcs;
