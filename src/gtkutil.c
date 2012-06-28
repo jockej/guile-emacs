@@ -1695,7 +1695,13 @@ typedef char * (*xg_get_file_func) (GtkWidget *);
 static char *
 xg_get_file_name_from_chooser (GtkWidget *w)
 {
-  return gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (w));
+  char *s1, *s2;
+  s1 = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (w));
+  if (! s1)
+    return NULL;
+  s2 = xstrdup (s1);
+  g_free (s1);
+  return s2;
 }
 
 /* Callback called when the "Show hidden files" toggle is pressed.
