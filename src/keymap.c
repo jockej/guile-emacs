@@ -1477,26 +1477,26 @@ current_minor_maps (Lisp_Object **modeptr, Lisp_Object **mapptr)
 		/* Use malloc here.  See the comment above this function.
 		   Avoid realloc here; it causes spurious traps on GNU/Linux [KFS] */
 		block_input ();
-		newmodes = malloc (allocsize);
+		newmodes = xmalloc_unsafe (allocsize);
 		if (newmodes)
 		  {
 		    if (cmm_modes)
 		      {
 			memcpy (newmodes, cmm_modes,
 				cmm_size * sizeof cmm_modes[0]);
-			free (cmm_modes);
+			xfree (cmm_modes);
 		      }
 		    cmm_modes = newmodes;
 		  }
 
-		newmaps = malloc (allocsize);
+		newmaps = xmalloc_unsafe (allocsize);
 		if (newmaps)
 		  {
 		    if (cmm_maps)
 		      {
 			memcpy (newmaps, cmm_maps,
 				cmm_size * sizeof cmm_maps[0]);
-			free (cmm_maps);
+			xfree (cmm_maps);
 		      }
 		    cmm_maps = newmaps;
 		  }
