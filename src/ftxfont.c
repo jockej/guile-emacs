@@ -347,7 +347,7 @@ ftxfont_end_for_frame (struct frame *f)
 
       for (i = 0; i < 6; i++)
 	XFreeGC (FRAME_X_DISPLAY (f), data->gcs[i]);
-      free (data);
+      xfree (data);
       data = next;
     }
   unblock_input ();
