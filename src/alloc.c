@@ -1448,7 +1448,7 @@ void
 refill_memory_reserve (void)
 {
   if (spare_memory == NULL)
-    spare_memory = GC_MALLOC (SPARE_MEMORY);
+    spare_memory = xmalloc_unsafe (SPARE_MEMORY);
 
   if (spare_memory)
     Vmemory_full = Qnil;
