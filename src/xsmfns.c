@@ -210,7 +210,7 @@ smc_save_yourself_CB (SmcConn smcConn,
       props[props_idx]->num_vals = 1;
       props[props_idx]->vals = &values[val_idx++];
       props[props_idx]->vals[0].length = strlen (cwd);
-      props[props_idx]->vals[0].value = cwd;
+      props[props_idx]->vals[0].value = xstrdup (cwd);
       ++props_idx;
     }
 
@@ -261,7 +261,7 @@ smc_save_yourself_CB (SmcConn smcConn,
 
   xfree (smid_opt);
   xfree (chdir_opt);
-  xfree (cwd);
+  free (cwd);
   xfree (vp);
 
   for (i = 0; i < props_idx; ++i)
