@@ -4793,15 +4793,15 @@ update_frame_tool_bar (struct frame *f)
             {
               w = gtk_image_new_from_stock (stock_name, icon_size);
               g_object_set_data_full (G_OBJECT (w), XG_TOOL_BAR_STOCK_NAME,
-                                      (gpointer) xstrdup (stock_name),
-                                      (GDestroyNotify) xfree);
+                                      (gpointer) g_strdup (stock_name),
+                                      (GDestroyNotify) g_free);
             }
           else if (icon_name)
             {
               w = gtk_image_new_from_icon_name (icon_name, icon_size);
               g_object_set_data_full (G_OBJECT (w), XG_TOOL_BAR_ICON_NAME,
-                                      (gpointer) xstrdup (icon_name),
-                                      (GDestroyNotify) xfree);
+                                      (gpointer) g_strdup (icon_name),
+                                      (GDestroyNotify) g_free);
             }
           else
             {
