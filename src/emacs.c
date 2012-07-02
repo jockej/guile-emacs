@@ -165,10 +165,6 @@ bool running_asynch_code;
 bool display_arg;
 #endif
 
-/* An address near the bottom of the stack.
-   Tells GC how to save a copy of the stack.  */
-char *stack_bottom;
-
 #if defined (DOUG_LEA_MALLOC) || defined (GNU_LINUX)
 /* The address where the heap starts (from the first sbrk (0) call).  */
 static void *my_heap_start;
@@ -703,7 +699,6 @@ close_output_streams (void)
 int
 main (int argc, char **argv)
 {
-  char stack_bottom_variable;
   bool do_initial_setlocale;
   bool dumping;
   int skip_args = 0;
@@ -893,9 +888,6 @@ main (int argc, char **argv)
       setrlimit (RLIMIT_STACK, &rlim);
     }
 #endif /* HAVE_SETRLIMIT and RLIMIT_STACK */
-
-  /* Record (approximately) where the stack begins.  */
-  stack_bottom = &stack_bottom_variable;
 
   clearerr (stdin);
 

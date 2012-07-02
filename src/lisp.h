@@ -2905,10 +2905,6 @@ struct handler
 
 extern Lisp_Object memory_signal_data;
 
-/* An address near the bottom of the stack.
-   Tells GC how to save a copy of the stack.  */
-extern char *stack_bottom;
-
 /* Check quit-flag and quit if it is non-nil.
    Typing C-g does not directly cause a quit; it only sets Vquit_flag.
    So the program needs to do QUIT at times when it is safe to quit.
