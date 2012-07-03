@@ -27,6 +27,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <sys/types.h>
 #include <sys/file.h>
 #include <unistd.h>
+#include <libguile.h>
 
 #include <close-stream.h>
 
@@ -764,6 +765,10 @@ main (int argc, char **argv)
 #endif
 
   atexit (close_output_streams);
+
+  /* Override Guile's libgc configuration. */
+  xputenv ("GC_ALL_INTERIOR_POINTERS=1");
+  scm_init_guile ();
 
   sort_args (argc, argv);
   argc = 0;
