@@ -570,17 +570,6 @@ enum CHECK_LISP_OBJECT_TYPE { CHECK_LISP_OBJECT_TYPE = false };
 LISP_MACRO_DEFUN (XLI, EMACS_INT, (Lisp_Object o), (o))
 LISP_MACRO_DEFUN (XIL, Lisp_Object, (EMACS_INT i), (i))
 
-/* In the size word of a vector, this bit means the vector has been marked.  */
-
-#define ARRAY_MARK_FLAG_val PTRDIFF_MIN
-#if ENUMABLE (ARRAY_MARK_FLAG_val)
-DEFINE_GDB_SYMBOL_ENUM (ARRAY_MARK_FLAG)
-#else
-DEFINE_GDB_SYMBOL_BEGIN (ptrdiff_t, ARRAY_MARK_FLAG)
-# define ARRAY_MARK_FLAG ARRAY_MARK_FLAG_val
-DEFINE_GDB_SYMBOL_END (ARRAY_MARK_FLAG)
-#endif
-
 /* In the size word of a struct Lisp_Vector, this bit means it's really
    some other vector-like object.  */
 #define PSEUDOVECTOR_FLAG_val (PTRDIFF_MAX - PTRDIFF_MAX / 2)
@@ -1346,7 +1335,7 @@ gc_aset (Lisp_Object array, ptrdiff_t idx, Lisp_Object val)
 {
   /* Like ASET, but also can be used in the garbage collector:
      sweep_weak_table calls set_hash_key etc. while the table is marked.  */
-  eassert (0 <= idx && idx < (ASIZE (array) & ~ARRAY_MARK_FLAG));
+  eassert (0 <= idx && idx < (ASIZE (array)));
   XVECTOR (array)->contents[idx] = val;
 }
 
