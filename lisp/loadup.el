@@ -63,10 +63,6 @@
 			    (expand-file-name "textmodes" dir)
 			    (expand-file-name "vc" dir)))))
 
-(if (eq t purify-flag)
-    ;; Hash consing saved around 11% of pure space in my tests.
-    (setq purify-flag (make-hash-table :test 'equal :size 70000)))
-
 (message "Using load-path %s" load-path)
 
 ;; This is a poor man's `last', since we haven't loaded subr.el yet.
