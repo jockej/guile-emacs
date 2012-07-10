@@ -4093,16 +4093,6 @@ defsubr (struct Lisp_Subr *sname)
   set_symbol_function (sym, tem);
 }
 
-#ifdef NOTDEF /* Use fset in subr.el now!  */
-void
-defalias (struct Lisp_Subr *sname, char *string)
-{
-  Lisp_Object sym;
-  sym = intern (string);
-  XSETSUBR (XSYMBOL (sym)->function, sname);
-}
-#endif /* NOTDEF */
-
 /* Define an "integer variable"; a symbol whose value is forwarded to a
    C variable of type EMACS_INT.  Sample call (with "xx" to fool make-docfile):
    DEFxxVAR_INT ("emacs-priority", &emacs_priority, "Documentation");  */
