@@ -3537,7 +3537,6 @@ read_vector (Lisp_Object readcharfun, bool bytecodeflag)
   ptrdiff_t i, size;
   Lisp_Object *ptr;
   Lisp_Object tem, item, vector;
-  struct Lisp_Cons *otem;
   Lisp_Object len;
 
   tem = read_list (1, readcharfun);
@@ -3582,7 +3581,6 @@ read_vector (Lisp_Object readcharfun, bool bytecodeflag)
 		  if (!CONSP (item))
 		    error ("Invalid byte code");
 
-		  otem = XCONS (item);
 		  bytestr = XCAR (item);
 		  item = XCDR (item);
 		}
@@ -3601,7 +3599,6 @@ read_vector (Lisp_Object readcharfun, bool bytecodeflag)
 	    }
 	}
       ASET (vector, i, item);
-      otem = XCONS (tem);
       tem = Fcdr (tem);
     }
   return vector;
