@@ -795,15 +795,7 @@ DEFUN ("cons", Fcons, Scons, 2, 2, 0,
        doc: /* Create a new cons, give it CAR and CDR as components, and return it.  */)
   (Lisp_Object car, Lisp_Object cdr)
 {
-  register Lisp_Object val;
-  struct Lisp_Cons *p;
-
-  p = xmalloc (sizeof *p);
-  SCM_NEWSMOB (p->self, lisp_cons_tag, p);
-  XSETCONS (val, p);
-  XSETCAR (val, car);
-  XSETCDR (val, cdr);
-  return val;
+  return scm_cons (car, cdr);
 }
 
 /* Make a list of 1, 2, 3, 4 or 5 specified objects.  */
@@ -1661,7 +1653,6 @@ init_alloc_once (void)
   lisp_misc_tag = scm_make_smob_type ("elisp-misc", 0);
   lisp_string_tag = scm_make_smob_type ("elisp-string", 0);
   lisp_vectorlike_tag = scm_make_smob_type ("elisp-vectorlike", 0);
-  lisp_cons_tag = scm_make_smob_type ("elisp-cons", 0);
 
   /* Used to do Vpurify_flag = Qt here, but Qt isn't set up yet!  */
 
