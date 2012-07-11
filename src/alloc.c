@@ -464,7 +464,11 @@ init_strings (void)
 static struct Lisp_String *
 allocate_string (void)
 {
-  return xmalloc (sizeof (struct Lisp_String));
+  struct Lisp_String *p;
+
+  p = xmalloc (sizeof *p);
+  SCM_NEWSMOB (p->self, lisp_string_tag, p);
+  return p;
 }
 
 
@@ -787,7 +791,11 @@ Lisp_Object
 make_float (double float_value)
 {
   register Lisp_Object val;
-  XSETFLOAT (val, xmalloc_atomic (sizeof (struct Lisp_Float)));
+  struct Lisp_Float *p;
+
+  p = xmalloc (sizeof *p);
+  SCM_NEWSMOB (p->self, lisp_float_tag, p);
+  XSETFLOAT (val, p);
   XFLOAT_INIT (val, float_value);
   return val;
 }
@@ -803,8 +811,11 @@ DEFUN ("cons", Fcons, Scons, 2, 2, 0,
   (Lisp_Object car, Lisp_Object cdr)
 {
   register Lisp_Object val;
+  struct Lisp_Cons *p;
 
-  XSETCONS (val, xmalloc (sizeof (struct Lisp_Cons)));
+  p = xmalloc (sizeof *p);
+  SCM_NEWSMOB (p->self, lisp_cons_tag, p);
+  XSETCONS (val, p);
   XSETCAR (val, car);
   XSETCDR (val, cdr);
   return val;
@@ -958,8 +969,11 @@ Lisp_Object zero_vector;
 static void
 init_vectors (void)
 {
-  XSETVECTOR (zero_vector, xmalloc (header_size));
-  XVECTOR (zero_vector)->header.size = 0;
+  struct Lisp_Vector *p = xmalloc (header_size);
+
+  SCM_NEWSMOB (p->header.self, lisp_vectorlike_tag, p);
+  p->header.size = 0;
+  XSETVECTOR (zero_vector, p);
 }
 
 /* Value is a pointer to a newly allocated Lisp_Vector structure
@@ -968,10 +982,17 @@ init_vectors (void)
 static struct Lisp_Vector *
 allocate_vectorlike (ptrdiff_t len)
 {
+  struct Lisp_Vector *p;
+
   if (len == 0)
-    return XVECTOR (zero_vector);
+    p = XVECTOR (zero_vector);
   else
-    return xmalloc (header_size + len * word_size);
+    {
+      p = xmalloc (header_size + len * word_size);
+      SCM_NEWSMOB (p->header.self, lisp_vectorlike_tag, p);
+    }
+
+  return p;
 }
 
 
@@ -1017,6 +1038,7 @@ allocate_buffer (void)
 {
   struct buffer *b = xmalloc (sizeof *b);
 
+  SCM_NEWSMOB (b->header.self, lisp_vectorlike_tag, b);
   BUFFER_PVEC_INIT (b);
   /* Put B on the chain of all buffers including killed ones.  */
   b->next = all_buffers;
@@ -1192,7 +1214,9 @@ Its value is void, and its function definition and property list are nil.  */)
 
   CHECK_STRING (name);
 
-  XSETSYMBOL (val, xmalloc (sizeof (struct Lisp_Symbol)));
+  p = xmalloc (sizeof *p);
+  SCM_NEWSMOB (p->self, lisp_symbol_tag, p);
+  XSETSYMBOL (val, p);
   p = XSYMBOL (val);
   set_symbol_name (val, name);
   set_symbol_plist (val, Qnil);
@@ -1219,8 +1243,11 @@ static Lisp_Object
 allocate_misc (enum Lisp_Misc_Type type)
 {
   Lisp_Object val;
+  union Lisp_Misc *p;
 
-  XSETMISC (val, xmalloc (sizeof (union Lisp_Misc)));
+  p = xmalloc (sizeof *p);
+  SCM_NEWSMOB (p->u_any.self, lisp_misc_tag, p);
+  XSETMISC (val, p);
   XMISCANY (val)->type = type;
   return val;
 }
@@ -1538,10 +1565,10 @@ valid_lisp_object_p (Lisp_Object obj)
 {
   void *p;
 
-  if (INTEGERP (obj))
+  if (SCM_IMP (obj))
     return 1;
 
-  p = (void *) XPNTR (obj);
+  p = (void *) SCM2PTR (obj);
 
   if (p == &buffer_defaults || p == &buffer_local_symbols)
     return 2;
@@ -1645,6 +1672,13 @@ die (const char *msg, const char *file, int line)
 void
 init_alloc_once (void)
 {
+  lisp_symbol_tag = scm_make_smob_type ("elisp-symbol", 0);
+  lisp_misc_tag = scm_make_smob_type ("elisp-misc", 0);
+  lisp_string_tag = scm_make_smob_type ("elisp-string", 0);
+  lisp_vectorlike_tag = scm_make_smob_type ("elisp-vectorlike", 0);
+  lisp_cons_tag = scm_make_smob_type ("elisp-cons", 0);
+  lisp_float_tag = scm_make_smob_type ("elisp-float", 0);
+
   /* Used to do Vpurify_flag = Qt here, but Qt isn't set up yet!  */
 
   init_strings ();
@@ -1751,7 +1785,6 @@ union
   enum CHARTAB_SIZE_BITS CHARTAB_SIZE_BITS;
   enum CHAR_TABLE_STANDARD_SLOTS CHAR_TABLE_STANDARD_SLOTS;
   enum char_bits char_bits;
-  enum CHECK_LISP_OBJECT_TYPE CHECK_LISP_OBJECT_TYPE;
   enum DEFAULT_HASH_SIZE DEFAULT_HASH_SIZE;
   enum Lisp_Bits Lisp_Bits;
   enum Lisp_Compiled Lisp_Compiled;

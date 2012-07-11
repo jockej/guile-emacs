@@ -472,12 +472,12 @@ struct font_bitmap
   } while (false)
 
 #define XFONT_SPEC(p)	\
-  (eassert (FONT_SPEC_P (p)), (struct font_spec *) XUNTAG (p, Lisp_Vectorlike))
+  (eassert (FONT_SPEC_P (p)), (struct font_spec *) SCM_SMOB_DATA (p))
 #define XFONT_ENTITY(p)	\
   (eassert (FONT_ENTITY_P (p)), \
-   (struct font_entity *) XUNTAG (p, Lisp_Vectorlike))
+   (struct font_entity *) SCM_SMOB_DATA (p))
 #define XFONT_OBJECT(p)	\
-  (eassert (FONT_OBJECT_P (p)), (struct font *) XUNTAG (p, Lisp_Vectorlike))
+  (eassert (FONT_OBJECT_P (p)), (struct font *) SCM_SMOB_DATA (p))
 #define XSETFONT(a, b) (XSETPSEUDOVECTOR (a, b, PVEC_FONT))
 
 /* Number of pt per inch (from the TeXbook).  */
