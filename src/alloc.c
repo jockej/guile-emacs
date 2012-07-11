@@ -142,13 +142,6 @@ extern Lisp_Object which_symbols (Lisp_Object, EMACS_INT) EXTERNALLY_VISIBLE;
 /* Recording what needs to be marked for gc.  */
 
 struct gcpro *gcprolist;
-
-static void
-XFLOAT_INIT (Lisp_Object f, double n)
-{
-  XFLOAT (f)->data = n;
-}
-
 
 /************************************************************************
 				Malloc
@@ -790,16 +783,8 @@ make_formatted_string (char *buf, const char *format, ...)
 Lisp_Object
 make_float (double float_value)
 {
-  register Lisp_Object val;
-  struct Lisp_Float *p;
-
-  p = xmalloc (sizeof *p);
-  SCM_NEWSMOB (p->self, lisp_float_tag, p);
-  XSETFLOAT (val, p);
-  XFLOAT_INIT (val, float_value);
-  return val;
+  return scm_from_double (float_value);
 }
-
 
 
 /***********************************************************************
@@ -1677,7 +1662,6 @@ init_alloc_once (void)
   lisp_string_tag = scm_make_smob_type ("elisp-string", 0);
   lisp_vectorlike_tag = scm_make_smob_type ("elisp-vectorlike", 0);
   lisp_cons_tag = scm_make_smob_type ("elisp-cons", 0);
-  lisp_float_tag = scm_make_smob_type ("elisp-float", 0);
 
   /* Used to do Vpurify_flag = Qt here, but Qt isn't set up yet!  */
 

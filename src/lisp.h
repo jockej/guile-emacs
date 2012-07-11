@@ -293,7 +293,7 @@ DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
    ((ok) ? (void) 0 : (void) wrong_type_argument (predicate, x))
 #define lisp_h_CONSP(x) (SMOB_TYPEP (x, lisp_cons_tag))
 #define lisp_h_EQ(x, y) (scm_is_eq (x, y))
-#define lisp_h_FLOATP(x) (SMOB_TYPEP (x, lisp_float_tag))
+#define lisp_h_FLOATP(x) (x && SCM_INEXACTP (x))
 #define lisp_h_INTEGERP(x) (SCM_I_INUMP (x))
 #define lisp_h_MARKERP(x) (MISCP (x) && XMISCTYPE (x) == Lisp_Misc_Marker)
 #define lisp_h_MISCP(x) (SMOB_TYPEP (x, lisp_misc_tag))
@@ -380,7 +380,6 @@ scm_t_bits lisp_misc_tag;
 scm_t_bits lisp_string_tag;
 scm_t_bits lisp_vectorlike_tag;
 scm_t_bits lisp_cons_tag;
-scm_t_bits lisp_float_tag;
 
 enum Lisp_Type
   {
@@ -689,13 +688,6 @@ XSTRING (Lisp_Object a)
 
 LISP_MACRO_DEFUN (XSYMBOL, struct Lisp_Symbol *, (Lisp_Object a), (a))
 
-INLINE struct Lisp_Float *
-XFLOAT (Lisp_Object a)
-{
-  eassert (FLOATP (a));
-  return SMOB_PTR (a);
-}
-
 /* Pseudovector types.  */
 
 INLINE struct Lisp_Process *
@@ -765,7 +757,6 @@ make_lisp_proc (struct Lisp_Process *p)
 #define XSETVECTOR(a, b) ((a) = (b)->header.self)
 #define XSETSTRING(a, b) ((a) = (b)->self)
 #define XSETSYMBOL(a, b) ((a) = (b)->self)
-#define XSETFLOAT(a, b) ((a) = (b)->self)
 #define XSETMISC(a, b) (a) = ((union Lisp_Misc *) (b))->u_any.self
 
 /* Pseudovector types.  */
@@ -2050,18 +2041,7 @@ XBUFFER_OBJFWD (union Lisp_Fwd *a)
   return &a->u_buffer_objfwd;
 }
 
-/* Lisp floating point type.  */
-struct Lisp_Float
-  {
-    Lisp_Object self;
-    double data;
-  };
-
-INLINE double
-XFLOAT_DATA (Lisp_Object f)
-{
-  return XFLOAT (f)->data;
-}
+#define XFLOAT_DATA(f)  (scm_to_double (f))
 
 /* Most hosts nowadays use IEEE floating point, so they use IEC 60559
    representations, have infinities and NaNs, and do not trap on
