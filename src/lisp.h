@@ -346,7 +346,7 @@ DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
 #define lisp_h_SYMBOLP(x) (XTYPE (x) == Lisp_Symbol)
 #define lisp_h_VECTORLIKEP(x) (XTYPE (x) == Lisp_Vectorlike)
 #define lisp_h_XCAR(c) XCONS (c)->car
-#define lisp_h_XCDR(c) XCONS (c)->u.cdr
+#define lisp_h_XCDR(c) XCONS (c)->cdr
 #define lisp_h_XCONS(a) \
    (eassert (CONSP (a)), (struct Lisp_Cons *) XUNTAG (a, Lisp_Cons))
 #define lisp_h_XHASH(a) XUINT (a)
@@ -991,14 +991,8 @@ struct Lisp_Cons
     /* Car of this cons cell.  */
     Lisp_Object car;
 
-    union
-    {
-      /* Cdr of this cons cell.  */
-      Lisp_Object cdr;
-
-      /* Used to chain conses on a free list.  */
-      struct Lisp_Cons *chain;
-    } u;
+    /* Cdr of this cons cell.  */
+    Lisp_Object cdr;
   };
 
 /* Take the car or cdr of something known to be a cons cell.  */
@@ -1016,7 +1010,7 @@ xcar_addr (Lisp_Object c)
 INLINE Lisp_Object *
 xcdr_addr (Lisp_Object c)
 {
-  return &XCONS (c)->u.cdr;
+  return &XCONS (c)->cdr;
 }
 
 /* Use these from normal code.  */
