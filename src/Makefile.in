@@ -312,6 +312,8 @@ DEPFLAGS=@DEPFLAGS@
 ## ${MKDIR_P} ${DEPDIR} (if AUTO_DEPEND); else ':'.
 MKDEPDIR=@MKDEPDIR@
 
+GUILE_SNARF=@GUILE_SNARF@
+
 ## DO NOT use -R.  There is a special hack described in lastfile.c
 ## which is used instead.  Some initialized data areas are modified
 ## at initial startup, then labeled as part of the text area when
@@ -334,13 +336,19 @@ ALL_CFLAGS=-Demacs $(MYCPPFLAGS) -I. -I$(srcdir) \
   $(WARN_CFLAGS) $(WERROR_CFLAGS) $(CFLAGS)
 ALL_OBJC_CFLAGS=$(ALL_CFLAGS) $(GNU_OBJC_CFLAGS)
 
-.SUFFIXES: .m
+.SUFFIXES: .m .x
+
 .c.o:
 	@$(MKDEPDIR)
 	$(CC) -c $(CPPFLAGS) $(ALL_CFLAGS) $(PROFILING_CFLAGS) $<
 .m.o:
 	@$(MKDEPDIR)
 	$(CC) -c $(CPPFLAGS) $(ALL_OBJC_CFLAGS) $(PROFILING_CFLAGS) $<
+
+.c.x:
+	$(GUILE_SNARF) -o $@ $< $(CPPFLAGS) $(ALL_CFLAGS)
+.m.x:
+	$(GUILE_SNARF) -o $@ $< $(CPPFLAGS) $(ALL_OBJC_CFLAGS)
 
 ## lastfile must follow all files whose initialized data areas should
 ## be dumped as pure by dump-emacs.

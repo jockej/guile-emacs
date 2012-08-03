@@ -1376,6 +1376,11 @@ PKG_CHECK_MODULES([GUILE], [guile-2.2], [],
 AC_SUBST(GUILE_CFLAGS)
 AC_SUBST(GUILE_LIBS)
 
+AC_PATH_PROG(GUILE_SNARF, guile-snarf, no)
+if test "$GUILE_SNARF" = "no"; then
+   AC_MSG_ERROR([guile-snarf not found])
+fi
+
 HAVE_SOUND=no
 
 if test "${with_sound}" != "no"; then
