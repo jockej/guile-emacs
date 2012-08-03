@@ -1570,14 +1570,14 @@ DEFUN ("menu-or-popup-active-p", Fmenu_or_popup_active_p, Smenu_or_popup_active_
 void
 syms_of_w32menu (void)
 {
+#include "w32menu.x"
+
   globals_of_w32menu ();
 
   current_popup_menu = NULL;
 
   DEFSYM (Qdebug_on_next_call, "debug-on-next-call");
   DEFSYM (Qunsupported__w32_dialog, "unsupported--w32-dialog");
-
-  defsubr (&Smenu_or_popup_active_p);
 }
 
 /*

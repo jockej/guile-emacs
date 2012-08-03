@@ -6386,6 +6386,8 @@ DEFUN ("show-face-resources", Fshow_face_resources, Sshow_face_resources,
 void
 syms_of_xfaces (void)
 {
+#include "xfaces.x"
+
   DEFSYM (Qface, "face");
   DEFSYM (Qface_no_inherit, "face-no-inherit");
   DEFSYM (Qbitmap_spec_p, "bitmap-spec-p");
@@ -6464,44 +6466,6 @@ syms_of_xfaces (void)
   staticpro (&Vface_alternative_font_family_alist);
   Vface_alternative_font_registry_alist = Qnil;
   staticpro (&Vface_alternative_font_registry_alist);
-
-  defsubr (&Sinternal_make_lisp_face);
-  defsubr (&Sinternal_lisp_face_p);
-  defsubr (&Sinternal_set_lisp_face_attribute);
-#ifdef HAVE_WINDOW_SYSTEM
-  defsubr (&Sinternal_set_lisp_face_attribute_from_resource);
-#endif
-  defsubr (&Scolor_gray_p);
-  defsubr (&Scolor_supported_p);
-#ifndef HAVE_X_WINDOWS
-  defsubr (&Sx_load_color_file);
-#endif
-  defsubr (&Sface_attribute_relative_p);
-  defsubr (&Smerge_face_attribute);
-  defsubr (&Sinternal_get_lisp_face_attribute);
-  defsubr (&Sinternal_lisp_face_attribute_values);
-  defsubr (&Sinternal_lisp_face_equal_p);
-  defsubr (&Sinternal_lisp_face_empty_p);
-  defsubr (&Sinternal_copy_lisp_face);
-  defsubr (&Sinternal_merge_in_global_face);
-  defsubr (&Sface_font);
-  defsubr (&Sframe_face_alist);
-  defsubr (&Sdisplay_supports_face_attributes_p);
-  defsubr (&Scolor_distance);
-  defsubr (&Sinternal_set_font_selection_order);
-  defsubr (&Sinternal_set_alternative_font_family_alist);
-  defsubr (&Sinternal_set_alternative_font_registry_alist);
-  defsubr (&Sface_attributes_as_vector);
-#ifdef GLYPH_DEBUG
-  defsubr (&Sdump_face);
-  defsubr (&Sshow_face_resources);
-#endif /* GLYPH_DEBUG */
-  defsubr (&Sclear_face_cache);
-  defsubr (&Stty_suppress_bold_inverse_default_colors);
-
-#if defined DEBUG_X_COLORS && defined HAVE_X_WINDOWS
-  defsubr (&Sdump_colors);
-#endif
 
   DEFVAR_LISP ("face-new-frame-defaults", Vface_new_frame_defaults,
     doc: /* List of global face definitions (for internal use only.)  */);
@@ -6586,11 +6550,4 @@ RESCALE-RATIO is a floating point number to specify how much larger
 \(or smaller) font we should use.  For instance, if a face requests
 a font of 10 point, we actually use a font of 10 * RESCALE-RATIO point.  */);
   Vface_font_rescale_alist = Qnil;
-
-#ifdef HAVE_WINDOW_SYSTEM
-  defsubr (&Sbitmap_spec_p);
-  defsubr (&Sx_list_fonts);
-  defsubr (&Sinternal_face_x_get_resource);
-  defsubr (&Sx_family_fonts);
-#endif
 }

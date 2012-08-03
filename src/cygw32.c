@@ -134,6 +134,5 @@ For the reverse operation, see `cygwin-convert-file-name-to-windows'.  */)
 void
 syms_of_cygw32 (void)
 {
-  defsubr (&Scygwin_convert_file_name_from_windows);
-  defsubr (&Scygwin_convert_file_name_to_windows);
+#include "cygw32.x"
 }

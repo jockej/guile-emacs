@@ -674,18 +674,7 @@ dos_cleanup (void)
 void
 syms_of_dosfns (void)
 {
-  defsubr (&Sint86);
-  defsubr (&Sdos_memget);
-  defsubr (&Sdos_memput);
-  defsubr (&Smsdos_mouse_init);
-  defsubr (&Smsdos_mouse_enable);
-  defsubr (&Smsdos_set_keyboard);
-  defsubr (&Sinsert_startup_screen);
-  defsubr (&Smsdos_mouse_disable);
-  defsubr (&Sfile_system_info);
-#ifndef HAVE_X_WINDOWS
-  defsubr (&Smsdos_mouse_p);
-#endif
+#include "dosfns.x"
 
   DEFVAR_INT ("dos-country-code", dos_country_code,
 	      doc: /* The country code returned by Dos when Emacs was started.

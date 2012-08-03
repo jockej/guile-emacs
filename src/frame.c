@@ -4523,6 +4523,8 @@ make_monitor_attribute_list (struct MonitorInfo *monitors,
 void
 syms_of_frame (void)
 {
+#include "frame.x"
+
   DEFSYM (Qframep, "framep");
   DEFSYM (Qframe_live_p, "frame-live-p");
   DEFSYM (Qexplicit_name, "explicit-name");
@@ -4768,64 +4770,4 @@ set this option to a non-nil value in your init file.  */);
   frame_resize_pixelwise = 0;
 
   staticpro (&Vframe_list);
-
-  defsubr (&Sframep);
-  defsubr (&Sframe_live_p);
-  defsubr (&Swindow_system);
-  defsubr (&Smake_terminal_frame);
-  defsubr (&Shandle_switch_frame);
-  defsubr (&Sselect_frame);
-  defsubr (&Sselected_frame);
-  defsubr (&Sframe_list);
-  defsubr (&Snext_frame);
-  defsubr (&Sprevious_frame);
-  defsubr (&Slast_nonminibuf_frame);
-  defsubr (&Sdelete_frame);
-  defsubr (&Smouse_position);
-  defsubr (&Smouse_pixel_position);
-  defsubr (&Sset_mouse_position);
-  defsubr (&Sset_mouse_pixel_position);
-#if 0
-  defsubr (&Sframe_configuration);
-  defsubr (&Srestore_frame_configuration);
-#endif
-  defsubr (&Smake_frame_visible);
-  defsubr (&Smake_frame_invisible);
-  defsubr (&Siconify_frame);
-  defsubr (&Sframe_visible_p);
-  defsubr (&Svisible_frame_list);
-  defsubr (&Sraise_frame);
-  defsubr (&Slower_frame);
-  defsubr (&Sx_focus_frame);
-  defsubr (&Sredirect_frame_focus);
-  defsubr (&Sframe_focus);
-  defsubr (&Sframe_parameters);
-  defsubr (&Sframe_parameter);
-  defsubr (&Smodify_frame_parameters);
-  defsubr (&Sframe_char_height);
-  defsubr (&Sframe_char_width);
-  defsubr (&Sframe_pixel_height);
-  defsubr (&Sframe_pixel_width);
-  defsubr (&Sframe_text_cols);
-  defsubr (&Sframe_text_lines);
-  defsubr (&Sframe_total_cols);
-  defsubr (&Sframe_text_width);
-  defsubr (&Sframe_text_height);
-  defsubr (&Sscroll_bar_width);
-  defsubr (&Sfringe_width);
-  defsubr (&Sborder_width);
-  defsubr (&Sright_divider_width);
-  defsubr (&Sbottom_divider_width);
-  defsubr (&Stool_bar_pixel_width);
-  defsubr (&Sset_frame_height);
-  defsubr (&Sset_frame_width);
-  defsubr (&Sset_frame_size);
-  defsubr (&Sset_frame_position);
-  defsubr (&Sframe_pointer_visible_p);
-
-#ifdef HAVE_WINDOW_SYSTEM
-  defsubr (&Sx_get_resource);
-  defsubr (&Sx_parse_geometry);
-#endif
-
 }

@@ -10935,6 +10935,8 @@ static const struct event_head head_table[] = {
 void
 syms_of_keyboard (void)
 {
+#include "keyboard.x"
+
   pending_funcalls = Qnil;
   staticpro (&pending_funcalls);
 
@@ -11113,38 +11115,6 @@ syms_of_keyboard (void)
 
   help_form_saved_window_configs = Qnil;
   staticpro (&help_form_saved_window_configs);
-
-  defsubr (&Scurrent_idle_time);
-  defsubr (&Sevent_symbol_parse_modifiers);
-  defsubr (&Sevent_convert_list);
-  defsubr (&Sread_key_sequence);
-  defsubr (&Sread_key_sequence_vector);
-  defsubr (&Srecursive_edit);
-  defsubr (&Strack_mouse);
-  defsubr (&Sinput_pending_p);
-  defsubr (&Srecent_keys);
-  defsubr (&Sthis_command_keys);
-  defsubr (&Sthis_command_keys_vector);
-  defsubr (&Sthis_single_command_keys);
-  defsubr (&Sthis_single_command_raw_keys);
-  defsubr (&Sreset_this_command_lengths);
-  defsubr (&Sclear_this_command_keys);
-  defsubr (&Ssuspend_emacs);
-  defsubr (&Sabort_recursive_edit);
-  defsubr (&Sexit_recursive_edit);
-  defsubr (&Srecursion_depth);
-  defsubr (&Scommand_error_default_function);
-  defsubr (&Stop_level);
-  defsubr (&Sdiscard_input);
-  defsubr (&Sopen_dribble_file);
-  defsubr (&Sset_input_interrupt_mode);
-  defsubr (&Sset_output_flow_control);
-  defsubr (&Sset_input_meta_mode);
-  defsubr (&Sset_quit_char);
-  defsubr (&Sset_input_mode);
-  defsubr (&Scurrent_input_mode);
-  defsubr (&Sposn_at_point);
-  defsubr (&Sposn_at_x_y);
 
   DEFVAR_LISP ("last-command-event", last_command_event,
 		     doc: /* Last input event that was part of a command.  */);

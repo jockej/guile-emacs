@@ -840,6 +840,8 @@ t if it is locked by you, else a string saying which user has locked it.  */)
 void
 syms_of_filelock (void)
 {
+#include "filelock.x"
+
   DEFVAR_LISP ("temporary-file-directory", Vtemporary_file_directory,
 	       doc: /* The directory for writing temporary files.  */);
   Vtemporary_file_directory = Qnil;
@@ -847,8 +849,4 @@ syms_of_filelock (void)
   DEFVAR_BOOL ("create-lockfiles", create_lockfiles,
 	       doc: /* Non-nil means use lockfiles to avoid editing collisions.  */);
   create_lockfiles = 1;
-
-  defsubr (&Sunlock_buffer);
-  defsubr (&Slock_buffer);
-  defsubr (&Sfile_locked_p);
 }

@@ -5795,6 +5795,8 @@ init_fileio (void)
 void
 syms_of_fileio (void)
 {
+#include "fileio.x"
+
   DEFSYM (Qoperations, "operations");
   DEFSYM (Qexpand_file_name, "expand-file-name");
   DEFSYM (Qsubstitute_in_file_name, "substitute-in-file-name");
@@ -6030,58 +6032,4 @@ This includes interactive calls to `delete-file' and
   DEFSYM (Qcopy_directory, "copy-directory");
   DEFSYM (Qdelete_directory, "delete-directory");
   DEFSYM (Qsubstitute_env_in_file_name, "substitute-env-in-file-name");
-
-  defsubr (&Sfind_file_name_handler);
-  defsubr (&Sfile_name_directory);
-  defsubr (&Sfile_name_nondirectory);
-  defsubr (&Sunhandled_file_name_directory);
-  defsubr (&Sfile_name_as_directory);
-  defsubr (&Sdirectory_file_name);
-  defsubr (&Smake_temp_name);
-  defsubr (&Sexpand_file_name);
-  defsubr (&Ssubstitute_in_file_name);
-  defsubr (&Scopy_file);
-  defsubr (&Smake_directory_internal);
-  defsubr (&Sdelete_directory_internal);
-  defsubr (&Sdelete_file);
-  defsubr (&Srename_file);
-  defsubr (&Sadd_name_to_file);
-  defsubr (&Smake_symbolic_link);
-  defsubr (&Sfile_name_absolute_p);
-  defsubr (&Sfile_exists_p);
-  defsubr (&Sfile_executable_p);
-  defsubr (&Sfile_readable_p);
-  defsubr (&Sfile_writable_p);
-  defsubr (&Saccess_file);
-  defsubr (&Sfile_symlink_p);
-  defsubr (&Sfile_directory_p);
-  defsubr (&Sfile_accessible_directory_p);
-  defsubr (&Sfile_regular_p);
-  defsubr (&Sfile_modes);
-  defsubr (&Sset_file_modes);
-  defsubr (&Sset_file_times);
-  defsubr (&Sfile_selinux_context);
-  defsubr (&Sfile_acl);
-  defsubr (&Sset_file_acl);
-  defsubr (&Sset_file_selinux_context);
-  defsubr (&Sset_default_file_modes);
-  defsubr (&Sdefault_file_modes);
-  defsubr (&Sfile_newer_than_file_p);
-  defsubr (&Sinsert_file_contents);
-  defsubr (&Schoose_write_coding_system);
-  defsubr (&Swrite_region);
-  defsubr (&Scar_less_than_car);
-  defsubr (&Sverify_visited_file_modtime);
-  defsubr (&Svisited_file_modtime);
-  defsubr (&Sset_visited_file_modtime);
-  defsubr (&Sdo_auto_save);
-  defsubr (&Sset_buffer_auto_saved);
-  defsubr (&Sclear_buffer_auto_save_failure);
-  defsubr (&Srecent_auto_save_p);
-
-  defsubr (&Snext_read_file_uses_dialog_p);
-
-#ifdef HAVE_SYNC
-  defsubr (&Sunix_sync);
-#endif
 }

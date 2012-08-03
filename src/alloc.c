@@ -1678,6 +1678,8 @@ init_alloc (void)
 void
 syms_of_alloc (void)
 {
+#include "alloc.x"
+
   DEFVAR_INT ("gc-cons-threshold", gc_cons_threshold,
 	      doc: /* Number of bytes of consing between garbage collections.
 Garbage collection can happen automatically once this many bytes have been
@@ -1734,20 +1736,6 @@ do hash-consing of the objects allocated to pure space.  */);
 The time is in seconds as a floating point value.  */);
   DEFVAR_INT ("gcs-done", gcs_done,
 	      doc: /* Accumulated number of garbage collections done.  */);
-
-  defsubr (&Scons);
-  defsubr (&Slist);
-  defsubr (&Svector);
-  defsubr (&Sbool_vector);
-  defsubr (&Smake_byte_code);
-  defsubr (&Smake_list);
-  defsubr (&Smake_vector);
-  defsubr (&Smake_string);
-  defsubr (&Smake_bool_vector);
-  defsubr (&Smake_symbol);
-  defsubr (&Smake_marker);
-  defsubr (&Spurecopy);
-  defsubr (&Sgarbage_collect);
 }
 
 /* When compiled with GCC, GDB might say "No enum type named

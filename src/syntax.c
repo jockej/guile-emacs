@@ -3569,6 +3569,8 @@ init_syntax_once (void)
 void
 syms_of_syntax (void)
 {
+#include "syntax.x"
+
   DEFSYM (Qsyntax_table_p, "syntax-table-p");
 
   staticpro (&Vsyntax_code_object);
@@ -3627,28 +3629,4 @@ character of that word.
 
 In both cases, LIMIT bounds the search. */);
   Vfind_word_boundary_function_table = Fmake_char_table (Qnil, Qnil);
-
-  defsubr (&Ssyntax_table_p);
-  defsubr (&Ssyntax_table);
-  defsubr (&Sstandard_syntax_table);
-  defsubr (&Scopy_syntax_table);
-  defsubr (&Sset_syntax_table);
-  defsubr (&Schar_syntax);
-  defsubr (&Smatching_paren);
-  defsubr (&Sstring_to_syntax);
-  defsubr (&Smodify_syntax_entry);
-  defsubr (&Sinternal_describe_syntax_value);
-
-  defsubr (&Sforward_word);
-
-  defsubr (&Sskip_chars_forward);
-  defsubr (&Sskip_chars_backward);
-  defsubr (&Sskip_syntax_forward);
-  defsubr (&Sskip_syntax_backward);
-
-  defsubr (&Sforward_comment);
-  defsubr (&Sscan_lists);
-  defsubr (&Sscan_sexps);
-  defsubr (&Sbackward_prefix_chars);
-  defsubr (&Sparse_partial_sexp);
 }

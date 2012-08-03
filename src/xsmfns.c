@@ -531,6 +531,8 @@ Do not call this function yourself. */)
 void
 syms_of_xsmfns (void)
 {
+#include "xsmfns.x"
+
   DEFVAR_LISP ("x-session-id", Vx_session_id,
     doc: /* The session id Emacs got from the session manager for this session.
 Changing the value does not change the session id used by Emacs.
@@ -561,8 +563,6 @@ same, depending on how the session manager works.
 See also `emacs-save-session-functions', `emacs-session-save' and
 `emacs-session-restore'." */);
   Vx_session_previous_id = Qnil;
-
-  defsubr (&Shandle_save_session);
 }
 
 #endif /* HAVE_X_SM */

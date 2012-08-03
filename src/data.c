@@ -3383,6 +3383,8 @@ syms_of_data (void)
 {
   Lisp_Object error_tail, arith_tail;
 
+#include "data.x"
+
   DEFSYM (Qquote, "quote");
   DEFSYM (Qlambda, "lambda");
   DEFSYM (Qsubr, "subr");
@@ -3549,109 +3551,6 @@ syms_of_data (void)
 
   DEFSYM (Qinteractive_form, "interactive-form");
   DEFSYM (Qdefalias_fset_function, "defalias-fset-function");
-
-  defsubr (&Sindirect_variable);
-  defsubr (&Sinteractive_form);
-  defsubr (&Seq);
-  defsubr (&Snull);
-  defsubr (&Stype_of);
-  defsubr (&Slistp);
-  defsubr (&Snlistp);
-  defsubr (&Sconsp);
-  defsubr (&Satom);
-  defsubr (&Sintegerp);
-  defsubr (&Sinteger_or_marker_p);
-  defsubr (&Snumberp);
-  defsubr (&Snumber_or_marker_p);
-  defsubr (&Sfloatp);
-  defsubr (&Snatnump);
-  defsubr (&Ssymbolp);
-  defsubr (&Skeywordp);
-  defsubr (&Sstringp);
-  defsubr (&Smultibyte_string_p);
-  defsubr (&Svectorp);
-  defsubr (&Schar_table_p);
-  defsubr (&Svector_or_char_table_p);
-  defsubr (&Sbool_vector_p);
-  defsubr (&Sarrayp);
-  defsubr (&Ssequencep);
-  defsubr (&Sbufferp);
-  defsubr (&Smarkerp);
-  defsubr (&Ssubrp);
-  defsubr (&Sbyte_code_function_p);
-  defsubr (&Schar_or_string_p);
-  defsubr (&Scar);
-  defsubr (&Scdr);
-  defsubr (&Scar_safe);
-  defsubr (&Scdr_safe);
-  defsubr (&Ssetcar);
-  defsubr (&Ssetcdr);
-  defsubr (&Ssymbol_function);
-  defsubr (&Sindirect_function);
-  defsubr (&Ssymbol_plist);
-  defsubr (&Ssymbol_name);
-  defsubr (&Smakunbound);
-  defsubr (&Sfmakunbound);
-  defsubr (&Sboundp);
-  defsubr (&Sfboundp);
-  defsubr (&Sfset);
-  defsubr (&Sdefalias);
-  defsubr (&Ssetplist);
-  defsubr (&Ssymbol_value);
-  defsubr (&Sset);
-  defsubr (&Sdefault_boundp);
-  defsubr (&Sdefault_value);
-  defsubr (&Sset_default);
-  defsubr (&Ssetq_default);
-  defsubr (&Smake_variable_buffer_local);
-  defsubr (&Smake_local_variable);
-  defsubr (&Skill_local_variable);
-  defsubr (&Smake_variable_frame_local);
-  defsubr (&Slocal_variable_p);
-  defsubr (&Slocal_variable_if_set_p);
-  defsubr (&Svariable_binding_locus);
-#if 0                           /* XXX Remove this. --lorentey */
-  defsubr (&Sterminal_local_value);
-  defsubr (&Sset_terminal_local_value);
-#endif
-  defsubr (&Saref);
-  defsubr (&Saset);
-  defsubr (&Snumber_to_string);
-  defsubr (&Sstring_to_number);
-  defsubr (&Seqlsign);
-  defsubr (&Slss);
-  defsubr (&Sgtr);
-  defsubr (&Sleq);
-  defsubr (&Sgeq);
-  defsubr (&Sneq);
-  defsubr (&Splus);
-  defsubr (&Sminus);
-  defsubr (&Stimes);
-  defsubr (&Squo);
-  defsubr (&Srem);
-  defsubr (&Smod);
-  defsubr (&Smax);
-  defsubr (&Smin);
-  defsubr (&Slogand);
-  defsubr (&Slogior);
-  defsubr (&Slogxor);
-  defsubr (&Slsh);
-  defsubr (&Sash);
-  defsubr (&Sadd1);
-  defsubr (&Ssub1);
-  defsubr (&Slognot);
-  defsubr (&Sbyteorder);
-  defsubr (&Ssubr_arity);
-  defsubr (&Ssubr_name);
-
-  defsubr (&Sbool_vector_exclusive_or);
-  defsubr (&Sbool_vector_union);
-  defsubr (&Sbool_vector_intersection);
-  defsubr (&Sbool_vector_set_difference);
-  defsubr (&Sbool_vector_not);
-  defsubr (&Sbool_vector_subsetp);
-  defsubr (&Sbool_vector_count_consecutive);
-  defsubr (&Sbool_vector_count_population);
 
   set_symbol_function (Qwholenump, XSYMBOL (Qnatnump)->function);
 

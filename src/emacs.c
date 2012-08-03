@@ -2400,21 +2400,12 @@ from the parent process and its tty file descriptors.  */)
 void
 syms_of_emacs (void)
 {
+#include "emacs.x"
+
   DEFSYM (Qfile_name_handler_alist, "file-name-handler-alist");
   DEFSYM (Qrisky_local_variable, "risky-local-variable");
   DEFSYM (Qkill_emacs, "kill-emacs");
   DEFSYM (Qkill_emacs_hook, "kill-emacs-hook");
-
-#ifndef CANNOT_DUMP
-  defsubr (&Sdump_emacs);
-#endif
-
-  defsubr (&Skill_emacs);
-
-  defsubr (&Sinvocation_name);
-  defsubr (&Sinvocation_directory);
-  defsubr (&Sdaemonp);
-  defsubr (&Sdaemon_initialized);
 
   DEFVAR_LISP ("command-line-args", Vcommand_line_args,
 	       doc: /* Args passed by shell to Emacs, as a list of strings.

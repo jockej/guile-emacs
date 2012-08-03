@@ -545,6 +545,7 @@ delete_initial_terminal (struct terminal *terminal)
 void
 syms_of_terminal (void)
 {
+#include "terminal.x"
 
   DEFVAR_LISP ("ring-bell-function", Vring_bell_function,
     doc: /* Non-nil means call this function to ring the bell.
@@ -561,15 +562,6 @@ or some time later.  */);
   DEFSYM (Qterminal_live_p, "terminal-live-p");
   DEFSYM (Qdelete_terminal_functions, "delete-terminal-functions");
   DEFSYM (Qrun_hook_with_args, "run-hook-with-args");
-
-  defsubr (&Sdelete_terminal);
-  defsubr (&Sframe_terminal);
-  defsubr (&Sterminal_live_p);
-  defsubr (&Sterminal_list);
-  defsubr (&Sterminal_name);
-  defsubr (&Sterminal_parameters);
-  defsubr (&Sterminal_parameter);
-  defsubr (&Sset_terminal_parameter);
 
   Fprovide (intern_c_string ("multi-tty"), Qnil);
 }

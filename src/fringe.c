@@ -1773,17 +1773,14 @@ Return nil if POS is not visible in WINDOW.  */)
 void
 syms_of_fringe (void)
 {
+#include "fringe.x"
+
   DEFSYM (Qtruncation, "truncation");
   DEFSYM (Qcontinuation, "continuation");
   DEFSYM (Qoverlay_arrow, "overlay-arrow");
   DEFSYM (Qempty_line, "empty-line");
   DEFSYM (Qtop_bottom, "top-bottom");
   DEFSYM (Qhollow_small, "hollow-small");
-
-  defsubr (&Sdestroy_fringe_bitmap);
-  defsubr (&Sdefine_fringe_bitmap);
-  defsubr (&Sfringe_bitmaps_at_pos);
-  defsubr (&Sset_fringe_bitmap_face);
 
   DEFVAR_LISP ("overflow-newline-into-fringe", Voverflow_newline_into_fringe,
     doc: /* Non-nil means that newline may flow into the right fringe.

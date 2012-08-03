@@ -3148,31 +3148,10 @@ If successful, the new layout id is returned, otherwise nil.  */)
 void
 syms_of_ntproc (void)
 {
+#include "w32proc.x"
+
   DEFSYM (Qhigh, "high");
   DEFSYM (Qlow, "low");
-
-  defsubr (&Sw32_has_winsock);
-  defsubr (&Sw32_unload_winsock);
-
-  defsubr (&Sw32_short_file_name);
-  defsubr (&Sw32_long_file_name);
-  defsubr (&Sw32_set_process_priority);
-  defsubr (&Sw32_get_locale_info);
-  defsubr (&Sw32_get_current_locale_id);
-  defsubr (&Sw32_get_default_locale_id);
-  defsubr (&Sw32_get_valid_locale_ids);
-  defsubr (&Sw32_set_current_locale);
-
-  defsubr (&Sw32_get_console_codepage);
-  defsubr (&Sw32_set_console_codepage);
-  defsubr (&Sw32_get_console_output_codepage);
-  defsubr (&Sw32_set_console_output_codepage);
-  defsubr (&Sw32_get_valid_codepages);
-  defsubr (&Sw32_get_codepage_charset);
-
-  defsubr (&Sw32_get_valid_keyboard_layouts);
-  defsubr (&Sw32_get_keyboard_layout);
-  defsubr (&Sw32_set_keyboard_layout);
 
   DEFVAR_LISP ("w32-quote-process-args", Vw32_quote_process_args,
 	       doc: /* Non-nil enables quoting of process arguments to ensure correct parsing.

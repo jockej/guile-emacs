@@ -425,18 +425,9 @@ With negative argument, capitalize previous words but do not move.  */)
 void
 syms_of_casefiddle (void)
 {
+#include "casefiddle.x"
+
   DEFSYM (Qidentity, "identity");
-  defsubr (&Supcase);
-  defsubr (&Sdowncase);
-  defsubr (&Scapitalize);
-  defsubr (&Supcase_initials);
-  defsubr (&Supcase_region);
-  defsubr (&Sdowncase_region);
-  defsubr (&Scapitalize_region);
-  defsubr (&Supcase_initials_region);
-  defsubr (&Supcase_word);
-  defsubr (&Sdowncase_word);
-  defsubr (&Scapitalize_word);
 }
 
 void

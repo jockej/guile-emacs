@@ -4541,6 +4541,8 @@ delete_tty (struct terminal *terminal)
 void
 syms_of_term (void)
 {
+#include "term.x"
+
   DEFVAR_BOOL ("system-uses-terminfo", system_uses_terminfo,
     doc: /* Non-nil means the system uses terminfo rather than termcap.
 This variable can be used by terminal emulator packages.  */);
@@ -4569,19 +4571,6 @@ This only has an effect when running in a text terminal.
 What means \"very visible\" is up to your terminal.  It may make the cursor
 bigger, or it may make it blink, or it may do nothing at all.  */);
   visible_cursor = 1;
-
-  defsubr (&Stty_display_color_p);
-  defsubr (&Stty_display_color_cells);
-  defsubr (&Stty_no_underline);
-  defsubr (&Stty_type);
-  defsubr (&Scontrolling_tty_p);
-  defsubr (&Stty_top_frame);
-  defsubr (&Ssuspend_tty);
-  defsubr (&Sresume_tty);
-#ifdef HAVE_GPM
-  defsubr (&Sgpm_mouse_start);
-  defsubr (&Sgpm_mouse_stop);
-#endif /* HAVE_GPM */
 
 #ifndef DOS_NT
   default_orig_pair = NULL;

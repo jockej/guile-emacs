@@ -2353,6 +2353,8 @@ static struct charset charset_table_init[180];
 void
 syms_of_charset (void)
 {
+#include "charset.x"
+
   DEFSYM (Qcharsetp, "charsetp");
 
   DEFSYM (Qascii, "ascii");
@@ -2388,30 +2390,6 @@ syms_of_charset (void)
   charset_table = charset_table_init;
   charset_table_size = ARRAYELTS (charset_table_init);
   charset_table_used = 0;
-
-  defsubr (&Scharsetp);
-  defsubr (&Smap_charset_chars);
-  defsubr (&Sdefine_charset_internal);
-  defsubr (&Sdefine_charset_alias);
-  defsubr (&Scharset_plist);
-  defsubr (&Sset_charset_plist);
-  defsubr (&Sunify_charset);
-  defsubr (&Sget_unused_iso_final_char);
-  defsubr (&Sdeclare_equiv_charset);
-  defsubr (&Sfind_charset_region);
-  defsubr (&Sfind_charset_string);
-  defsubr (&Sdecode_char);
-  defsubr (&Sencode_char);
-  defsubr (&Ssplit_char);
-  defsubr (&Smake_char);
-  defsubr (&Schar_charset);
-  defsubr (&Scharset_after);
-  defsubr (&Siso_charset);
-  defsubr (&Sclear_charset_maps);
-  defsubr (&Scharset_priority_list);
-  defsubr (&Sset_charset_priority);
-  defsubr (&Scharset_id_internal);
-  defsubr (&Ssort_charsets);
 
   DEFVAR_LISP ("charset-map-path", Vcharset_map_path,
 	       doc: /* List of directories to search for charset map files.  */);

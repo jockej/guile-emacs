@@ -2325,6 +2325,8 @@ DEFUN ("menu-or-popup-active-p", Fmenu_or_popup_active_p, Smenu_or_popup_active_
 void
 syms_of_xmenu (void)
 {
+#include "xmenu.x"
+
   DEFSYM (Qdebug_on_next_call, "debug-on-next-call");
 
 #ifdef USE_X_TOOLKIT
@@ -2332,10 +2334,7 @@ syms_of_xmenu (void)
   next_menubar_widget_id = 1;
 #endif
 
-  defsubr (&Smenu_or_popup_active_p);
-
 #if defined (USE_GTK) || defined (USE_X_TOOLKIT)
-  defsubr (&Sx_menu_bar_open_internal);
   Ffset (intern_c_string ("accelerate-menu"),
 	 intern_c_string (Sx_menu_bar_open_internal.symbol_name));
 #endif

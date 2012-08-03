@@ -4454,21 +4454,7 @@ dir_warning (char const *use, Lisp_Object dirname)
 void
 syms_of_lread (void)
 {
-  defsubr (&Sread);
-  defsubr (&Sread_from_string);
-  defsubr (&Sintern);
-  defsubr (&Sintern_soft);
-  defsubr (&Sunintern);
-  defsubr (&Sget_load_suffixes);
-  defsubr (&Sload);
-  defsubr (&Seval_buffer);
-  defsubr (&Seval_region);
-  defsubr (&Sread_char);
-  defsubr (&Sread_char_exclusive);
-  defsubr (&Sread_event);
-  defsubr (&Sget_file_char);
-  defsubr (&Smapatoms);
-  defsubr (&Slocate_file_internal);
+#include "lread.x"
 
   DEFVAR_LISP ("obarray", Vobarray,
 	       doc: /* Symbol table for use by `intern' and `read'.

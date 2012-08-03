@@ -366,6 +366,8 @@ init_macros (void)
 void
 syms_of_macros (void)
 {
+#include "macros.x"
+
   DEFSYM (Qexecute_kbd_macro, "execute-kbd-macro");
 
   DEFVAR_LISP ("kbd-macro-termination-hook", Vkbd_macro_termination_hook,
@@ -373,13 +375,6 @@ syms_of_macros (void)
 This is run whether the macro ends normally or prematurely due to an error.  */);
   Vkbd_macro_termination_hook = Qnil;
   DEFSYM (Qkbd_macro_termination_hook, "kbd-macro-termination-hook");
-
-  defsubr (&Sstart_kbd_macro);
-  defsubr (&Send_kbd_macro);
-  defsubr (&Scall_last_kbd_macro);
-  defsubr (&Sexecute_kbd_macro);
-  defsubr (&Scancel_kbd_macro_events);
-  defsubr (&Sstore_kbd_macro_event);
 
   DEFVAR_KBOARD ("defining-kbd-macro", defining_kbd_macro,
 		 doc: /* Non-nil while a keyboard macro is being defined.  Don't set this!

@@ -458,6 +458,8 @@ truncate_undo_list (struct buffer *b)
 void
 syms_of_undo (void)
 {
+#include "undo.x"
+
   DEFSYM (Qinhibit_read_only, "inhibit-read-only");
   DEFSYM (Qapply, "apply");
 
@@ -466,8 +468,6 @@ syms_of_undo (void)
 
   last_undo_buffer = NULL;
   last_boundary_buffer = NULL;
-
-  defsubr (&Sundo_boundary);
 
   DEFVAR_INT ("undo-limit", undo_limit,
 	      doc: /* Keep no more undo information once it exceeds this size.

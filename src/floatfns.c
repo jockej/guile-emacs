@@ -543,32 +543,5 @@ Rounds the value toward zero.  */)
 void
 syms_of_floatfns (void)
 {
-  defsubr (&Sacos);
-  defsubr (&Sasin);
-  defsubr (&Satan);
-  defsubr (&Scos);
-  defsubr (&Ssin);
-  defsubr (&Stan);
-  defsubr (&Sisnan);
-#ifdef HAVE_COPYSIGN
-  defsubr (&Scopysign);
-#endif
-  defsubr (&Sfrexp);
-  defsubr (&Sldexp);
-  defsubr (&Sfceiling);
-  defsubr (&Sffloor);
-  defsubr (&Sfround);
-  defsubr (&Sftruncate);
-  defsubr (&Sexp);
-  defsubr (&Sexpt);
-  defsubr (&Slog);
-  defsubr (&Ssqrt);
-
-  defsubr (&Sabs);
-  defsubr (&Sfloat);
-  defsubr (&Slogb);
-  defsubr (&Sceiling);
-  defsubr (&Sfloor);
-  defsubr (&Sround);
-  defsubr (&Struncate);
+#include "floatfns.x"
 }

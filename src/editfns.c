@@ -4778,6 +4778,8 @@ Transposing beyond buffer boundaries is an error.  */)
 void
 syms_of_editfns (void)
 {
+#include "editfns.x"
+
   DEFSYM (Qbuffer_access_fontify_functions, "buffer-access-fontify-functions");
 
   DEFVAR_LISP ("inhibit-field-text-motion", Vinhibit_field_text_motion,
@@ -4824,95 +4826,6 @@ functions if all the text being accessed has this property.  */);
   DEFVAR_LISP ("operating-system-release", Voperating_system_release,
 	       doc: /* The release of the operating system Emacs is running on.  */);
 
-  defsubr (&Spropertize);
-  defsubr (&Schar_equal);
-  defsubr (&Sgoto_char);
-  defsubr (&Sstring_to_char);
-  defsubr (&Schar_to_string);
-  defsubr (&Sbyte_to_string);
-  defsubr (&Sbuffer_substring);
-  defsubr (&Sbuffer_substring_no_properties);
-  defsubr (&Sbuffer_string);
-  defsubr (&Sget_pos_property);
-
-  defsubr (&Spoint_marker);
-  defsubr (&Smark_marker);
-  defsubr (&Spoint);
-  defsubr (&Sregion_beginning);
-  defsubr (&Sregion_end);
-
   DEFSYM (Qfield, "field");
   DEFSYM (Qboundary, "boundary");
-  defsubr (&Sfield_beginning);
-  defsubr (&Sfield_end);
-  defsubr (&Sfield_string);
-  defsubr (&Sfield_string_no_properties);
-  defsubr (&Sdelete_field);
-  defsubr (&Sconstrain_to_field);
-
-  defsubr (&Sline_beginning_position);
-  defsubr (&Sline_end_position);
-
-  defsubr (&Ssave_excursion);
-  defsubr (&Ssave_current_buffer);
-
-  defsubr (&Sbuffer_size);
-  defsubr (&Spoint_max);
-  defsubr (&Spoint_min);
-  defsubr (&Spoint_min_marker);
-  defsubr (&Spoint_max_marker);
-  defsubr (&Sgap_position);
-  defsubr (&Sgap_size);
-  defsubr (&Sposition_bytes);
-  defsubr (&Sbyte_to_position);
-
-  defsubr (&Sbobp);
-  defsubr (&Seobp);
-  defsubr (&Sbolp);
-  defsubr (&Seolp);
-  defsubr (&Sfollowing_char);
-  defsubr (&Sprevious_char);
-  defsubr (&Schar_after);
-  defsubr (&Schar_before);
-  defsubr (&Sinsert);
-  defsubr (&Sinsert_before_markers);
-  defsubr (&Sinsert_and_inherit);
-  defsubr (&Sinsert_and_inherit_before_markers);
-  defsubr (&Sinsert_char);
-  defsubr (&Sinsert_byte);
-
-  defsubr (&Suser_login_name);
-  defsubr (&Suser_real_login_name);
-  defsubr (&Suser_uid);
-  defsubr (&Suser_real_uid);
-  defsubr (&Sgroup_gid);
-  defsubr (&Sgroup_real_gid);
-  defsubr (&Suser_full_name);
-  defsubr (&Semacs_pid);
-  defsubr (&Scurrent_time);
-  defsubr (&Sget_internal_run_time);
-  defsubr (&Sformat_time_string);
-  defsubr (&Sfloat_time);
-  defsubr (&Sdecode_time);
-  defsubr (&Sencode_time);
-  defsubr (&Scurrent_time_string);
-  defsubr (&Scurrent_time_zone);
-  defsubr (&Sset_time_zone_rule);
-  defsubr (&Ssystem_name);
-  defsubr (&Smessage);
-  defsubr (&Smessage_box);
-  defsubr (&Smessage_or_box);
-  defsubr (&Scurrent_message);
-  defsubr (&Sformat);
-
-  defsubr (&Sinsert_buffer_substring);
-  defsubr (&Scompare_buffer_substrings);
-  defsubr (&Ssubst_char_in_region);
-  defsubr (&Stranslate_region_internal);
-  defsubr (&Sdelete_region);
-  defsubr (&Sdelete_and_extract_region);
-  defsubr (&Swiden);
-  defsubr (&Snarrow_to_region);
-  defsubr (&Ssave_restriction);
-  defsubr (&Stranspose_regions);
 }

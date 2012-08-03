@@ -522,6 +522,8 @@ internal_self_insert (int c, EMACS_INT n)
 void
 syms_of_cmds (void)
 {
+#include "cmds.x"
+
   DEFSYM (Qkill_backward_chars, "kill-backward-chars");
   DEFSYM (Qkill_forward_chars, "kill-forward-chars");
   DEFSYM (Qoverwrite_mode_binary, "overwrite-mode-binary");
@@ -532,16 +534,6 @@ syms_of_cmds (void)
 	       doc: /* Hook run at the end of `self-insert-command'.
 This is run after inserting the character.  */);
   Vpost_self_insert_hook = Qnil;
-
-  defsubr (&Sforward_point);
-  defsubr (&Sforward_char);
-  defsubr (&Sbackward_char);
-  defsubr (&Sforward_line);
-  defsubr (&Sbeginning_of_line);
-  defsubr (&Send_of_line);
-
-  defsubr (&Sdelete_char);
-  defsubr (&Sself_insert_command);
 }
 
 void

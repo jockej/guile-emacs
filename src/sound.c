@@ -1423,12 +1423,12 @@ Internal use only, use `play-sound' instead.  */)
 void
 syms_of_sound (void)
 {
+#include "sound.x"
+
   DEFSYM (QCdevice, ":device");
   DEFSYM (QCvolume, ":volume");
   DEFSYM (Qsound, "sound");
   DEFSYM (Qplay_sound_functions, "play-sound-functions");
-
-  defsubr (&Splay_sound_internal);
 }
 
 #endif /* HAVE_SOUND */

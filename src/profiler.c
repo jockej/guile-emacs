@@ -559,6 +559,8 @@ hashfn_profiler (struct hash_table_test *ht, Lisp_Object bt)
 void
 syms_of_profiler (void)
 {
+#include "profiler.x"
+
   DEFVAR_INT ("profiler-max-stack-depth", profiler_max_stack_depth,
 	      doc: /* Number of elements from the call-stack recorded in the log.  */);
   profiler_max_stack_depth = 16;
@@ -577,22 +579,12 @@ to make room for new entries.  */);
   hashtest_profiler.cmpfn = cmpfn_profiler;
   hashtest_profiler.hashfn = hashfn_profiler;
 
-  defsubr (&Sfunction_equal);
-
 #ifdef PROFILER_CPU_SUPPORT
   profiler_cpu_running = NOT_RUNNING;
   cpu_log = Qnil;
   staticpro (&cpu_log);
-  defsubr (&Sprofiler_cpu_start);
-  defsubr (&Sprofiler_cpu_stop);
-  defsubr (&Sprofiler_cpu_running_p);
-  defsubr (&Sprofiler_cpu_log);
 #endif
   profiler_memory_running = false;
   memory_log = Qnil;
   staticpro (&memory_log);
-  defsubr (&Sprofiler_memory_start);
-  defsubr (&Sprofiler_memory_stop);
-  defsubr (&Sprofiler_memory_running_p);
-  defsubr (&Sprofiler_memory_log);
 }

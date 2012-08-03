@@ -492,6 +492,7 @@ gl-stamp: $(libsrc)/make-docfile$(EXEEXT) $(GLOBAL_SOURCES)
 	echo timestamp > $@
 
 $(ALLOBJS): globals.h
+$(ALLOBJS:.o=.x): globals.h
 
 $(lib)/libgnu.a: $(config_h)
 	$(MAKE) -C $(lib) libgnu.a
@@ -541,6 +542,7 @@ ns-app: emacs$(EXEEXT)
 
 mostlyclean:
 	rm -f temacs$(EXEEXT) core *.core \#* *.o
+	rm -f *.x
 	rm -f ../etc/DOC
 	rm -f bootstrap-emacs$(EXEEXT) emacs-$(version)$(EXEEXT)
 	rm -f buildobj.h
@@ -647,6 +649,85 @@ bootstrap-emacs$(EXEEXT): temacs$(EXEEXT)
 	fi
 	@: Compile some files earlier to speed up further compilation.
 	$(MAKE) -C ../lisp compile-first EMACS="$(bootstrap_exe)"
+
+alloc.o: alloc.x
+buffer.o: buffer.x
+bytecode.o: bytecode.x
+callint.o: callint.x
+callproc.o: callproc.x
+casefiddle.o: casefiddle.x
+casetab.o: casetab.x
+category.o: category.x
+ccl.o: ccl.x
+character.o: character.x
+charset.o: charset.x
+chartab.o: chartab.x
+cmds.o: cmds.x
+coding.o: coding.x
+composite.o: composite.x
+cygw32.o: cygw32.x
+data.o: data.x
+dbusbind.o: dbusbind.x
+decompress.o: decompress.x
+dired.o: dired.x
+dispnew.o: dispnew.x
+doc.o: doc.x
+dosfns.o: dosfns.x
+editfns.o: editfns.x
+emacs.o: emacs.x
+eval.o: eval.x
+fileio.o: fileio.x
+filelock.o: filelock.x
+floatfns.o: floatfns.x
+fns.o: fns.x
+font.o: font.x
+fontset.o: fontset.x
+frame.o: frame.x
+fringe.o: fringe.x
+gfilenotify.o: gfilenotify.x
+gnutls.o: gnutls.x
+image.o: image.x
+indent.o: indent.x
+inotify.o: inotify.x
+insdel.o: insdel.x
+keyboard.o: keyboard.x
+keymap.o: keymap.x
+lread.o: lread.x
+macros.o: macros.x
+marker.o: marker.x
+menu.o: menu.x
+minibuf.o: minibuf.x
+msdos.o: msdos.x
+nsfns.o: nsfns.x
+nsmenu.o: nsmenu.x
+nsselect.o: nsselect.x
+print.o: print.x
+process.o: process.x
+profiler.o: profiler.x
+search.o: search.x
+sound.o: sound.x
+syntax.o: syntax.x
+term.o: term.x
+terminal.o: terminal.x
+textprop.o: textprop.x
+undo.o: undo.x
+w16select.o: w16select.x
+w32console.o: w32console.x
+w32fns.o: w32fns.x
+w32font.o: w32font.x
+w32menu.o: w32menu.x
+w32notify.o: w32notify.x
+w32proc.o: w32proc.x
+w32select.o: w32select.x
+window.o: window.x
+xdisp.o: xdisp.x
+xfaces.o: xfaces.x
+xfns.o: xfns.x
+xmenu.o: xmenu.x
+xml.o: xml.x
+xselect.o: xselect.x
+xsettings.o: xsettings.x
+xsmfns.o: xsmfns.x
 
 ## Insert either autodeps.mk (if AUTO_DEPEND), else deps.mk.
 @deps_frag@

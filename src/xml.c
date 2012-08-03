@@ -280,8 +280,7 @@ If BASE-URL is non-nil, it is used to expand relative URLs.  */)
 void
 syms_of_xml (void)
 {
-  defsubr (&Slibxml_parse_html_region);
-  defsubr (&Slibxml_parse_xml_region);
+#include "xml.x"
 
   DEFSYM (Qlibxml2_dll, "libxml2");
 }

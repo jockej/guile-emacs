@@ -7128,6 +7128,8 @@ init_window (void)
 void
 syms_of_window (void)
 {
+#include "window.x"
+
   DEFSYM (Qscroll_up, "scroll-up");
   DEFSYM (Qscroll_down, "scroll-down");
   DEFSYM (Qscroll_command, "scroll-command");
@@ -7316,119 +7318,6 @@ Note that when a frame's pixel size is not a multiple of the
 frame's character size, at least one window may get resized
 pixelwise even if this option is nil.  */);
   window_resize_pixelwise = 0;
-
-  defsubr (&Sselected_window);
-  defsubr (&Sminibuffer_window);
-  defsubr (&Swindow_minibuffer_p);
-  defsubr (&Swindowp);
-  defsubr (&Swindow_valid_p);
-  defsubr (&Swindow_live_p);
-  defsubr (&Swindow_frame);
-  defsubr (&Sframe_root_window);
-  defsubr (&Sframe_first_window);
-  defsubr (&Sframe_selected_window);
-  defsubr (&Sset_frame_selected_window);
-  defsubr (&Spos_visible_in_window_p);
-  defsubr (&Swindow_line_height);
-  defsubr (&Swindow_buffer);
-  defsubr (&Swindow_parent);
-  defsubr (&Swindow_top_child);
-  defsubr (&Swindow_left_child);
-  defsubr (&Swindow_next_sibling);
-  defsubr (&Swindow_prev_sibling);
-  defsubr (&Swindow_combination_limit);
-  defsubr (&Sset_window_combination_limit);
-  defsubr (&Swindow_use_time);
-  defsubr (&Swindow_pixel_width);
-  defsubr (&Swindow_pixel_height);
-  defsubr (&Swindow_total_width);
-  defsubr (&Swindow_total_height);
-  defsubr (&Swindow_normal_size);
-  defsubr (&Swindow_new_pixel);
-  defsubr (&Swindow_new_total);
-  defsubr (&Swindow_new_normal);
-  defsubr (&Swindow_pixel_left);
-  defsubr (&Swindow_pixel_top);
-  defsubr (&Swindow_left_column);
-  defsubr (&Swindow_top_line);
-  defsubr (&Sset_window_new_pixel);
-  defsubr (&Sset_window_new_total);
-  defsubr (&Sset_window_new_normal);
-  defsubr (&Swindow_resize_apply);
-  defsubr (&Swindow_resize_apply_total);
-  defsubr (&Swindow_body_height);
-  defsubr (&Swindow_body_width);
-  defsubr (&Swindow_hscroll);
-  defsubr (&Sset_window_hscroll);
-  defsubr (&Swindow_redisplay_end_trigger);
-  defsubr (&Sset_window_redisplay_end_trigger);
-  defsubr (&Swindow_edges);
-  defsubr (&Swindow_pixel_edges);
-  defsubr (&Swindow_absolute_pixel_edges);
-  defsubr (&Swindow_mode_line_height);
-  defsubr (&Swindow_header_line_height);
-  defsubr (&Swindow_right_divider_width);
-  defsubr (&Swindow_bottom_divider_width);
-  defsubr (&Swindow_scroll_bar_width);
-  defsubr (&Swindow_inside_edges);
-  defsubr (&Swindow_inside_pixel_edges);
-  defsubr (&Swindow_inside_absolute_pixel_edges);
-  defsubr (&Scoordinates_in_window_p);
-  defsubr (&Swindow_at);
-  defsubr (&Swindow_point);
-  defsubr (&Swindow_start);
-  defsubr (&Swindow_end);
-  defsubr (&Sset_window_point);
-  defsubr (&Sset_window_start);
-  defsubr (&Swindow_dedicated_p);
-  defsubr (&Sset_window_dedicated_p);
-  defsubr (&Swindow_display_table);
-  defsubr (&Sset_window_display_table);
-  defsubr (&Snext_window);
-  defsubr (&Sprevious_window);
-  defsubr (&Sget_buffer_window);
-  defsubr (&Sdelete_other_windows_internal);
-  defsubr (&Sdelete_window_internal);
-  defsubr (&Sresize_mini_window_internal);
-  defsubr (&Sset_window_buffer);
-  defsubr (&Srun_window_configuration_change_hook);
-  defsubr (&Srun_window_scroll_functions);
-  defsubr (&Sselect_window);
-  defsubr (&Sforce_window_update);
-  defsubr (&Ssplit_window_internal);
-  defsubr (&Sscroll_up);
-  defsubr (&Sscroll_down);
-  defsubr (&Sscroll_left);
-  defsubr (&Sscroll_right);
-  defsubr (&Sother_window_for_scrolling);
-  defsubr (&Sscroll_other_window);
-  defsubr (&Sminibuffer_selected_window);
-  defsubr (&Srecenter);
-  defsubr (&Swindow_text_width);
-  defsubr (&Swindow_text_height);
-  defsubr (&Smove_to_window_line);
-  defsubr (&Swindow_configuration_p);
-  defsubr (&Swindow_configuration_frame);
-  defsubr (&Sset_window_configuration);
-  defsubr (&Scurrent_window_configuration);
-  defsubr (&Sset_window_margins);
-  defsubr (&Swindow_margins);
-  defsubr (&Sset_window_fringes);
-  defsubr (&Swindow_fringes);
-  defsubr (&Sset_window_scroll_bars);
-  defsubr (&Swindow_scroll_bars);
-  defsubr (&Swindow_vscroll);
-  defsubr (&Sset_window_vscroll);
-  defsubr (&Scompare_window_configurations);
-  defsubr (&Swindow_list);
-  defsubr (&Swindow_list_1);
-  defsubr (&Swindow_prev_buffers);
-  defsubr (&Sset_window_prev_buffers);
-  defsubr (&Swindow_next_buffers);
-  defsubr (&Sset_window_next_buffers);
-  defsubr (&Swindow_parameters);
-  defsubr (&Swindow_parameter);
-  defsubr (&Sset_window_parameter);
 }
 
 void

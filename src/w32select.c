@@ -1065,9 +1065,7 @@ frame's display, or the first available X display.  */)
 void
 syms_of_w32select (void)
 {
-  defsubr (&Sw32_set_clipboard_data);
-  defsubr (&Sw32_get_clipboard_data);
-  defsubr (&Sx_selection_exists_p);
+#include "w32select.x"
 
   DEFVAR_LISP ("selection-coding-system", Vselection_coding_system,
 	       doc: /* Coding system for communicating with other programs.

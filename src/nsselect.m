@@ -541,18 +541,12 @@ nxatoms_of_nsselect (void)
 void
 syms_of_nsselect (void)
 {
+#include "nsselect.x"
+
   QCLIPBOARD = intern_c_string ("CLIPBOARD");	staticpro (&QCLIPBOARD);
   QSECONDARY = intern_c_string ("SECONDARY");	staticpro (&QSECONDARY);
   QTEXT      = intern_c_string ("TEXT"); 	staticpro (&QTEXT);
   QFILE_NAME = intern_c_string ("FILE_NAME"); 	staticpro (&QFILE_NAME);
-
-  defsubr (&Sx_disown_selection_internal);
-  defsubr (&Sx_get_selection_internal);
-  defsubr (&Sx_own_selection_internal);
-  defsubr (&Sx_selection_exists_p);
-  defsubr (&Sx_selection_owner_p);
-  defsubr (&Sns_get_selection_internal);
-  defsubr (&Sns_store_selection_internal);
 
   Vselection_alist = Qnil;
   staticpro (&Vselection_alist);

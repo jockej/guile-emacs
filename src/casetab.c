@@ -289,16 +289,12 @@ init_casetab_once (void)
 void
 syms_of_casetab (void)
 {
+#include "casetab.x"
+
   DEFSYM (Qcase_table_p, "case-table-p");
 
   staticpro (&Vascii_canon_table);
   staticpro (&Vascii_downcase_table);
   staticpro (&Vascii_eqv_table);
   staticpro (&Vascii_upcase_table);
-
-  defsubr (&Scase_table_p);
-  defsubr (&Scurrent_case_table);
-  defsubr (&Sstandard_case_table);
-  defsubr (&Sset_case_table);
-  defsubr (&Sset_standard_case_table);
 }

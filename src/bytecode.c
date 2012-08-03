@@ -1952,7 +1952,7 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 void
 syms_of_bytecode (void)
 {
-  defsubr (&Sbyte_code);
+#include "bytecode.x"
 
 #ifdef BYTE_CODE_METER
 

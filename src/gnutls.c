@@ -1182,6 +1182,8 @@ This function may also return `gnutls-e-again', or
 void
 syms_of_gnutls (void)
 {
+#include "gnutls.x"
+
   gnutls_global_initialized = 0;
 
   DEFSYM (Qgnutls_dll, "gnutls");
@@ -1215,15 +1217,6 @@ syms_of_gnutls (void)
   DEFSYM (Qgnutls_e_not_ready_for_handshake, "gnutls-e-not-ready-for-handshake");
   Fput (Qgnutls_e_not_ready_for_handshake, Qgnutls_code,
 	make_number (GNUTLS_E_APPLICATION_ERROR_MIN));
-
-  defsubr (&Sgnutls_get_initstage);
-  defsubr (&Sgnutls_errorp);
-  defsubr (&Sgnutls_error_fatalp);
-  defsubr (&Sgnutls_error_string);
-  defsubr (&Sgnutls_boot);
-  defsubr (&Sgnutls_deinit);
-  defsubr (&Sgnutls_bye);
-  defsubr (&Sgnutls_available_p);
 
   DEFVAR_INT ("gnutls-log-level", global_gnutls_log_level,
 	      doc: /* Logging level used by the GnuTLS functions.

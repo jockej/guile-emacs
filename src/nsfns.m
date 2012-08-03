@@ -2922,6 +2922,8 @@ handlePanelKeys (NSSavePanel *panel, NSEvent *theEvent)
 void
 syms_of_nsfns (void)
 {
+#include "nsfns.x"
+
   Qfontsize = intern_c_string ("fontsize");
   staticpro (&Qfontsize);
 
@@ -2949,49 +2951,6 @@ be used as the image of the icon representing the frame.  */);
   DEFVAR_LISP ("ns-version-string", Vns_version_string,
                doc: /* Toolkit version for NS Windowing.  */);
   Vns_version_string = ns_appkit_version_str ();
-
-  defsubr (&Sns_read_file_name);
-  defsubr (&Sns_get_resource);
-  defsubr (&Sns_set_resource);
-  defsubr (&Sxw_display_color_p); /* this and next called directly by C code */
-  defsubr (&Sx_display_grayscale_p);
-  defsubr (&Sns_font_name);
-  defsubr (&Sns_list_colors);
-#ifdef NS_IMPL_COCOA
-  defsubr (&Sns_do_applescript);
-#endif
-  defsubr (&Sxw_color_defined_p);
-  defsubr (&Sxw_color_values);
-  defsubr (&Sx_server_max_request_size);
-  defsubr (&Sx_server_vendor);
-  defsubr (&Sx_server_version);
-  defsubr (&Sx_display_pixel_width);
-  defsubr (&Sx_display_pixel_height);
-  defsubr (&Sns_display_monitor_attributes_list);
-  defsubr (&Sx_display_mm_width);
-  defsubr (&Sx_display_mm_height);
-  defsubr (&Sx_display_screens);
-  defsubr (&Sx_display_planes);
-  defsubr (&Sx_display_color_cells);
-  defsubr (&Sx_display_visual_class);
-  defsubr (&Sx_display_backing_store);
-  defsubr (&Sx_display_save_under);
-  defsubr (&Sx_create_frame);
-  defsubr (&Sx_open_connection);
-  defsubr (&Sx_close_connection);
-  defsubr (&Sx_display_list);
-
-  defsubr (&Sns_hide_others);
-  defsubr (&Sns_hide_emacs);
-  defsubr (&Sns_emacs_info_panel);
-  defsubr (&Sns_list_services);
-  defsubr (&Sns_perform_service);
-  defsubr (&Sns_convert_utf8_nfd_to_nfc);
-  defsubr (&Sns_popup_font_panel);
-  defsubr (&Sns_popup_color_panel);
-
-  defsubr (&Sx_show_tip);
-  defsubr (&Sx_hide_tip);
 
   as_status = 0;
   as_script = Qnil;

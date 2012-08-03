@@ -2332,6 +2332,8 @@ report_interval_modification (Lisp_Object start, Lisp_Object end)
 void
 syms_of_textprop (void)
 {
+#include "textprop.x"
+
   DEFVAR_LISP ("default-text-properties", Vdefault_text_properties,
 	       doc: /* Property-list used as default values.
 The value of a property in this list is seen as the value for every
@@ -2397,25 +2399,4 @@ inherits it if NONSTICKINESS is nil.  The `front-sticky' and
   DEFSYM (Qmouse_entered, "mouse-entered");
   DEFSYM (Qpoint_left, "point-left");
   DEFSYM (Qpoint_entered, "point-entered");
-
-  defsubr (&Stext_properties_at);
-  defsubr (&Sget_text_property);
-  defsubr (&Sget_char_property);
-  defsubr (&Sget_char_property_and_overlay);
-  defsubr (&Snext_char_property_change);
-  defsubr (&Sprevious_char_property_change);
-  defsubr (&Snext_single_char_property_change);
-  defsubr (&Sprevious_single_char_property_change);
-  defsubr (&Snext_property_change);
-  defsubr (&Snext_single_property_change);
-  defsubr (&Sprevious_property_change);
-  defsubr (&Sprevious_single_property_change);
-  defsubr (&Sadd_text_properties);
-  defsubr (&Sput_text_property);
-  defsubr (&Sset_text_properties);
-  defsubr (&Sadd_face_text_property);
-  defsubr (&Sremove_text_properties);
-  defsubr (&Sremove_list_of_text_properties);
-  defsubr (&Stext_property_any);
-  defsubr (&Stext_property_not_all);
 }

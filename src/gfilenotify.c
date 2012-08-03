@@ -258,13 +258,10 @@ globals_of_gfilenotify (void)
 void
 syms_of_gfilenotify (void)
 {
+#include "gfilenotify.x"
 
   DEFSYM (Qgfile_add_watch, "gfile-add-watch");
-  defsubr (&Sgfile_add_watch);
-
   DEFSYM (Qgfile_rm_watch, "gfile-rm-watch");
-  defsubr (&Sgfile_rm_watch);
-
   DEFSYM (Qwatch_mounts, "watch-mounts");
   DEFSYM (Qsend_moved, "send-moved");
   DEFSYM (Qchanged, "changed");

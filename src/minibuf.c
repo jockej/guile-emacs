@@ -1904,6 +1904,8 @@ init_minibuf_once (void)
 void
 syms_of_minibuf (void)
 {
+#include "minibuf.x"
+
   minibuf_level = 0;
   minibuf_prompt = Qnil;
   staticpro (&minibuf_prompt);
@@ -2078,28 +2080,4 @@ properties.  */);
   /* We use `intern' here instead of Qread_only to avoid
      initialization-order problems.  */
   Vminibuffer_prompt_properties = list2 (intern_c_string ("read-only"), Qt);
-
-  defsubr (&Sactive_minibuffer_window);
-  defsubr (&Sset_minibuffer_window);
-  defsubr (&Sread_from_minibuffer);
-  defsubr (&Sread_string);
-  defsubr (&Sread_command);
-  defsubr (&Sread_variable);
-  defsubr (&Sinternal_complete_buffer);
-  defsubr (&Sread_buffer);
-  defsubr (&Sread_no_blanks_input);
-  defsubr (&Sminibuffer_depth);
-  defsubr (&Sminibuffer_prompt);
-
-  defsubr (&Sminibufferp);
-  defsubr (&Sminibuffer_prompt_end);
-  defsubr (&Sminibuffer_contents);
-  defsubr (&Sminibuffer_contents_no_properties);
-  defsubr (&Sminibuffer_completion_contents);
-
-  defsubr (&Stry_completion);
-  defsubr (&Sall_completions);
-  defsubr (&Stest_completion);
-  defsubr (&Sassoc_string);
-  defsubr (&Scompleting_read);
 }

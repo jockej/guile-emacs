@@ -991,22 +991,13 @@ character is not ASCII nor 8-bit character, an error is signaled.  */)
 void
 syms_of_character (void)
 {
+#include "character.x"
+
   DEFSYM (Qcharacterp, "characterp");
   DEFSYM (Qauto_fill_chars, "auto-fill-chars");
 
   staticpro (&Vchar_unify_table);
   Vchar_unify_table = Qnil;
-
-  defsubr (&Smax_char);
-  defsubr (&Scharacterp);
-  defsubr (&Sunibyte_char_to_multibyte);
-  defsubr (&Smultibyte_char_to_unibyte);
-  defsubr (&Schar_width);
-  defsubr (&Sstring_width);
-  defsubr (&Sstring);
-  defsubr (&Sunibyte_string);
-  defsubr (&Schar_resolve_modifiers);
-  defsubr (&Sget_byte);
 
   DEFVAR_LISP ("translation-table-vector",  Vtranslation_table_vector,
 	       doc: /*

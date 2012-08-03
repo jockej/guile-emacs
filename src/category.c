@@ -455,6 +455,8 @@ init_category_once (void)
 void
 syms_of_category (void)
 {
+#include "category.x"
+
   DEFSYM (Qcategoryp, "categoryp");
   DEFSYM (Qcategorysetp, "categorysetp");
   DEFSYM (Qcategory_table_p, "category-table-p");
@@ -502,20 +504,6 @@ the element `(?H . ?K) should be in this list.  */);
 See the documentation of the variable `word-combining-categories'.  */);
 
   Vword_separating_categories = Qnil;
-
-  defsubr (&Smake_category_set);
-  defsubr (&Sdefine_category);
-  defsubr (&Scategory_docstring);
-  defsubr (&Sget_unused_category);
-  defsubr (&Scategory_table_p);
-  defsubr (&Scategory_table);
-  defsubr (&Sstandard_category_table);
-  defsubr (&Scopy_category_table);
-  defsubr (&Smake_category_table);
-  defsubr (&Sset_category_table);
-  defsubr (&Schar_category_set);
-  defsubr (&Scategory_set_mnemonics);
-  defsubr (&Smodify_category_entry);
 
   category_table_version = 0;
 }

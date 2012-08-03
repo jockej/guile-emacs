@@ -814,6 +814,8 @@ DEFUN ("set-cursor-size", Fset_cursor_size, Sset_cursor_size, 1, 1, 0,
 void
 syms_of_ntterm (void)
 {
+#include "w32console.x"
+
   DEFVAR_BOOL ("w32-use-full-screen-buffer",
                w32_use_full_screen_buffer,
 	       doc: /* Non-nil means make terminal frames use the full screen buffer dimensions.
@@ -822,8 +824,4 @@ A value of nil means use the current console window dimensions; this
 may be preferable when working directly at the console with a large
 scroll-back buffer.  */);
   w32_use_full_screen_buffer = 0;
-
-  defsubr (&Sset_screen_color);
-  defsubr (&Sget_screen_color);
-  defsubr (&Sset_cursor_size);
 }

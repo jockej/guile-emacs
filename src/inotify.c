@@ -398,6 +398,8 @@ See inotify_rm_watch(2) for more information.
 void
 syms_of_inotify (void)
 {
+#include "inotify.x"
+
   DEFSYM (Qaccess, "access");
   DEFSYM (Qattrib, "attrib");
   DEFSYM (Qclose_write, "close-write");
@@ -425,9 +427,6 @@ syms_of_inotify (void)
   DEFSYM (Qisdir, "isdir");
   DEFSYM (Qq_overflow, "q-overflow");
   DEFSYM (Qunmount, "unmount");
-
-  defsubr (&Sinotify_add_watch);
-  defsubr (&Sinotify_rm_watch);
 
   staticpro (&watch_list);
 

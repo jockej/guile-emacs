@@ -1740,22 +1740,16 @@ xd_read_queued_messages (int fd, void *data)
 void
 syms_of_dbusbind (void)
 {
+#include "dbusbind.x"
 
   DEFSYM (Qdbus__init_bus, "dbus--init-bus");
-  defsubr (&Sdbus__init_bus);
-
   DEFSYM (Qdbus_get_unique_name, "dbus-get-unique-name");
-  defsubr (&Sdbus_get_unique_name);
-
   DEFSYM (Qdbus_message_internal, "dbus-message-internal");
-  defsubr (&Sdbus_message_internal);
-
   DEFSYM (Qdbus_error, "dbus-error");
   Fput (Qdbus_error, Qerror_conditions,
 	list2 (Qdbus_error, Qerror));
   Fput (Qdbus_error, Qerror_message,
 	build_pure_c_string ("D-Bus error"));
-
   DEFSYM (QCdbus_system_bus, ":system");
   DEFSYM (QCdbus_session_bus, ":session");
   DEFSYM (QCdbus_timeout, ":timeout");

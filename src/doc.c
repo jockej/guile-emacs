@@ -957,6 +957,8 @@ Otherwise, return a new string.  */)
 void
 syms_of_doc (void)
 {
+#include "doc.x"
+
   DEFSYM (Qfunction_documentation, "function-documentation");
 
   DEFVAR_LISP ("internal-doc-file-name", Vdoc_file_name,
@@ -966,9 +968,4 @@ syms_of_doc (void)
   DEFVAR_LISP ("build-files", Vbuild_files,
                doc: /* A list of files used to build this Emacs binary.  */);
   Vbuild_files = Qnil;
-
-  defsubr (&Sdocumentation);
-  defsubr (&Sdocumentation_property);
-  defsubr (&Ssnarf_documentation);
-  defsubr (&Ssubstitute_command_keys);
 }

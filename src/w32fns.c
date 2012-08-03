@@ -8085,6 +8085,8 @@ frame_parm_handler w32_frame_parm_handlers[] =
 void
 syms_of_w32fns (void)
 {
+#include "w32fns.x"
+
   globals_of_w32fns ();
   track_mouse_window = NULL;
 
@@ -8365,61 +8367,8 @@ Set this to nil to get the old behavior for repainting; this should
 only be necessary if the default setting causes problems.  */);
   w32_strict_painting = 1;
 
-#if 0 /* TODO: Port to W32 */
-  defsubr (&Sx_change_window_property);
-  defsubr (&Sx_delete_window_property);
-  defsubr (&Sx_window_property);
-#endif
-  defsubr (&Sxw_display_color_p);
-  defsubr (&Sx_display_grayscale_p);
-  defsubr (&Sxw_color_defined_p);
-  defsubr (&Sxw_color_values);
-  defsubr (&Sx_server_max_request_size);
-  defsubr (&Sx_server_vendor);
-  defsubr (&Sx_server_version);
-  defsubr (&Sx_display_pixel_width);
-  defsubr (&Sx_display_pixel_height);
-  defsubr (&Sx_display_mm_width);
-  defsubr (&Sx_display_mm_height);
-  defsubr (&Sx_display_screens);
-  defsubr (&Sx_display_planes);
-  defsubr (&Sx_display_color_cells);
-  defsubr (&Sx_display_visual_class);
-  defsubr (&Sx_display_backing_store);
-  defsubr (&Sx_display_save_under);
-  defsubr (&Sx_create_frame);
-  defsubr (&Sx_open_connection);
-  defsubr (&Sx_close_connection);
-  defsubr (&Sx_display_list);
-  defsubr (&Sx_synchronize);
-
-  /* W32 specific functions */
-
-  defsubr (&Sw32_define_rgb_color);
-  defsubr (&Sw32_default_color_map);
-  defsubr (&Sw32_display_monitor_attributes_list);
-  defsubr (&Sw32_send_sys_command);
-  defsubr (&Sw32_shell_execute);
-  defsubr (&Sw32_register_hot_key);
-  defsubr (&Sw32_unregister_hot_key);
-  defsubr (&Sw32_registered_hot_keys);
-  defsubr (&Sw32_reconstruct_hot_key);
-  defsubr (&Sw32_toggle_lock_key);
-  defsubr (&Sw32_window_exists_p);
-  defsubr (&Sw32_frame_rect);
-  defsubr (&Sw32_battery_status);
-
-#ifdef WINDOWSNT
-  defsubr (&Sfile_system_info);
-  defsubr (&Sdefault_printer_name);
-#endif
-
-  defsubr (&Sset_message_beep);
-
   hourglass_hwnd = NULL;
 
-  defsubr (&Sx_show_tip);
-  defsubr (&Sx_hide_tip);
   tip_timer = Qnil;
   staticpro (&tip_timer);
   tip_frame = Qnil;
@@ -8427,11 +8376,6 @@ only be necessary if the default setting causes problems.  */);
 
   last_show_tip_args = Qnil;
   staticpro (&last_show_tip_args);
-
-  defsubr (&Sx_file_dialog);
-#ifdef WINDOWSNT
-  defsubr (&Ssystem_move_file_to_trash);
-#endif
 }
 
 

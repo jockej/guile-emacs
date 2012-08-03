@@ -9347,6 +9347,8 @@ reset_image_types (void)
 void
 syms_of_image (void)
 {
+#include "image.x"
+
   /* Initialize this only once; it will be reset before dumping.  */
   image_types = NULL;
 
@@ -9479,21 +9481,6 @@ non-numeric, there is no explicit limit on the size of images.  */);
   DEFSYM (Qgobject, "gobject");
 #endif /* HAVE_NTGUI  */
 #endif /* HAVE_RSVG  */
-
-  defsubr (&Sinit_image_library);
-#ifdef HAVE_IMAGEMAGICK
-  defsubr (&Simagemagick_types);
-#endif
-  defsubr (&Sclear_image_cache);
-  defsubr (&Simage_flush);
-  defsubr (&Simage_size);
-  defsubr (&Simage_mask_p);
-  defsubr (&Simage_metadata);
-
-#ifdef GLYPH_DEBUG
-  defsubr (&Simagep);
-  defsubr (&Slookup_image);
-#endif
 
   DEFVAR_BOOL ("cross-disabled-images", cross_disabled_images,
     doc: /* Non-nil means always draw a cross over disabled images.

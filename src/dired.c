@@ -1041,6 +1041,8 @@ The value may be nil if not supported on this platform.  */)
 void
 syms_of_dired (void)
 {
+#include "dired.x"
+
   DEFSYM (Qdirectory_files, "directory-files");
   DEFSYM (Qdirectory_files_and_attributes, "directory-files-and-attributes");
   DEFSYM (Qfile_name_completion, "file-name-completion");
@@ -1048,15 +1050,6 @@ syms_of_dired (void)
   DEFSYM (Qfile_attributes, "file-attributes");
   DEFSYM (Qfile_attributes_lessp, "file-attributes-lessp");
   DEFSYM (Qdefault_directory, "default-directory");
-
-  defsubr (&Sdirectory_files);
-  defsubr (&Sdirectory_files_and_attributes);
-  defsubr (&Sfile_name_completion);
-  defsubr (&Sfile_name_all_completions);
-  defsubr (&Sfile_attributes);
-  defsubr (&Sfile_attributes_lessp);
-  defsubr (&Ssystem_users);
-  defsubr (&Ssystem_groups);
 
   DEFVAR_LISP ("completion-ignored-extensions", Vcompletion_ignored_extensions,
 	       doc: /* Completion ignores file names ending in any string in this list.
