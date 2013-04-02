@@ -346,8 +346,6 @@ lost after dumping")))
       (message "Warning: Change in load-path due to site-init will be \
 lost after dumping")))
 
-(setq current-load-list nil)
-
 ;; We keep the load-history data in PURE space.
 ;; Make sure that the spine of the list is not in pure space because it can
 ;; be destructively mutated in lread.c:build_load_history.
