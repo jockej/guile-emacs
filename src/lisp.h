@@ -3034,6 +3034,7 @@ extern ptrdiff_t string_char_to_byte (Lisp_Object, ptrdiff_t);
 extern ptrdiff_t string_byte_to_char (Lisp_Object, ptrdiff_t);
 extern Lisp_Object string_to_multibyte (Lisp_Object);
 extern Lisp_Object string_make_unibyte (Lisp_Object);
+extern void init_fns_once (void);
 extern void syms_of_fns (void);
 
 /* Defined in floatfns.c.  */
