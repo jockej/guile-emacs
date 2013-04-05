@@ -3307,58 +3307,52 @@ substitute_object_recurse (Lisp_Object object, Lisp_Object placeholder, Lisp_Obj
 
   /* Recurse according to subtree's type.
      Every branch must return a Lisp_Object.  */
-  switch (XTYPE (subtree))
+  if (VECTORLIKEP (subtree))
     {
-    case Lisp_Vectorlike:
-      {
-	ptrdiff_t i, length = 0;
-	if (BOOL_VECTOR_P (subtree))
-	  return subtree;		/* No sub-objects anyway.  */
-	else if (CHAR_TABLE_P (subtree) || SUB_CHAR_TABLE_P (subtree)
-		 || COMPILEDP (subtree) || HASH_TABLE_P (subtree))
-	  length = ASIZE (subtree) & PSEUDOVECTOR_SIZE_MASK;
-	else if (VECTORP (subtree))
-	  length = ASIZE (subtree);
-	else
-	  /* An unknown pseudovector may contain non-Lisp fields, so we
-	     can't just blindly traverse all its fields.  We used to call
-	     `Flength' which signaled `sequencep', so I just preserved this
-	     behavior.  */
-	  wrong_type_argument (Qsequencep, subtree);
+      ptrdiff_t i, length = 0;
+      if (BOOL_VECTOR_P (subtree))
+        return subtree;		/* No sub-objects anyway.  */
+      else if (CHAR_TABLE_P (subtree) || SUB_CHAR_TABLE_P (subtree)
+               || COMPILEDP (subtree) || HASH_TABLE_P (subtree))
+        length = ASIZE (subtree) & PSEUDOVECTOR_SIZE_MASK;
+      else if (VECTORP (subtree))
+        length = ASIZE (subtree);
+      else
+        /* An unknown pseudovector may contain non-Lisp fields, so we
+           can't just blindly traverse all its fields.  We used to call
+           `Flength' which signaled `sequencep', so I just preserved this
+           behavior.  */
+        wrong_type_argument (Qsequencep, subtree);
 
-	for (i = 0; i < length; i++)
-	  SUBSTITUTE (AREF (subtree, i),
-		      ASET (subtree, i, true_value));
-	return subtree;
-      }
-
-    case Lisp_Cons:
-      {
-	SUBSTITUTE (XCAR (subtree),
-		    XSETCAR (subtree, true_value));
-	SUBSTITUTE (XCDR (subtree),
-		    XSETCDR (subtree, true_value));
-	return subtree;
-      }
-
-    case Lisp_String:
-      {
-	/* Check for text properties in each interval.
-	   substitute_in_interval contains part of the logic.  */
-
-	INTERVAL root_interval = string_intervals (subtree);
-	Lisp_Object arg = Fcons (object, placeholder);
-
-	traverse_intervals_noorder (root_interval,
-				    &substitute_in_interval, arg);
-
-	return subtree;
-      }
-
-      /* Other types don't recurse any further.  */
-    default:
+      for (i = 0; i < length; i++)
+        SUBSTITUTE (AREF (subtree, i),
+                    ASET (subtree, i, true_value));
       return subtree;
     }
+  else if (CONSP (subtree))
+    {
+      SUBSTITUTE (XCAR (subtree),
+                  XSETCAR (subtree, true_value));
+      SUBSTITUTE (XCDR (subtree),
+                  XSETCDR (subtree, true_value));
+      return subtree;
+    }
+  else if (STRINGP (subtree))
+    {
+      /* Check for text properties in each interval.
+         substitute_in_interval contains part of the logic.  */
+
+      INTERVAL root_interval = string_intervals (subtree);
+      Lisp_Object arg = Fcons (object, placeholder);
+
+      traverse_intervals_noorder (root_interval,
+                                  &substitute_in_interval, arg);
+
+      return subtree;
+    }
+  else
+    /* Other types don't recurse any further.  */
+    return subtree;
 }
 
 /*  Helper function for substitute_object_recurse.  */
