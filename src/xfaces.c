@@ -3883,29 +3883,7 @@ return the font name used for CHARACTER.  */)
 static bool
 face_attr_equal_p (Lisp_Object v1, Lisp_Object v2)
 {
-  /* Type can differ, e.g. when one attribute is unspecified, i.e. nil,
-     and the other is specified.  */
-  if (XTYPE (v1) != XTYPE (v2))
-    return 0;
-
-  if (EQ (v1, v2))
-    return 1;
-
-  switch (XTYPE (v1))
-    {
-    case Lisp_String:
-      if (SBYTES (v1) != SBYTES (v2))
-	return 0;
-
-      return memcmp (SDATA (v1), SDATA (v2), SBYTES (v1)) == 0;
-
-    case_Lisp_Int:
-    case Lisp_Symbol:
-      return 0;
-
-    default:
-      return !NILP (Fequal (v1, v2));
-    }
+  return !NILP (Fequal (v1, v2));
 }
 
 
