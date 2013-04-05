@@ -823,9 +823,9 @@ int
 ns_lisp_to_cursor_type (Lisp_Object arg)
 {
   char *str;
-  if (XTYPE (arg) == Lisp_String)
+  if (STRINGP (arg))
     str = SSDATA (arg);
-  else if (XTYPE (arg) == Lisp_Symbol)
+  else if (SYMBOLP (arg))
     str = SSDATA (SYMBOL_NAME (arg));
   else return -1;
   if (!strcmp (str, "box"))	return FILLED_BOX_CURSOR;
