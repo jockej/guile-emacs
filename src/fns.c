@@ -335,8 +335,15 @@ Symbols are also allowed; their print names are used instead.  */)
   return i1 < SCHARS (s2) ? Qt : Qnil;
 }
 
+enum concat_target_type
+  {
+    concat_cons,
+    concat_string,
+    concat_vector
+  };
+
 static Lisp_Object concat (ptrdiff_t nargs, Lisp_Object *args,
-			   enum Lisp_Type target_type, bool last_special);
+			   enum concat_target_type target_type, bool last_special);
 
 /* ARGSUSED */
 Lisp_Object
@@ -345,7 +352,7 @@ concat2 (Lisp_Object s1, Lisp_Object s2)
   Lisp_Object args[2];
   args[0] = s1;
   args[1] = s2;
-  return concat (2, args, Lisp_String, 0);
+  return concat (2, args, concat_string, 0);
 }
 
 /* ARGSUSED */
@@ -356,7 +363,7 @@ concat3 (Lisp_Object s1, Lisp_Object s2, Lisp_Object s3)
   args[0] = s1;
   args[1] = s2;
   args[2] = s3;
-  return concat (3, args, Lisp_String, 0);
+  return concat (3, args, concat_string, 0);
 }
 
 DEFUN ("append", Fappend, Sappend, 0, MANY, 0,
@@ -367,7 +374,7 @@ The last argument is not copied, just used as the tail of the new list.
 usage: (append &rest SEQUENCES)  */)
   (ptrdiff_t nargs, Lisp_Object *args)
 {
-  return concat (nargs, args, Lisp_Cons, 1);
+  return concat (nargs, args, concat_cons, 1);
 }
 
 DEFUN ("concat", Fconcat, Sconcat, 0, MANY, 0,
@@ -377,7 +384,7 @@ Each argument may be a string or a list or vector of characters (integers).
 usage: (concat &rest SEQUENCES)  */)
   (ptrdiff_t nargs, Lisp_Object *args)
 {
-  return concat (nargs, args, Lisp_String, 0);
+  return concat (nargs, args, concat_string, 0);
 }
 
 DEFUN ("vconcat", Fvconcat, Svconcat, 0, MANY, 0,
@@ -387,7 +394,7 @@ Each argument may be a list, vector or string.
 usage: (vconcat &rest SEQUENCES)   */)
   (ptrdiff_t nargs, Lisp_Object *args)
 {
-  return concat (nargs, args, Lisp_Vectorlike, 0);
+  return concat (nargs, args, concat_vector, 0);
 }
 
 
@@ -413,10 +420,14 @@ with the original.  */)
       return val;
     }
 
-  if (!CONSP (arg) && !VECTORP (arg) && !STRINGP (arg))
+  if (CONSP (arg))
+    return concat (1, &arg, concat_cons, 0);
+  else if (STRINGP (arg))
+    return concat (1, &arg, concat_string, 0);
+  else if (VECTORP (arg))
+    return concat (1, &arg, concat_vector, 0);
+  else
     wrong_type_argument (Qsequencep, arg);
-
-  return concat (1, &arg, XTYPE (arg), 0);
 }
 
 /* This structure holds information of an argument of `concat' that is
@@ -430,7 +441,7 @@ struct textprop_rec
 
 static Lisp_Object
 concat (ptrdiff_t nargs, Lisp_Object *args,
-	enum Lisp_Type target_type, bool last_special)
+	enum concat_target_type target_type, bool last_special)
 {
   Lisp_Object val;
   Lisp_Object tail;
@@ -485,7 +496,7 @@ concat (ptrdiff_t nargs, Lisp_Object *args,
       EMACS_INT len;
       this = args[argnum];
       len = XFASTINT (Flength (this));
-      if (target_type == Lisp_String)
+      if (target_type == concat_string)
 	{
 	  /* We must count the number of bytes needed in the string
 	     as well as the number of characters.  */
@@ -547,9 +558,9 @@ concat (ptrdiff_t nargs, Lisp_Object *args,
     result_len_byte = result_len;
 
   /* Create the output object.  */
-  if (target_type == Lisp_Cons)
+  if (target_type == concat_cons)
     val = Fmake_list (make_number (result_len), Qnil);
-  else if (target_type == Lisp_Vectorlike)
+  else if (target_type == concat_vector)
     val = Fmake_vector (make_number (result_len), Qnil);
   else if (some_multibyte)
     val = make_uninit_multibyte_string (result_len, result_len_byte);
@@ -557,7 +568,7 @@ concat (ptrdiff_t nargs, Lisp_Object *args,
     val = make_uninit_string (result_len);
 
   /* In `append', if all but last arg are nil, return last arg.  */
-  if (target_type == Lisp_Cons && EQ (val, Qnil))
+  if (target_type == concat_cons && EQ (val, Qnil))
     return last_tail;
 
   /* Copy the contents of the args into the result.  */
@@ -1078,7 +1089,7 @@ Elements of ALIST that are not conses are also shared.  */)
   CHECK_LIST (alist);
   if (NILP (alist))
     return alist;
-  alist = concat (1, &alist, Lisp_Cons, 0);
+  alist = concat (1, &alist, concat_cons, 0);
   for (tem = alist; CONSP (tem); tem = XCDR (tem))
     {
       register Lisp_Object car;
