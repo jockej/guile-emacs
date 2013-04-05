@@ -244,21 +244,16 @@ The symbol returned names the object's basic type;
 for example, (type-of 1) returns `integer'.  */)
   (Lisp_Object object)
 {
-  switch (XTYPE (object))
+  if (INTEGERP (object))
+    return Qinteger;
+  else if (SYMBOLP (object))
+    return Qsymbol;
+  else if (STRINGP (object))
+    return Qstring;
+  else if (CONSP (object))
+    return Qcons;
+  else if (MISCP (object))
     {
-    case_Lisp_Int:
-      return Qinteger;
-
-    case Lisp_Symbol:
-      return Qsymbol;
-
-    case Lisp_String:
-      return Qstring;
-
-    case Lisp_Cons:
-      return Qcons;
-
-    case Lisp_Misc:
       switch (XMISCTYPE (object))
 	{
 	case Lisp_Misc_Marker:
@@ -269,8 +264,9 @@ for example, (type-of 1) returns `integer'.  */)
 	  return Qfloat;
 	}
       emacs_abort ();
-
-    case Lisp_Vectorlike:
+    }
+  else if (VECTORLIKEP (object))
+    {
       if (WINDOW_CONFIGURATIONP (object))
 	return Qwindow_configuration;
       if (PROCESSP (object))
@@ -298,13 +294,11 @@ for example, (type-of 1) returns `integer'.  */)
       if (FONT_OBJECT_P (object))
 	return Qfont_object;
       return Qvector;
-
-    case Lisp_Float:
-      return Qfloat;
-
-    default:
-      emacs_abort ();
     }
+  else if (FLOATP (object))
+    return Qfloat;
+  else
+    return Qt;
 }
 
 DEFUN ("consp", Fconsp, Sconsp, 1, 1, 0,
