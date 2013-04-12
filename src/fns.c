@@ -3517,8 +3517,7 @@ cmpfn_user_defined (struct hash_table_test *ht,
 static EMACS_UINT
 hashfn_eq (struct hash_table_test *ht, Lisp_Object key)
 {
-  EMACS_UINT hash = XHASH (key) ^ XTYPE (key);
-  return hash;
+  return scm_ihashq (key, MOST_POSITIVE_FIXNUM);
 }
 
 /* Value is a hash code for KEY for use in hash table H which uses
@@ -3528,12 +3527,7 @@ hashfn_eq (struct hash_table_test *ht, Lisp_Object key)
 static EMACS_UINT
 hashfn_eql (struct hash_table_test *ht, Lisp_Object key)
 {
-  EMACS_UINT hash;
-  if (FLOATP (key))
-    hash = sxhash (key, 0);
-  else
-    hash = XHASH (key) ^ XTYPE (key);
-  return hash;
+  return scm_ihashv (key, MOST_POSITIVE_FIXNUM);
 }
 
 /* Value is a hash code for KEY for use in hash table H which uses
@@ -3543,8 +3537,7 @@ hashfn_eql (struct hash_table_test *ht, Lisp_Object key)
 static EMACS_UINT
 hashfn_equal (struct hash_table_test *ht, Lisp_Object key)
 {
-  EMACS_UINT hash = sxhash (key, 0);
-  return hash;
+  return scm_ihash (key, MOST_POSITIVE_FIXNUM);
 }
 
 /* Value is a hash code for KEY for use in hash table H which uses as
@@ -3903,15 +3896,6 @@ hash_clear (struct Lisp_Hash_Table *h)
 			Hash Code Computation
  ***********************************************************************/
 
-/* Maximum depth up to which to dive into Lisp structures.  */
-
-#define SXHASH_MAX_DEPTH 3
-
-/* Maximum length up to which to take list and vector elements into
-   account.  */
-
-#define SXHASH_MAX_LEN   7
-
 /* Return a hash for string PTR which has length LEN.  The hash value
    can be any EMACS_UINT value.  */
 
@@ -3932,160 +3916,13 @@ hash_string (char const *ptr, ptrdiff_t len)
   return hash;
 }
 
-/* Return a hash for string PTR which has length LEN.  The hash
-   code returned is guaranteed to fit in a Lisp integer.  */
-
-static EMACS_UINT
-sxhash_string (char const *ptr, ptrdiff_t len)
-{
-  EMACS_UINT hash = hash_string (ptr, len);
-  return SXHASH_REDUCE (hash);
-}
-
-/* Return a hash for the floating point value VAL.  */
-
-static EMACS_UINT
-sxhash_float (double val)
-{
-  EMACS_UINT hash = 0;
-  enum {
-    WORDS_PER_DOUBLE = (sizeof val / sizeof hash
-			+ (sizeof val % sizeof hash != 0))
-  };
-  union {
-    double val;
-    EMACS_UINT word[WORDS_PER_DOUBLE];
-  } u;
-  int i;
-  u.val = val;
-  memset (&u.val + 1, 0, sizeof u - sizeof u.val);
-  for (i = 0; i < WORDS_PER_DOUBLE; i++)
-    hash = sxhash_combine (hash, u.word[i]);
-  return SXHASH_REDUCE (hash);
-}
-
-/* Return a hash for list LIST.  DEPTH is the current depth in the
-   list.  We don't recurse deeper than SXHASH_MAX_DEPTH in it.  */
-
-static EMACS_UINT
-sxhash_list (Lisp_Object list, int depth)
-{
-  EMACS_UINT hash = 0;
-  int i;
-
-  if (depth < SXHASH_MAX_DEPTH)
-    for (i = 0;
-	 CONSP (list) && i < SXHASH_MAX_LEN;
-	 list = XCDR (list), ++i)
-      {
-	EMACS_UINT hash2 = sxhash (XCAR (list), depth + 1);
-	hash = sxhash_combine (hash, hash2);
-      }
-
-  if (!NILP (list))
-    {
-      EMACS_UINT hash2 = sxhash (list, depth + 1);
-      hash = sxhash_combine (hash, hash2);
-    }
-
-  return SXHASH_REDUCE (hash);
-}
-
-
-/* Return a hash for vector VECTOR.  DEPTH is the current depth in
-   the Lisp structure.  */
-
-static EMACS_UINT
-sxhash_vector (Lisp_Object vec, int depth)
-{
-  EMACS_UINT hash = ASIZE (vec);
-  int i, n;
-
-  n = min (SXHASH_MAX_LEN, ASIZE (vec));
-  for (i = 0; i < n; ++i)
-    {
-      EMACS_UINT hash2 = sxhash (AREF (vec, i), depth + 1);
-      hash = sxhash_combine (hash, hash2);
-    }
-
-  return SXHASH_REDUCE (hash);
-}
-
-/* Return a hash for bool-vector VECTOR.  */
-
-static EMACS_UINT
-sxhash_bool_vector (Lisp_Object vec)
-{
-  EMACS_INT size = bool_vector_size (vec);
-  EMACS_UINT hash = size;
-  int i, n;
-
-  n = min (SXHASH_MAX_LEN, bool_vector_words (size));
-  for (i = 0; i < n; ++i)
-    hash = sxhash_combine (hash, bool_vector_data (vec)[i]);
-
-  return SXHASH_REDUCE (hash);
-}
-
-
 /* Return a hash code for OBJ.  DEPTH is the current depth in the Lisp
    structure.  Value is an unsigned integer clipped to INTMASK.  */
 
 EMACS_UINT
 sxhash (Lisp_Object obj, int depth)
 {
-  EMACS_UINT hash;
-
-  if (depth > SXHASH_MAX_DEPTH)
-    return 0;
-
-  switch (XTYPE (obj))
-    {
-    case_Lisp_Int:
-      hash = XUINT (obj);
-      break;
-
-    case Lisp_Misc:
-      hash = XHASH (obj);
-      break;
-
-    case Lisp_Symbol:
-      obj = SYMBOL_NAME (obj);
-      /* Fall through.  */
-
-    case Lisp_String:
-      hash = sxhash_string (SSDATA (obj), SBYTES (obj));
-      break;
-
-      /* This can be everything from a vector to an overlay.  */
-    case Lisp_Vectorlike:
-      if (VECTORP (obj))
-	/* According to the CL HyperSpec, two arrays are equal only if
-	   they are `eq', except for strings and bit-vectors.  In
-	   Emacs, this works differently.  We have to compare element
-	   by element.  */
-	hash = sxhash_vector (obj, depth);
-      else if (BOOL_VECTOR_P (obj))
-	hash = sxhash_bool_vector (obj);
-      else
-	/* Others are `equal' if they are `eq', so let's take their
-	   address as hash.  */
-	hash = XHASH (obj);
-      break;
-
-    case Lisp_Cons:
-      hash = sxhash_list (obj, depth);
-      break;
-
-    case Lisp_Float:
-      hash = sxhash_float (XFLOAT_DATA (obj));
-      break;
-
-    default:
-      emacs_abort ();
-    }
-
-  return hash;
+  return scm_ihash (obj, MOST_POSITIVE_FIXNUM);
 }
 
 
