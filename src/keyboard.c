@@ -417,8 +417,8 @@ static Lisp_Object make_lispy_focus_in (Lisp_Object);
 static Lisp_Object make_lispy_focus_out (Lisp_Object);
 #endif /* HAVE_WINDOW_SYSTEM */
 static bool help_char_p (Lisp_Object);
-static void save_getcjmp (sys_jmp_buf);
-static void restore_getcjmp (sys_jmp_buf);
+static void save_getcjmp (sys_jmp_buf *);
+static void restore_getcjmp (sys_jmp_buf *);
 static Lisp_Object apply_modifiers (int, Lisp_Object);
 static void clear_event (struct input_event *);
 static void restore_kboard_configuration (int);
@@ -2209,11 +2209,11 @@ do { if (polling_stopped_here) start_polling ();	\
 
 static Lisp_Object
 read_event_from_main_queue (struct timespec *end_time,
-                            sys_jmp_buf local_getcjmp,
+                            sys_jmp_buf *local_getcjmp,
                             bool *used_mouse_menu)
 {
   Lisp_Object c = Qnil;
-  sys_jmp_buf save_jump;
+  sys_jmp_buf *save_jump = xmalloc (sizeof *save_jump);
   KBOARD *kb IF_LINT (= NULL);
 
  start:
@@ -2283,7 +2283,7 @@ read_event_from_main_queue (struct timespec *end_time,
    to tty input.  */
 static Lisp_Object
 read_decoded_event_from_main_queue (struct timespec *end_time,
-                                    sys_jmp_buf local_getcjmp,
+                                    sys_jmp_buf *local_getcjmp,
                                     Lisp_Object prev_event,
                                     bool *used_mouse_menu)
 {
@@ -2396,33 +2396,124 @@ echo_keystrokes_p (void)
 
    Value is t if we showed a menu and the user rejected it.  */
 
+struct read_char_state
+{
+  int commandflag;
+  Lisp_Object map;
+  Lisp_Object prev_event;
+  bool *used_mouse_menu;
+  struct timespec *end_time;
+  Lisp_Object c;
+  ptrdiff_t jmpcount;
+  sys_jmp_buf *local_getcjmp;
+  sys_jmp_buf *save_jump;
+  Lisp_Object previous_echo_area_message;
+  Lisp_Object also_record;
+  bool reread;
+  bool polling_stopped_here;
+  struct kboard *orig_kboard;
+};
+
+static Lisp_Object read_char_1 (bool, volatile struct read_char_state *);
+
 Lisp_Object
 read_char (int commandflag, Lisp_Object map,
 	   Lisp_Object prev_event,
 	   bool *used_mouse_menu, struct timespec *end_time)
 {
-  Lisp_Object c;
-  ptrdiff_t jmpcount;
-  sys_jmp_buf local_getcjmp;
-  sys_jmp_buf save_jump;
+  volatile struct read_char_state *state = xmalloc (sizeof *state);
+
+  state->commandflag = commandflag;
+  state->map = map;
+  state->prev_event = prev_event;
+  state->used_mouse_menu = used_mouse_menu;
+  state->end_time = end_time;
+  state->c = Qnil;
+  state->local_getcjmp = xmalloc (sizeof (*state->local_getcjmp));
+  state->save_jump = xmalloc (sizeof (*state->save_jump));
+  state->previous_echo_area_message = Qnil;
+  state->also_record = Qnil;
+  state->reread = false;
+  state->polling_stopped_here = false;
+  state->orig_kboard = current_kboard;
+
+  /* Make a longjmp point for quits to use, but don't alter getcjmp just yet.
+     We will do that below, temporarily for short sections of code,
+     when appropriate.  local_getcjmp must be in effect
+     around any call to sit_for or kbd_buffer_get_event;
+     it *must not* be in effect when we call redisplay.  */
+
+  state->jmpcount = SPECPDL_INDEX ();
+  if (sys_setjmp (*state->local_getcjmp))
+    {
+      /* Handle quits while reading the keyboard.  */
+      /* We must have saved the outer value of getcjmp here,
+	 so restore it now.  */
+      restore_getcjmp (state->save_jump);
+      pthread_sigmask (SIG_SETMASK, &empty_mask, 0);
+      unbind_to (state->jmpcount, Qnil);
+      XSETINT (state->c, quit_char);
+      internal_last_event_frame = selected_frame;
+      Vlast_event_frame = internal_last_event_frame;
+      /* If we report the quit char as an event,
+	 don't do so more than once.  */
+      if (!NILP (Vinhibit_quit))
+	Vquit_flag = Qnil;
+
+      {
+	KBOARD *kb = FRAME_KBOARD (XFRAME (selected_frame));
+	if (kb != current_kboard)
+	  {
+	    Lisp_Object last = KVAR (kb, kbd_queue);
+	    /* We shouldn't get here if we were in single-kboard mode!  */
+	    if (single_kboard)
+	      emacs_abort ();
+	    if (CONSP (last))
+	      {
+		while (CONSP (XCDR (last)))
+		  last = XCDR (last);
+		if (!NILP (XCDR (last)))
+		  emacs_abort ();
+	      }
+	    if (!CONSP (last))
+	      kset_kbd_queue (kb, list1 (state->c));
+	    else
+	      XSETCDR (last, list1 (state->c));
+	    kb->kbd_queue_has_data = 1;
+	    current_kboard = kb;
+	    /* This is going to exit from read_char
+	       so we had better get rid of this frame's stuff.  */
+	    UNGCPRO;
+            return make_number (-2); /* wrong_kboard_jmpbuf */
+	  }
+      }
+      return read_char_1 (true, state);
+    }
+
+  return read_char_1 (false, state);
+}
+
+static Lisp_Object
+read_char_1 (bool jump, volatile struct read_char_state *state)
+{
+#define commandflag state->commandflag
+#define map state->map
+#define prev_event state->prev_event
+#define used_mouse_menu state->used_mouse_menu
+#define end_time state->end_time
+#define c state->c
+#define jmpcount state->jmpcount
+#define local_getcjmp state->local_getcjmp
+#define save_jump state->save_jump
+#define previous_echo_area_message state->previous_echo_area_message
+#define also_record state->also_record
+#define reread state->reread
+#define polling_stopped_here state->polling_stopped_here
+#define orig_kboard state->orig_kboard
   Lisp_Object tem, save;
-  volatile Lisp_Object previous_echo_area_message;
-  volatile Lisp_Object also_record;
-  volatile bool reread;
-  struct gcpro gcpro1, gcpro2;
-  bool volatile polling_stopped_here = 0;
-  struct kboard *orig_kboard = current_kboard;
 
-  also_record = Qnil;
-
-#if 0  /* This was commented out as part of fixing echo for C-u left.  */
-  before_command_key_count = this_command_key_count;
-  before_command_echo_length = echo_length ();
-#endif
-  c = Qnil;
-  previous_echo_area_message = Qnil;
-
-  GCPRO2 (c, previous_echo_area_message);
+  if (jump)
+    goto non_reread;
 
  retry:
 
@@ -2633,59 +2724,6 @@ read_char (int commandflag, Lisp_Object map,
 
       if (! NILP (c))
 	goto exit;
-    }
-
-  /* Make a longjmp point for quits to use, but don't alter getcjmp just yet.
-     We will do that below, temporarily for short sections of code,
-     when appropriate.  local_getcjmp must be in effect
-     around any call to sit_for or kbd_buffer_get_event;
-     it *must not* be in effect when we call redisplay.  */
-
-  jmpcount = SPECPDL_INDEX ();
-  if (sys_setjmp (local_getcjmp))
-    {
-      /* Handle quits while reading the keyboard.  */
-      /* We must have saved the outer value of getcjmp here,
-	 so restore it now.  */
-      restore_getcjmp (save_jump);
-      pthread_sigmask (SIG_SETMASK, &empty_mask, 0);
-      unbind_to (jmpcount, Qnil);
-      XSETINT (c, quit_char);
-      internal_last_event_frame = selected_frame;
-      Vlast_event_frame = internal_last_event_frame;
-      /* If we report the quit char as an event,
-	 don't do so more than once.  */
-      if (!NILP (Vinhibit_quit))
-	Vquit_flag = Qnil;
-
-      {
-	KBOARD *kb = FRAME_KBOARD (XFRAME (selected_frame));
-	if (kb != current_kboard)
-	  {
-	    Lisp_Object last = KVAR (kb, kbd_queue);
-	    /* We shouldn't get here if we were in single-kboard mode!  */
-	    if (single_kboard)
-	      emacs_abort ();
-	    if (CONSP (last))
-	      {
-		while (CONSP (XCDR (last)))
-		  last = XCDR (last);
-		if (!NILP (XCDR (last)))
-		  emacs_abort ();
-	      }
-	    if (!CONSP (last))
-	      kset_kbd_queue (kb, list1 (c));
-	    else
-	      XSETCDR (last, list1 (c));
-	    kb->kbd_queue_has_data = 1;
-	    current_kboard = kb;
-	    /* This is going to exit from read_char
-	       so we had better get rid of this frame's stuff.  */
-	    UNGCPRO;
-            return make_number (-2); /* wrong_kboard_jmpbuf */
-	  }
-      }
-      goto non_reread;
     }
 
   /* Start idle timers if no time limit is supplied.  We don't do it
@@ -3226,6 +3264,20 @@ read_char (int commandflag, Lisp_Object map,
  exit:
   RESUME_POLLING;
   RETURN_UNGCPRO (c);
+#undef commandflag
+#undef map
+#undef prev_event
+#undef used_mouse_menu
+#undef end_time
+#undef c
+#undef jmpcount
+#undef local_getcjmp
+#undef save_jump
+#undef previous_echo_area_message
+#undef also_record
+#undef reread
+#undef polling_stopped_here
+#undef orig_kboard
 }
 
 /* Record a key that came from a mouse menu.
@@ -3419,15 +3471,15 @@ record_char (Lisp_Object c)
    See read_process_output.  */
 
 static void
-save_getcjmp (sys_jmp_buf temp)
+save_getcjmp (sys_jmp_buf *temp)
 {
-  memcpy (temp, getcjmp, sizeof getcjmp);
+  memcpy (*temp, getcjmp, sizeof getcjmp);
 }
 
 static void
-restore_getcjmp (sys_jmp_buf temp)
+restore_getcjmp (sys_jmp_buf *temp)
 {
-  memcpy (getcjmp, temp, sizeof getcjmp);
+  memcpy (getcjmp, *temp, sizeof getcjmp);
 }
 
 /* Low level keyboard/mouse input.
