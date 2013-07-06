@@ -3602,7 +3602,6 @@ usage: (format STRING &rest OBJECTS)  */)
   ptrdiff_t bufsize = sizeof initial_buffer;
   ptrdiff_t max_bufsize = STRING_BYTES_BOUND + 1;
   char *p;
-  ptrdiff_t buf_save_value_index IF_LINT (= 0);
   char *format, *end, *format_start;
   ptrdiff_t formatlen, nchars;
   /* True if the format is multibyte.  */
@@ -4210,15 +4209,11 @@ usage: (format STRING &rest OBJECTS)  */)
 	if (buf == initial_buffer)
 	  {
 	    buf = xmalloc_atomic (bufsize);
-	    sa_must_free = true;
-	    buf_save_value_index = SPECPDL_INDEX ();
-	    record_unwind_protect_ptr (xfree, buf);
 	    memcpy (buf, initial_buffer, used);
 	  }
 	else
 	  {
 	    buf = xrealloc (buf, bufsize);
-	    set_unwind_protect_ptr (buf_save_value_index, xfree, buf);
 	  }
 
 	p = buf + used;

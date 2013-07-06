@@ -506,9 +506,9 @@ load_charset_map_from_file (struct charset *charset, Lisp_Object mapfile,
   set_unwind_protect_ptr (count, fclose_unwind, fp);
   unbind_to (count + 1, Qnil);
 
-  /* Use record_xmalloc, as `charset_map_entries' is
-     large (larger than MAX_ALLOCA).  */
-  head = record_xmalloc (sizeof *head);
+  /* Use record, as `charset_map_entries' is large (larger than
+     MAX_ALLOCA).  */
+  head = xmalloc (sizeof *head);
   entries = head;
   memset (entries, 0, sizeof (struct charset_map_entries));
 
@@ -539,7 +539,7 @@ load_charset_map_from_file (struct charset *charset, Lisp_Object mapfile,
 
       if (n_entries == 0x10000)
 	{
-	  entries->next = record_xmalloc (sizeof *entries->next);
+	  entries->next = xmalloc (sizeof *entries->next);
 	  entries = entries->next;
 	  memset (entries, 0, sizeof (struct charset_map_entries));
 	  n_entries = 0;

@@ -414,16 +414,6 @@ xputenv (char const *string)
   if (putenv ((char *) string) != 0)
     memory_full (0);
 }
-
-/* Return a newly allocated memory block of SIZE bytes, remembering
-   to free it when unwinding.  */
-void *
-record_xmalloc (size_t size)
-{
-  void *p = xmalloc (size);
-  record_unwind_protect_ptr (xfree, p);
-  return p;
-}
 
 /***********************************************************************
 			 Interval Allocation

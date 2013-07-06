@@ -3966,16 +3966,13 @@ extern void init_system_name (void);
 
 enum MAX_ALLOCA { MAX_ALLOCA = 16 * 1024 };
 
-extern void *record_xmalloc (size_t) ATTRIBUTE_ALLOC_SIZE ((1));
-
-#define USE_SAFE_ALLOCA			\
-  ptrdiff_t sa_count = SPECPDL_INDEX (); bool sa_must_free = false
+#define USE_SAFE_ALLOCA ((void) 0)
 
 /* SAFE_ALLOCA allocates a simple buffer.  */
 
 #define SAFE_ALLOCA(size) ((size) < MAX_ALLOCA	\
 			   ? alloca (size)	\
-			   : (sa_must_free = true, record_xmalloc (size)))
+			   : xmalloc (size))
 
 /* SAFE_NALLOCA sets BUF to a newly allocated array of MULTIPLIER *
    NITEMS items, each of the same type as *BUF.  MULTIPLIER must
@@ -3986,23 +3983,12 @@ extern void *record_xmalloc (size_t) ATTRIBUTE_ALLOC_SIZE ((1));
     if ((nitems) <= MAX_ALLOCA / sizeof *(buf) / (multiplier))	 \
       (buf) = alloca (sizeof *(buf) * (multiplier) * (nitems));	 \
     else							 \
-      {								 \
-	(buf) = xnmalloc (nitems, sizeof *(buf) * (multiplier)); \
-	sa_must_free = true;					 \
-	record_unwind_protect_ptr (xfree, buf);			 \
-      }								 \
-  } while (false)
+      (buf) = xnmalloc (nitems, sizeof *(buf) * (multiplier));   \
+  } while (0)
 
 /* SAFE_FREE frees xmalloced memory and enables GC as needed.  */
 
-#define SAFE_FREE()			\
-  do {					\
-    if (sa_must_free) {			\
-      sa_must_free = false;		\
-      unbind_to (sa_count, Qnil);	\
-    }					\
-  } while (false)
-
+#define SAFE_FREE() ((void) 0)
 
 /* SAFE_ALLOCA_LISP allocates an array of Lisp_Objects.  */
 
@@ -4011,13 +3997,7 @@ extern void *record_xmalloc (size_t) ATTRIBUTE_ALLOC_SIZE ((1));
     if ((nelt) < MAX_ALLOCA / word_size)		       \
       (buf) = alloca ((nelt) * word_size);		       \
     else if ((nelt) < min (PTRDIFF_MAX, SIZE_MAX) / word_size) \
-      {							       \
-	Lisp_Object arg_;				       \
-	(buf) = xmalloc ((nelt) * word_size);		       \
-	arg_ = make_save_memory (buf, nelt);		       \
-	sa_must_free = true;				       \
-	record_unwind_protect (free_save_value, arg_);	       \
-      }							       \
+      buf = xmalloc ((nelt) * word_size);		       \
     else						       \
       memory_full (SIZE_MAX);				       \
   } while (false)
