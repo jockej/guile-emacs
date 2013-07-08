@@ -3259,6 +3259,68 @@ set_unwind_protect_ptr (ptrdiff_t count, void (*func) (void *), void *arg)
   p->unwind_ptr.arg = arg;
 }
 
+void
+unbind_once (void)
+{
+  /* Decrement specpdl_ptr before we do the work to unbind it, so
+     that an error in unbinding won't try to unbind the same entry
+     again.  Take care to copy any parts of the binding needed
+     before invoking any code that can make more bindings.  */
+
+  specpdl_ptr--;
+
+  switch (specpdl_ptr->kind)
+    {
+    case SPECPDL_UNWIND:
+      specpdl_ptr->unwind.func (specpdl_ptr->unwind.arg);
+      break;
+    case SPECPDL_UNWIND_PTR:
+      specpdl_ptr->unwind_ptr.func (specpdl_ptr->unwind_ptr.arg);
+      break;
+    case SPECPDL_UNWIND_INT:
+      specpdl_ptr->unwind_int.func (specpdl_ptr->unwind_int.arg);
+      break;
+    case SPECPDL_UNWIND_VOID:
+      specpdl_ptr->unwind_void.func ();
+      break;
+    case SPECPDL_BACKTRACE:
+      break;
+    case SPECPDL_LET:
+      { /* If variable has a trivial value (no forwarding), we can
+           just set it.  No need to check for constant symbols here,
+           since that was already done by specbind.  */
+        struct Lisp_Symbol *sym = XSYMBOL (specpdl_symbol (specpdl_ptr));
+        if (sym->redirect == SYMBOL_PLAINVAL)
+          {
+            SET_SYMBOL_VAL (sym, specpdl_old_value (specpdl_ptr));
+            break;
+          }
+        else
+          { /* FALLTHROUGH!!
+               NOTE: we only ever come here if make_local_foo was used for
+               the first time on this var within this let.  */
+          }
+      }
+    case SPECPDL_LET_DEFAULT:
+      Fset_default (specpdl_symbol (specpdl_ptr),
+                    specpdl_old_value (specpdl_ptr));
+      break;
+    case SPECPDL_LET_LOCAL:
+      {
+        Lisp_Object symbol = specpdl_symbol (specpdl_ptr);
+        Lisp_Object where = specpdl_where (specpdl_ptr);
+        Lisp_Object old_value = specpdl_old_value (specpdl_ptr);
+        eassert (BUFFERP (where));
+
+        /* If this was a local binding, reset the value in the appropriate
+           buffer, but only if that buffer's binding still exists.  */
+        if (!NILP (Flocal_variable_p (symbol, where)))
+          set_internal (symbol, old_value, where, 1);
+      }
+      break;
+    }
+}
+
 /* Pop and execute entries from the unwind-protect stack until the
    depth COUNT is reached.  Return VALUE.  */
 
@@ -3272,65 +3334,7 @@ unbind_to (ptrdiff_t count, Lisp_Object value)
   Vquit_flag = Qnil;
 
   while (specpdl_ptr != specpdl + count)
-    {
-      /* Decrement specpdl_ptr before we do the work to unbind it, so
-	 that an error in unbinding won't try to unbind the same entry
-	 again.  Take care to copy any parts of the binding needed
-	 before invoking any code that can make more bindings.  */
-
-      specpdl_ptr--;
-
-      switch (specpdl_ptr->kind)
-	{
-	case SPECPDL_UNWIND:
-	  specpdl_ptr->unwind.func (specpdl_ptr->unwind.arg);
-	  break;
-	case SPECPDL_UNWIND_PTR:
-	  specpdl_ptr->unwind_ptr.func (specpdl_ptr->unwind_ptr.arg);
-	  break;
-	case SPECPDL_UNWIND_INT:
-	  specpdl_ptr->unwind_int.func (specpdl_ptr->unwind_int.arg);
-	  break;
-	case SPECPDL_UNWIND_VOID:
-	  specpdl_ptr->unwind_void.func ();
-	  break;
-	case SPECPDL_BACKTRACE:
-	  break;
-	case SPECPDL_LET:
-	  { /* If variable has a trivial value (no forwarding), we can
-	       just set it.  No need to check for constant symbols here,
-	       since that was already done by specbind.  */
-	    struct Lisp_Symbol *sym = XSYMBOL (specpdl_symbol (specpdl_ptr));
-	    if (sym->redirect == SYMBOL_PLAINVAL)
-	      {
-		SET_SYMBOL_VAL (sym, specpdl_old_value (specpdl_ptr));
-		break;
-	      }
-	    else
-	      { /* FALLTHROUGH!!
-		   NOTE: we only ever come here if make_local_foo was used for
-		   the first time on this var within this let.  */
-	      }
-	  }
-	case SPECPDL_LET_DEFAULT:
-	  Fset_default (specpdl_symbol (specpdl_ptr),
-			specpdl_old_value (specpdl_ptr));
-	  break;
-	case SPECPDL_LET_LOCAL:
-	  {
-	    Lisp_Object symbol = specpdl_symbol (specpdl_ptr);
-	    Lisp_Object where = specpdl_where (specpdl_ptr);
-	    Lisp_Object old_value = specpdl_old_value (specpdl_ptr);
-	    eassert (BUFFERP (where));
-
-	    /* If this was a local binding, reset the value in the appropriate
-	       buffer, but only if that buffer's binding still exists.  */
-	    if (!NILP (Flocal_variable_p (symbol, where)))
-	      set_internal (symbol, old_value, where, 1);
-	  }
-	  break;
-	}
-    }
+    unbind_once ();
 
   if (NILP (Vquit_flag) && !NILP (quitf))
     Vquit_flag = quitf;
