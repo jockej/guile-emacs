@@ -1140,6 +1140,8 @@ internal_catch (Lisp_Object tag, Lisp_Object (*func) (Lisp_Object), Lisp_Object 
 
    This is used for correct unwinding in Fthrow and Fsignal.  */
 
+static Lisp_Object unbind_to_1 (ptrdiff_t, Lisp_Object, bool);
+
 static _Noreturn void
 unwind_to_catch (struct handler *catch, Lisp_Object value)
 {
@@ -1159,7 +1161,7 @@ unwind_to_catch (struct handler *catch, Lisp_Object value)
     {
       /* Unwind the specpdl stack, and then restore the proper set of
 	 handlers.  */
-      unbind_to (handlerlist->pdlcount, Qnil);
+      unbind_to_1 (handlerlist->pdlcount, Qnil, false);
       last_time = handlerlist == catch;
       if (! last_time)
 	handlerlist = handlerlist->next;
@@ -3178,89 +3180,74 @@ specbind (Lisp_Object symbol, Lisp_Object value)
 /* Push unwind-protect entries of various types.  */
 
 void
-record_unwind_protect (void (*function) (Lisp_Object), Lisp_Object arg)
+record_unwind_protect_1 (void (*function) (Lisp_Object), Lisp_Object arg,
+                         bool wind_explicitly)
 {
   specpdl_ptr->unwind.kind = SPECPDL_UNWIND;
   specpdl_ptr->unwind.func = function;
   specpdl_ptr->unwind.arg = arg;
+  specpdl_ptr->unwind.wind_explicitly = wind_explicitly;
+  grow_specpdl ();
+}
+
+void
+record_unwind_protect (void (*function) (Lisp_Object), Lisp_Object arg)
+{
+  record_unwind_protect_1 (function, arg, true);
+}
+
+void
+record_unwind_protect_ptr_1 (void (*function) (void *), void *arg,
+                             bool wind_explicitly)
+{
+  specpdl_ptr->unwind_ptr.kind = SPECPDL_UNWIND_PTR;
+  specpdl_ptr->unwind_ptr.func = function;
+  specpdl_ptr->unwind_ptr.arg = arg;
+  specpdl_ptr->unwind_ptr.wind_explicitly = wind_explicitly;
   grow_specpdl ();
 }
 
 void
 record_unwind_protect_ptr (void (*function) (void *), void *arg)
 {
-  specpdl_ptr->unwind_ptr.kind = SPECPDL_UNWIND_PTR;
-  specpdl_ptr->unwind_ptr.func = function;
-  specpdl_ptr->unwind_ptr.arg = arg;
+  record_unwind_protect_ptr_1 (function, arg, true);
+}
+
+void
+record_unwind_protect_int_1 (void (*function) (int), int arg,
+                             bool wind_explicitly)
+{
+  specpdl_ptr->unwind_int.kind = SPECPDL_UNWIND_INT;
+  specpdl_ptr->unwind_int.func = function;
+  specpdl_ptr->unwind_int.arg = arg;
+  specpdl_ptr->unwind_int.wind_explicitly = wind_explicitly;
   grow_specpdl ();
 }
 
 void
 record_unwind_protect_int (void (*function) (int), int arg)
 {
-  specpdl_ptr->unwind_int.kind = SPECPDL_UNWIND_INT;
-  specpdl_ptr->unwind_int.func = function;
-  specpdl_ptr->unwind_int.arg = arg;
+  record_unwind_protect_int_1 (function, arg, true);
+}
+
+void
+record_unwind_protect_void_1 (void (*function) (void),
+                              bool wind_explicitly)
+{
+  specpdl_ptr->unwind_void.kind = SPECPDL_UNWIND_VOID;
+  specpdl_ptr->unwind_void.func = function;
+  specpdl_ptr->unwind_void.wind_explicitly = wind_explicitly;
   grow_specpdl ();
 }
 
 void
 record_unwind_protect_void (void (*function) (void))
 {
-  specpdl_ptr->unwind_void.kind = SPECPDL_UNWIND_VOID;
-  specpdl_ptr->unwind_void.func = function;
-  grow_specpdl ();
-}
-
-static void
-do_nothing (void)
-{}
-
-/* Push an unwind-protect entry that does nothing, so that
-   set_unwind_protect_ptr can overwrite it later.  */
-
-void
-record_unwind_protect_nothing (void)
-{
-  record_unwind_protect_void (do_nothing);
-}
-
-/* Clear the unwind-protect entry COUNT, so that it does nothing.
-   It need not be at the top of the stack.  */
-
-void
-clear_unwind_protect (ptrdiff_t count)
-{
-  union specbinding *p = specpdl + count;
-  p->unwind_void.kind = SPECPDL_UNWIND_VOID;
-  p->unwind_void.func = do_nothing;
-}
-
-/* Set the unwind-protect entry COUNT so that it invokes FUNC (ARG).
-   It need not be at the top of the stack.  Discard the entry's
-   previous value without invoking it.  */
-
-void
-set_unwind_protect (ptrdiff_t count, void (*func) (Lisp_Object),
-		    Lisp_Object arg)
-{
-  union specbinding *p = specpdl + count;
-  p->unwind.kind = SPECPDL_UNWIND;
-  p->unwind.func = func;
-  p->unwind.arg = arg;
+  record_unwind_protect_void_1 (function, true);
 }
 
 void
-set_unwind_protect_ptr (ptrdiff_t count, void (*func) (void *), void *arg)
-{
-  union specbinding *p = specpdl + count;
-  p->unwind_ptr.kind = SPECPDL_UNWIND_PTR;
-  p->unwind_ptr.func = func;
-  p->unwind_ptr.arg = arg;
-}
-
-void
-unbind_once (void)
+unbind_once (bool explicit)
 {
   /* Decrement specpdl_ptr before we do the work to unbind it, so
      that an error in unbinding won't try to unbind the same entry
@@ -3272,16 +3259,20 @@ unbind_once (void)
   switch (specpdl_ptr->kind)
     {
     case SPECPDL_UNWIND:
-      specpdl_ptr->unwind.func (specpdl_ptr->unwind.arg);
+      if (specpdl_ptr->unwind.wind_explicitly || ! explicit)
+        specpdl_ptr->unwind.func (specpdl_ptr->unwind.arg);
       break;
     case SPECPDL_UNWIND_PTR:
-      specpdl_ptr->unwind_ptr.func (specpdl_ptr->unwind_ptr.arg);
+      if (specpdl_ptr->unwind_ptr.wind_explicitly || ! explicit)
+        specpdl_ptr->unwind_ptr.func (specpdl_ptr->unwind_ptr.arg);
       break;
     case SPECPDL_UNWIND_INT:
-      specpdl_ptr->unwind_int.func (specpdl_ptr->unwind_int.arg);
+      if (specpdl_ptr->unwind_int.wind_explicitly || ! explicit)
+        specpdl_ptr->unwind_int.func (specpdl_ptr->unwind_int.arg);
       break;
     case SPECPDL_UNWIND_VOID:
-      specpdl_ptr->unwind_void.func ();
+      if (specpdl_ptr->unwind_void.wind_explicitly || ! explicit)
+        specpdl_ptr->unwind_void.func ();
       break;
     case SPECPDL_BACKTRACE:
       break;
@@ -3321,11 +3312,34 @@ unbind_once (void)
     }
 }
 
-/* Pop and execute entries from the unwind-protect stack until the
-   depth COUNT is reached.  Return VALUE.  */
+void
+dynwind_begin (void)
+{
+  specpdl_ptr->kind = SPECPDL_FRAME;
+  grow_specpdl ();
+}
 
-Lisp_Object
-unbind_to (ptrdiff_t count, Lisp_Object value)
+void
+dynwind_end (void)
+{
+  enum specbind_tag last;
+  Lisp_Object quitf = Vquit_flag;
+  union specbinding *pdl = specpdl_ptr;
+
+  Vquit_flag = Qnil;
+
+  do
+    pdl--;
+  while (pdl->kind != SPECPDL_FRAME);
+
+  while (specpdl_ptr != pdl)
+    unbind_once (true);
+
+  Vquit_flag = quitf;
+}
+
+static Lisp_Object
+unbind_to_1 (ptrdiff_t count, Lisp_Object value, bool explicit)
 {
   Lisp_Object quitf = Vquit_flag;
   struct gcpro gcpro1, gcpro2;
@@ -3334,13 +3348,19 @@ unbind_to (ptrdiff_t count, Lisp_Object value)
   Vquit_flag = Qnil;
 
   while (specpdl_ptr != specpdl + count)
-    unbind_once ();
+    unbind_once (explicit);
 
   if (NILP (Vquit_flag) && !NILP (quitf))
     Vquit_flag = quitf;
 
   UNGCPRO;
   return value;
+}
+
+Lisp_Object
+unbind_to (ptrdiff_t count, Lisp_Object value)
+{
+  return unbind_to_1 (count, value, true);
 }
 
 DEFUN ("special-variable-p", Fspecial_variable_p, Sspecial_variable_p, 1, 1, 0,

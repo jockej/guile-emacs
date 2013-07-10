@@ -2565,7 +2565,7 @@ usage:  (make-serial-process &rest ARGS)  */)
   CHECK_STRING (name);
   proc = make_process (name);
   specpdl_count = SPECPDL_INDEX ();
-  record_unwind_protect (remove_process, proc);
+  record_unwind_protect_1 (remove_process, proc, false);
   p = XPROCESS (proc);
 
   fd = serial_open (port);
@@ -2648,7 +2648,7 @@ usage:  (make-serial-process &rest ARGS)  */)
 
   Fserial_process_configure (nargs, args);
 
-  specpdl_ptr = specpdl + specpdl_count;
+  unbind_to (specpdl_count, Qnil);
 
   UNGCPRO;
   return proc;
@@ -3162,7 +3162,7 @@ usage: (make-network-process &rest ARGS)  */)
 #endif
 
       /* Make us close S if quit.  */
-      record_unwind_protect_int (close_file_unwind, s);
+      record_unwind_protect_int_1 (close_file_unwind, s, false);
 
       /* Parse network options in the arg list.
 	 We simply ignore anything which isn't a known option (including other keywords).
@@ -3269,8 +3269,7 @@ usage: (make-network-process &rest ARGS)  */)
 
       immediate_quit = 0;
 
-      /* Discard the unwind protect closing S.  */
-      specpdl_ptr = specpdl + count1;
+      unbind_to (count1, Qnil);
       emacs_close (s);
       s = -1;
 
@@ -3378,8 +3377,7 @@ usage: (make-network-process &rest ARGS)  */)
   p->infd  = inch;
   p->outfd = outch;
 
-  /* Discard the unwind protect for closing S, if any.  */
-  specpdl_ptr = specpdl + count1;
+  unbind_to (count1, Qnil);
 
   /* Unwind bind_polling_period and request_sigio.  */
   unbind_to (count, Qnil);
@@ -4043,7 +4041,7 @@ server_accept_connection (Lisp_Object server, int channel)
     }
 
   count = SPECPDL_INDEX ();
-  record_unwind_protect_int (close_file_unwind, s);
+  record_unwind_protect_int_1 (close_file_unwind, s, false);
 
   connect_counter++;
 
@@ -4162,8 +4160,7 @@ server_accept_connection (Lisp_Object server, int channel)
   pset_command (p, Qnil);
   p->pid = 0;
 
-  /* Discard the unwind protect for closing S.  */
-  specpdl_ptr = specpdl + count;
+  unbind_to (count, Qnil);
 
   p->open_fd[SUBPROCESS_STDIN] = s;
   p->infd  = s;

@@ -2563,21 +2563,25 @@ union specbinding
     } frame;
     struct {
       ENUM_BF (specbind_tag) kind : CHAR_BIT;
+      bool wind_explicitly;
       void (*func) (Lisp_Object);
       Lisp_Object arg;
     } unwind;
     struct {
       ENUM_BF (specbind_tag) kind : CHAR_BIT;
+      bool wind_explicitly;
       void (*func) (void *);
       void *arg;
     } unwind_ptr;
     struct {
       ENUM_BF (specbind_tag) kind : CHAR_BIT;
+      bool wind_explicitly;
       void (*func) (int);
       int arg;
     } unwind_int;
     struct {
       ENUM_BF (specbind_tag) kind : CHAR_BIT;
+      bool wind_explicitly;
       void (*func) (void);
     } unwind_void;
     struct {
@@ -3442,14 +3446,14 @@ extern Lisp_Object internal_condition_case_n
     (Lisp_Object (*) (ptrdiff_t, Lisp_Object *), ptrdiff_t, Lisp_Object *,
      Lisp_Object, Lisp_Object (*) (Lisp_Object, ptrdiff_t, Lisp_Object *));
 extern void specbind (Lisp_Object, Lisp_Object);
+extern void record_unwind_protect_1 (void (*) (Lisp_Object), Lisp_Object, bool);
 extern void record_unwind_protect (void (*) (Lisp_Object), Lisp_Object);
+extern void record_unwind_protect_ptr_1 (void (*) (void *), void *, bool);
 extern void record_unwind_protect_ptr (void (*) (void *), void *);
+extern void record_unwind_protect_int_1 (void (*) (int), int, bool);
 extern void record_unwind_protect_int (void (*) (int), int);
+extern void record_unwind_protect_void_1 (void (*) (void), bool);
 extern void record_unwind_protect_void (void (*) (void));
-extern void record_unwind_protect_nothing (void);
-extern void clear_unwind_protect (ptrdiff_t);
-extern void set_unwind_protect (ptrdiff_t, void (*) (Lisp_Object), Lisp_Object);
-extern void set_unwind_protect_ptr (ptrdiff_t, void (*) (void *), void *);
 extern void dynwind_begin (void);
 extern void dynwind_end (void);
 extern Lisp_Object unbind_to (ptrdiff_t, Lisp_Object);
@@ -3534,7 +3538,9 @@ extern Lisp_Object write_region (Lisp_Object, Lisp_Object, Lisp_Object,
 				 Lisp_Object, Lisp_Object, Lisp_Object,
 				 Lisp_Object, int);
 extern void close_file_unwind (int);
+extern void close_file_ptr_unwind (void *);
 extern void fclose_unwind (void *);
+extern void fclose_ptr_unwind (void *);
 extern void restore_point_unwind (Lisp_Object);
 extern _Noreturn void report_file_errno (const char *, Lisp_Object, int);
 extern _Noreturn void report_file_error (const char *, Lisp_Object);

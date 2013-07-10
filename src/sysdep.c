@@ -3070,13 +3070,11 @@ system_process_attributes (Lisp_Object pid)
     {
       ptrdiff_t readsize, nread_incr;
       record_unwind_protect_int (close_file_unwind, fd);
-      record_unwind_protect_nothing ();
       nread = cmdline_size = 0;
 
       do
 	{
 	  cmdline = xpalloc (cmdline, &cmdline_size, 2, STRING_BYTES_BOUND, 1);
-	  set_unwind_protect_ptr (count + 1, xfree, cmdline);
 
 	  /* Leave room even if every byte needs escaping below.  */
 	  readsize = (cmdline_size >> 1) - nread;
@@ -3110,7 +3108,6 @@ system_process_attributes (Lisp_Object pid)
 	  nread = cmdsize + 2;
 	  cmdline_size = nread + 1;
 	  q = cmdline = xrealloc (cmdline, cmdline_size);
-	  set_unwind_protect_ptr (count + 1, xfree, cmdline);
 	  sprintf (cmdline, "[%.*s]", cmdsize, cmd);
 	}
       /* Command line is encoded in locale-coding-system; decode it.  */

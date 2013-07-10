@@ -4280,7 +4280,7 @@ secure_hash (Lisp_Object algorithm, Lisp_Object object, Lisp_Object start,
     }
   else
     {
-      struct buffer *prev = current_buffer;
+      ptrdiff_t count = SPECPDL_INDEX ();
 
       record_unwind_current_buffer ();
 
@@ -4374,10 +4374,7 @@ secure_hash (Lisp_Object algorithm, Lisp_Object object, Lisp_Object start,
 	}
 
       object = make_buffer_string (b, e, 0);
-      set_buffer_internal (prev);
-      /* Discard the unwind protect for recovering the current
-	 buffer.  */
-      specpdl_ptr--;
+      unbind_to (count, Qnil);
 
       if (STRING_MULTIBYTE (object))
 	object = code_convert_string (object, coding_system, Qnil, 1, 0, 0);

@@ -146,9 +146,6 @@ directory_files_internal (Lisp_Object directory, Lisp_Object full,
   ptrdiff_t count = SPECPDL_INDEX ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   struct dirent *dp;
-#ifdef WINDOWSNT
-  Lisp_Object w32_save = Qnil;
-#endif
 
   /* Because of file name handlers, these functions might call
      Ffuncall, and cause a GC.  */
@@ -203,7 +200,6 @@ directory_files_internal (Lisp_Object directory, Lisp_Object full,
 	 file in the directory, when we call Ffile_attributes below.  */
       record_unwind_protect (directory_files_internal_w32_unwind,
 			     Vw32_get_true_file_attributes);
-      w32_save = Vw32_get_true_file_attributes;
       if (EQ (Vw32_get_true_file_attributes, Qlocal))
 	{
 	  /* w32.c:stat will notice these bindings and avoid calling
@@ -310,16 +306,7 @@ directory_files_internal (Lisp_Object directory, Lisp_Object full,
       UNGCPRO;
     }
 
-  block_input ();
-  closedir (d);
-  unblock_input ();
-#ifdef WINDOWSNT
-  if (attrs)
-    Vw32_get_true_file_attributes = w32_save;
-#endif
-
-  /* Discard the unwind protect.  */
-  specpdl_ptr = specpdl + count;
+  unbind_to (count, Qnil);
 
   if (NILP (nosort))
     list = Fsort (Fnreverse (list),
