@@ -3144,7 +3144,7 @@ read_char_1 (bool jump, volatile struct read_char_state *state)
       /* Call the input method.  */
       tem = call1 (Vinput_method_function, c);
 
-      tem = unbind_to (count, tem);
+      unbind_to (count, tem);
 
       /* Restore the saved echoing state
 	 and this_command_keys state.  */

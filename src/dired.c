@@ -743,7 +743,7 @@ file_name_completion (Lisp_Object file, Lisp_Object dirname, bool all_flag,
 
   UNGCPRO;
   /* This closes the directory.  */
-  bestmatch = unbind_to (count, bestmatch);
+  unbind_to (count, bestmatch);
 
   if (all_flag || NILP (bestmatch))
     return bestmatch;

@@ -2634,7 +2634,7 @@ safe__call (bool inhibit_quit, ptrdiff_t nargs, Lisp_Object func, va_list ap)
       val = internal_condition_case_n (Ffuncall, nargs, args, Qt,
 				       safe_eval_handler);
       UNGCPRO;
-      val = unbind_to (count, val);
+      unbind_to (count, val);
     }
 
   return val;
