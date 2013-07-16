@@ -4586,16 +4586,18 @@ wait_reading_process_output (intmax_t time_limit, int nsecs, int read_kbd,
 #endif
 
 #if defined (HAVE_NS)
-          nfds = ns_select
+# define SELECT ns_select
 #elif defined (HAVE_GLIB)
-	  nfds = xg_select
+# define SELECT xg_select
 #else
-	  nfds = pselect
+# define SELECT pselect
 #endif
+          nfds = SELECT
             (max (max_process_desc, max_input_desc) + 1,
              &Available,
              (check_write ? &Writeok : 0),
              NULL, &timeout, NULL);
+#undef SELECT
 
 #ifdef HAVE_GNUTLS
           /* GnuTLS buffers data internally.  In lowat mode it leaves
