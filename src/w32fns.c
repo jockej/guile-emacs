@@ -6656,7 +6656,7 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
 #endif	/* !NTGUI_UNICODE */
 
     {
-      int count = SPECPDL_INDEX ();
+      ptrdiff_t count = SPECPDL_INDEX ();
       /* Prevent redisplay.  */
       specbind (Qinhibit_redisplay, Qt);
       block_input ();
