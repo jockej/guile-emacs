@@ -423,6 +423,7 @@ bcall0 (Lisp_Object f)
    ARGS are pushed on the stack according to ARGS_TEMPLATE before
    executing BYTESTR.  */
 
+/* {{coccinelle:skip_start}} */
 Lisp_Object
 exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 		Lisp_Object args_template, ptrdiff_t nargs, Lisp_Object *args)
@@ -1951,6 +1952,7 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 
   return result;
 }
+/* {{coccinelle:skip_end}} */
 
 void
 syms_of_bytecode (void)

@@ -2415,6 +2415,7 @@ struct read_char_state
 
 static Lisp_Object read_char_1 (bool, volatile struct read_char_state *);
 
+/* {{coccinelle:skip_start}} */
 Lisp_Object
 read_char (int commandflag, Lisp_Object map,
 	   Lisp_Object prev_event,
@@ -3279,6 +3280,7 @@ read_char_1 (bool jump, volatile struct read_char_state *state)
 #undef polling_stopped_here
 #undef orig_kboard
 }
+/* {{coccinelle:skip_end}} */
 
 /* Record a key that came from a mouse menu.
    Record it for echoing, for this-command-keys, and so on.  */
