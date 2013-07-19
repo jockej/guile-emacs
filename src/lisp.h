@@ -2543,11 +2543,6 @@ typedef jmp_buf sys_jmp_buf;
    union specbinding.  But only eval.c should access it.  */
 
 enum specbind_tag {
-  SPECPDL_FRAME = 1,
-  SPECPDL_UNWIND,		/* An unwind_protect function on Lisp_Object.  */
-  SPECPDL_UNWIND_PTR,		/* Likewise, on void *.  */
-  SPECPDL_UNWIND_INT,		/* Likewise, on int.  */
-  SPECPDL_UNWIND_VOID,		/* Likewise, with no arg.  */
   SPECPDL_BACKTRACE,		/* An element of the backtrace.  */
   SPECPDL_LET,			/* A plain and simple dynamic let-binding.  */
   /* Tags greater than SPECPDL_LET must be "subkinds" of LET.  */
@@ -2633,52 +2628,16 @@ enum handlertype { CATCHER, CONDITION_CASE };
 struct handler
 {
   enum handlertype type;
+  Lisp_Object ptag;
   Lisp_Object tag_or_ch;
   Lisp_Object val;
+  Lisp_Object var;
+  Lisp_Object body;
   struct handler *next;
-  struct handler *nextfree;
-
-  /* The bytecode interpreter can have several handlers active at the same
-     time, so when we longjmp to one of them, it needs to know which handler
-     this was and what was the corresponding internal state.  This is stored
-     here, and when we longjmp we make sure that handlerlist points to the
-     proper handler.  */
-  Lisp_Object *bytecode_top;
-  int bytecode_dest;
-
-  /* Most global vars are reset to their value via the specpdl mechanism,
-     but a few others are handled by storing their value here.  */
-#if true /* GC_MARK_STACK == GC_MAKE_GCPROS_NOOPS, but defined later.  */
-  struct gcpro *gcpro;
-#endif
-  sys_jmp_buf jmp;
   EMACS_INT lisp_eval_depth;
-  ptrdiff_t pdlcount;
   int poll_suppress_count;
   int interrupt_input_blocked;
 };
-
-/* Fill in the components of c, and put it on the list.  */
-#define PUSH_HANDLER(c, tag_ch_val, handlertype)	\
-  if (handlerlist->nextfree)				\
-    (c) = handlerlist->nextfree;			\
-  else							\
-    {							\
-      (c) = xmalloc (sizeof (struct handler));		\
-      (c)->nextfree = NULL;				\
-      handlerlist->nextfree = (c);			\
-    }							\
-  (c)->type = (handlertype);				\
-  (c)->tag_or_ch = (tag_ch_val);			\
-  (c)->val = Qnil;					\
-  (c)->next = handlerlist;				\
-  (c)->lisp_eval_depth = lisp_eval_depth;		\
-  (c)->pdlcount = SPECPDL_INDEX ();			\
-  (c)->poll_suppress_count = poll_suppress_count;	\
-  (c)->interrupt_input_blocked = interrupt_input_blocked;\
-  (c)->gcpro = gcprolist;				\
-  handlerlist = (c);
-
 
 extern Lisp_Object memory_signal_data;
 
@@ -3456,7 +3415,6 @@ extern void record_unwind_protect_void_1 (void (*) (void), bool);
 extern void record_unwind_protect_void (void (*) (void));
 extern void dynwind_begin (void);
 extern void dynwind_end (void);
-extern Lisp_Object unbind_to (ptrdiff_t, Lisp_Object);
 extern _Noreturn void error (const char *, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);
 extern _Noreturn void verror (const char *, va_list)
   ATTRIBUTE_FORMAT_PRINTF (1, 0);
@@ -3476,6 +3434,9 @@ extern void get_backtrace (Lisp_Object array);
 Lisp_Object backtrace_top_function (void);
 extern bool let_shadows_buffer_binding_p (struct Lisp_Symbol *symbol);
 extern bool let_shadows_global_binding_p (Lisp_Object symbol);
+extern _Noreturn SCM abort_to_prompt (SCM, SCM);
+extern SCM call_with_prompt (SCM, SCM, SCM);
+extern SCM make_prompt_tag (void);
 
 
 /* Defined in editfns.c.  */
@@ -4077,5 +4038,4 @@ functionp (Lisp_Object object)
 }
 
 INLINE_HEADER_END
-
 #endif /* EMACS_LISP_H */

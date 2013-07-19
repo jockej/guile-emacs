@@ -27,6 +27,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "commands.h"
 #include "keyboard.h"
 #include "dispextern.h"
+#include "guile.h"
+
+static void unbind_once (void *ignore);
 
 /* Chain of condition and catch handlers currently in effect.  */
 
@@ -136,13 +139,6 @@ specpdl_where (union specbinding *pdl)
   return pdl->let.where;
 }
 
-static Lisp_Object
-specpdl_arg (union specbinding *pdl)
-{
-  eassert (pdl->kind == SPECPDL_UNWIND);
-  return pdl->unwind.arg;
-}
-
 Lisp_Object
 backtrace_function (union specbinding *pdl)
 {
@@ -218,6 +214,39 @@ backtrace_next (union specbinding *pdl)
   return pdl;
 }
 
+struct handler *
+make_catch_handler (Lisp_Object tag)
+{
+  struct handler *c = xmalloc (sizeof (*c));
+  c->type = CATCHER;
+  c->tag_or_ch = tag;
+  c->val = Qnil;
+  c->var = Qnil;
+  c->body = Qnil;
+  c->next = handlerlist;
+  c->lisp_eval_depth = lisp_eval_depth;
+  c->poll_suppress_count = poll_suppress_count;
+  c->interrupt_input_blocked = interrupt_input_blocked;
+  c->ptag = make_prompt_tag ();
+  return c;
+}
+
+struct handler *
+make_condition_handler (Lisp_Object tag)
+{
+  struct handler *c = xmalloc (sizeof (*c));
+  c->type = CONDITION_CASE;
+  c->tag_or_ch = tag;
+  c->val = Qnil;
+  c->var = Qnil;
+  c->body = Qnil;
+  c->next = handlerlist;
+  c->lisp_eval_depth = lisp_eval_depth;
+  c->poll_suppress_count = poll_suppress_count;
+  c->interrupt_input_blocked = interrupt_input_blocked;
+  c->ptag = make_prompt_tag ();
+  return c;
+}
 
 void
 init_eval_once (void)
@@ -233,22 +262,14 @@ init_eval_once (void)
   Vrun_hooks = Qnil;
 }
 
-static struct handler handlerlist_sentinel;
+static struct handler *handlerlist_sentinel;
 
 void
 init_eval (void)
 {
   specpdl_ptr = specpdl;
-  { /* Put a dummy catcher at top-level so that handlerlist is never NULL.
-       This is important since handlerlist->nextfree holds the freelist
-       which would otherwise leak every time we unwind back to top-level.   */
-    struct handler *c;
-    handlerlist = handlerlist_sentinel.nextfree = &handlerlist_sentinel;
-    PUSH_HANDLER (c, Qunbound, CATCHER);
-    eassert (c == &handlerlist_sentinel);
-    handlerlist_sentinel.nextfree = NULL;
-    handlerlist_sentinel.next = NULL;
-  }
+  handlerlist_sentinel = make_catch_handler (Qunbound);
+  handlerlist = handlerlist_sentinel;
   Vquit_flag = Qnil;
   debug_on_next_call = 0;
   lisp_eval_depth = 0;
@@ -280,22 +301,10 @@ call_debugger (Lisp_Object arg)
   Lisp_Object val;
   EMACS_INT old_depth = max_lisp_eval_depth;
   /* Do not allow max_specpdl_size less than actual depth (Bug#16603).  */
-  EMACS_INT old_max = max (max_specpdl_size, count);
+  EMACS_INT old_max = max_specpdl_size;
 
   if (lisp_eval_depth + 40 > max_lisp_eval_depth)
     max_lisp_eval_depth = lisp_eval_depth + 40;
-
-  /* While debugging Bug#16603, previous value of 100 was found
-     too small to avoid specpdl overflow in the debugger itself.  */
-  if (max_specpdl_size - 200 < count)
-    max_specpdl_size = count + 200;
-
-  if (old_max == count)
-    {
-      /* We can enter the debugger due to specpdl overflow (Bug#16603).  */
-      specpdl_ptr--;
-      grow_specpdl ();
-    }
 
   /* Restore limits after leaving the debugger.  */
   record_unwind_protect (restore_stack_limits,
@@ -1097,6 +1106,126 @@ usage: (catch TAG BODY...)  */)
 
 #define clobbered_eassert(E) ((void) 0)
 
+static void
+set_handlerlist (void *data)
+{
+  handlerlist = data;
+}
+
+static void
+restore_handler (void *data)
+{
+  struct handler *c = data;
+  set_poll_suppress_count (c->poll_suppress_count);
+  unblock_input_to (c->interrupt_input_blocked);
+  immediate_quit = 0;
+}
+
+struct icc_thunk_env
+{
+  enum { ICC_0, ICC_1, ICC_2, ICC_3, ICC_N } type;
+  union
+  {
+    Lisp_Object (*fun0) (void);
+    Lisp_Object (*fun1) (Lisp_Object);
+    Lisp_Object (*fun2) (Lisp_Object, Lisp_Object);
+    Lisp_Object (*fun3) (Lisp_Object, Lisp_Object, Lisp_Object);
+    Lisp_Object (*funn) (ptrdiff_t, Lisp_Object *);
+  };
+  union
+  {
+    struct
+    {
+      Lisp_Object arg1;
+      Lisp_Object arg2;
+      Lisp_Object arg3;
+    };
+    struct
+    {
+      ptrdiff_t nargs;
+      Lisp_Object *args;
+    };
+  };
+  struct handler *c;
+};
+
+static Lisp_Object
+icc_thunk (void *data)
+{
+  Lisp_Object tem;
+  struct icc_thunk_env *e = data;
+  scm_dynwind_begin (0);
+  scm_dynwind_unwind_handler (restore_handler, e->c, 0);
+  scm_dynwind_unwind_handler (set_handlerlist,
+                              handlerlist,
+                              SCM_F_WIND_EXPLICITLY);
+  handlerlist = e->c;
+  switch (e->type)
+    {
+    case ICC_0:
+      tem = e->fun0 ();
+      break;
+    case ICC_1:
+      tem = e->fun1 (e->arg1);
+      break;
+    case ICC_2:
+      tem = e->fun2 (e->arg1, e->arg2);
+      break;
+    case ICC_3:
+      tem = e->fun3 (e->arg1, e->arg2, e->arg3);
+      break;
+    case ICC_N:
+      tem = e->funn (e->nargs, e->args);
+      break;
+    default:
+      emacs_abort ();
+    }
+  scm_dynwind_end ();
+  return tem;
+}
+
+static Lisp_Object
+icc_handler (void *data, Lisp_Object k, Lisp_Object v)
+{
+  Lisp_Object (*f) (Lisp_Object) = data;
+  return f (v);
+}
+
+struct icc_handler_n_env
+{
+  Lisp_Object (*fun) (Lisp_Object, ptrdiff_t, Lisp_Object *);
+  ptrdiff_t nargs;
+  Lisp_Object *args;
+};
+
+static Lisp_Object
+icc_handler_n (void *data, Lisp_Object k, Lisp_Object v)
+{
+  struct icc_handler_n_env *e = data;
+  return e->fun (v, e->nargs, e->args);
+}
+
+static Lisp_Object
+icc_lisp_handler (void *data, Lisp_Object k, Lisp_Object val)
+{
+  Lisp_Object tem;
+  struct handler *h = data;
+  Lisp_Object var = h->var;
+  scm_dynwind_begin (0);
+  if (!NILP (var))
+    {
+      if (!NILP (Vinternal_interpreter_environment))
+        specbind (Qinternal_interpreter_environment,
+                  Fcons (Fcons (var, val),
+                         Vinternal_interpreter_environment));
+      else
+        specbind (var, val);
+    }
+  tem = Fprogn (h->body);
+  scm_dynwind_end ();
+  return tem;
+}
+
 /* Set up a catch, then call C function FUNC on argument ARG.
    FUNC should return a Lisp_Object.
    This is how catches are done from within C code.  */
@@ -1104,27 +1233,14 @@ usage: (catch TAG BODY...)  */)
 Lisp_Object
 internal_catch (Lisp_Object tag, Lisp_Object (*func) (Lisp_Object), Lisp_Object arg)
 {
-  /* This structure is made part of the chain `catchlist'.  */
-  struct handler *c;
-
-  /* Fill in the components of c, and put it on the list.  */
-  PUSH_HANDLER (c, tag, CATCHER);
-
-  /* Call FUNC.  */
-  if (! sys_setjmp (c->jmp))
-    {
-      Lisp_Object val = (*func) (arg);
-      clobbered_eassert (handlerlist == c);
-      handlerlist = handlerlist->next;
-      return val;
-    }
-  else
-    { /* Throw works by a longjmp that comes right here.  */
-      Lisp_Object val = handlerlist->val;
-      clobbered_eassert (handlerlist == c);
-      handlerlist = handlerlist->next;
-      return val;
-    }
+  struct handler *c = make_catch_handler (tag);
+  struct icc_thunk_env env = { .type = ICC_1,
+                               .fun1 = func,
+                               .arg1 = arg,
+                               .c = c };
+  return call_with_prompt (c->ptag,
+                           make_c_closure (icc_thunk, &env, 0, 0),
+                           make_c_closure (icc_handler, Fidentity, 2, 0));
 }
 
 /* Unwind the specbind, catch, and handler stacks back to CATCH, and
@@ -1148,38 +1264,7 @@ static Lisp_Object unbind_to_1 (ptrdiff_t, Lisp_Object, bool);
 static _Noreturn void
 unwind_to_catch (struct handler *catch, Lisp_Object value)
 {
-  bool last_time;
-
-  eassert (catch->next);
-
-  /* Save the value in the tag.  */
-  catch->val = value;
-
-  /* Restore certain special C variables.  */
-  set_poll_suppress_count (catch->poll_suppress_count);
-  unblock_input_to (catch->interrupt_input_blocked);
-  immediate_quit = 0;
-
-  do
-    {
-      /* Unwind the specpdl stack, and then restore the proper set of
-	 handlers.  */
-      unbind_to_1 (handlerlist->pdlcount, Qnil, false);
-      last_time = handlerlist == catch;
-      if (! last_time)
-	handlerlist = handlerlist->next;
-    }
-  while (! last_time);
-
-  eassert (handlerlist == catch);
-
-  gcprolist = catch->gcpro;
-#ifdef DEBUG_GCPRO
-  gcpro_level = gcprolist ? gcprolist->level + 1 : 0;
-#endif
-  lisp_eval_depth = catch->lisp_eval_depth;
-
-  sys_longjmp (catch->jmp, 1);
+  abort_to_prompt (catch->ptag, scm_list_1 (value));
 }
 
 DEFUN ("throw", Fthrow, Sthrow, 2, 2, 0,
@@ -1251,6 +1336,35 @@ usage: (condition-case VAR BODYFORM &rest HANDLERS)  */)
   return internal_lisp_condition_case (var, bodyform, handlers);
 }
 
+static Lisp_Object
+ilcc1 (Lisp_Object var, Lisp_Object bodyform, Lisp_Object handlers)
+{
+  if (CONSP (handlers))
+    {
+      Lisp_Object clause = XCAR (handlers);
+      Lisp_Object condition = XCAR (clause);
+      Lisp_Object body = XCDR (clause);
+      if (!CONSP (condition))
+        condition = Fcons (condition, Qnil);
+      struct handler *c = make_condition_handler (condition);
+      c->var = var;
+      c->body = body;
+      struct icc_thunk_env env = { .type = ICC_3,
+                                   .fun3 = ilcc1,
+                                   .arg1 = var,
+                                   .arg2 = bodyform,
+                                   .arg3 = XCDR (handlers),
+                                   .c = c };
+      return call_with_prompt (c->ptag,
+                               make_c_closure (icc_thunk, &env, 0, 0),
+                               make_c_closure (icc_lisp_handler, c, 2, 0));
+    }
+  else
+    {
+      return eval_sub (bodyform);
+    }
+}
+
 /* Like Fcondition_case, but the args are separate
    rather than passed in a list.  Used by Fbyte_code.  */
 
@@ -1261,14 +1375,12 @@ internal_lisp_condition_case (volatile Lisp_Object var, Lisp_Object bodyform,
   Lisp_Object val;
   struct handler *c;
   struct handler *oldhandlerlist = handlerlist;
-  int clausenb = 0;
 
   CHECK_SYMBOL (var);
 
   for (val = handlers; CONSP (val); val = XCDR (val))
     {
       Lisp_Object tem = XCAR (val);
-      clausenb++;
       if (! (NILP (tem)
 	     || (CONSP (tem)
 		 && (SYMBOLP (XCAR (tem))
@@ -1277,52 +1389,7 @@ internal_lisp_condition_case (volatile Lisp_Object var, Lisp_Object bodyform,
 	       SDATA (Fprin1_to_string (tem, Qt)));
     }
 
-  { /* The first clause is the one that should be checked first, so it should
-       be added to handlerlist last.  So we build in `clauses' a table that
-       contains `handlers' but in reverse order.  */
-    Lisp_Object *clauses = alloca (clausenb * sizeof (Lisp_Object *));
-    Lisp_Object *volatile clauses_volatile = clauses;
-    int i = clausenb;
-    for (val = handlers; CONSP (val); val = XCDR (val))
-      clauses[--i] = XCAR (val);
-    for (i = 0; i < clausenb; i++)
-      {
-	Lisp_Object clause = clauses[i];
-	Lisp_Object condition = XCAR (clause);
-	if (!CONSP (condition))
-	  condition = Fcons (condition, Qnil);
-	PUSH_HANDLER (c, condition, CONDITION_CASE);
-	if (sys_setjmp (c->jmp))
-	  {
-	    ptrdiff_t count = SPECPDL_INDEX ();
-	    Lisp_Object val = handlerlist->val;
-	    Lisp_Object *chosen_clause = clauses_volatile;
-	    for (c = handlerlist->next; c != oldhandlerlist; c = c->next)
-	      chosen_clause++;
-	    handlerlist = oldhandlerlist;
-	    if (!NILP (var))
-	      {
-		if (!NILP (Vinternal_interpreter_environment))
-		  specbind (Qinternal_interpreter_environment,
-			    Fcons (Fcons (var, val),
-				   Vinternal_interpreter_environment));
-		else
-		  specbind (var, val);
-	      }
-	    val = Fprogn (XCDR (*chosen_clause));
-	    /* Note that this just undoes the binding of var; whoever
-	       longjumped to us unwound the stack to c.pdlcount before
-	       throwing.  */
-	    if (!NILP (var))
-	      unbind_to (count, Qnil);
-	    return val;
-	  }
-      }
-    }
-
-  val = eval_sub (bodyform);
-  handlerlist = oldhandlerlist;
-  return val;
+  return ilcc1 (var, bodyform, Freverse (handlers));
 }
 
 /* Call the function BFUN with no arguments, catching errors within it
@@ -1340,21 +1407,12 @@ internal_condition_case (Lisp_Object (*bfun) (void), Lisp_Object handlers,
 			 Lisp_Object (*hfun) (Lisp_Object))
 {
   Lisp_Object val;
-  struct handler *c;
+  struct handler *c = make_condition_handler (handlers);
 
-  PUSH_HANDLER (c, handlers, CONDITION_CASE);
-  if (sys_setjmp (c->jmp))
-    {
-      Lisp_Object val = handlerlist->val;
-      clobbered_eassert (handlerlist == c);
-      handlerlist = handlerlist->next;
-      return (*hfun) (val);
-    }
-
-  val = (*bfun) ();
-  clobbered_eassert (handlerlist == c);
-  handlerlist = handlerlist->next;
-  return val;
+  struct icc_thunk_env env = { .type = ICC_0, .fun0 = bfun, .c = c };
+  return call_with_prompt (c->ptag,
+                           make_c_closure (icc_thunk, &env, 0, 0),
+                           make_c_closure (icc_handler, hfun, 2, 0));
 }
 
 /* Like internal_condition_case but call BFUN with ARG as its argument.  */
@@ -1364,21 +1422,15 @@ internal_condition_case_1 (Lisp_Object (*bfun) (Lisp_Object), Lisp_Object arg,
 			   Lisp_Object handlers, Lisp_Object (*hfun) (Lisp_Object))
 {
   Lisp_Object val;
-  struct handler *c;
+  struct handler *c = make_condition_handler (handlers);
 
-  PUSH_HANDLER (c, handlers, CONDITION_CASE);
-  if (sys_setjmp (c->jmp))
-    {
-      Lisp_Object val = handlerlist->val;
-      clobbered_eassert (handlerlist == c);
-      handlerlist = handlerlist->next;
-      return (*hfun) (val);
-    }
-
-  val = (*bfun) (arg);
-  clobbered_eassert (handlerlist == c);
-  handlerlist = handlerlist->next;
-  return val;
+  struct icc_thunk_env env = { .type = ICC_1,
+                               .fun1 = bfun,
+                               .arg1 = arg,
+                               .c = c };
+  return call_with_prompt (c->ptag,
+                           make_c_closure (icc_thunk, &env, 0, 0),
+                           make_c_closure (icc_handler, hfun, 2, 0));
 }
 
 /* Like internal_condition_case_1 but call BFUN with ARG1 and ARG2 as
@@ -1392,21 +1444,15 @@ internal_condition_case_2 (Lisp_Object (*bfun) (Lisp_Object, Lisp_Object),
 			   Lisp_Object (*hfun) (Lisp_Object))
 {
   Lisp_Object val;
-  struct handler *c;
-
-  PUSH_HANDLER (c, handlers, CONDITION_CASE);
-  if (sys_setjmp (c->jmp))
-    {
-      Lisp_Object val = handlerlist->val;
-      clobbered_eassert (handlerlist == c);
-      handlerlist = handlerlist->next;
-      return (*hfun) (val);
-    }
-
-  val = (*bfun) (arg1, arg2);
-  clobbered_eassert (handlerlist == c);
-  handlerlist = handlerlist->next;
-  return val;
+  struct handler *c = make_condition_handler (handlers);
+  struct icc_thunk_env env = { .type = ICC_2,
+                               .fun2 = bfun,
+                               .arg1 = arg1,
+                               .arg2 = arg2,
+                               .c = c };
+  return call_with_prompt (c->ptag,
+                           make_c_closure (icc_thunk, &env, 0, 0),
+                           make_c_closure (icc_handler, hfun, 2, 0));
 }
 
 /* Like internal_condition_case but call BFUN with NARGS as first,
@@ -1422,21 +1468,17 @@ internal_condition_case_n (Lisp_Object (*bfun) (ptrdiff_t, Lisp_Object *),
 						Lisp_Object *args))
 {
   Lisp_Object val;
-  struct handler *c;
+  struct handler *c = make_condition_handler (handlers);
 
-  PUSH_HANDLER (c, handlers, CONDITION_CASE);
-  if (sys_setjmp (c->jmp))
-    {
-      Lisp_Object val = handlerlist->val;
-      clobbered_eassert (handlerlist == c);
-      handlerlist = handlerlist->next;
-      return (*hfun) (val, nargs, args);
-    }
-
-  val = (*bfun) (nargs, args);
-  clobbered_eassert (handlerlist == c);
-  handlerlist = handlerlist->next;
-  return val;
+  struct icc_thunk_env env = { .type = ICC_N,
+                               .funn = bfun,
+                               .nargs = nargs,
+                               .args = args,
+                               .c = c };
+  struct icc_handler_n_env henv = { .fun = hfun, .nargs = nargs, .args = args };
+  return call_with_prompt (c->ptag,
+                           make_c_closure (icc_thunk, &env, 0, 0),
+                           make_c_closure (icc_handler_n, &henv, 2, 0));
 }
 
 
@@ -1564,7 +1606,7 @@ See also the function `condition-case'.  */)
     }
   else
     {
-      if (handlerlist != &handlerlist_sentinel)
+      if (handlerlist != handlerlist_sentinel)
 	/* FIXME: This will come right back here if there's no `top-level'
 	   catcher.  A better solution would be to abort here, and instead
 	   add a catch-all condition handler so we never come here.  */
@@ -2048,6 +2090,14 @@ record_in_backtrace (Lisp_Object function, Lisp_Object *args, ptrdiff_t nargs)
   specpdl_ptr->bt.args = args;
   specpdl_ptr->bt.nargs = nargs;
   grow_specpdl ();
+  scm_dynwind_unwind_handler (unbind_once, NULL, SCM_F_WIND_EXPLICITLY);
+}
+
+static void
+set_lisp_eval_depth (void *data)
+{
+  EMACS_INT n = (EMACS_INT) data;
+  lisp_eval_depth = n;
 }
 
 /* Eval a sub-expression of the current expression (i.e. in the same
@@ -2082,6 +2132,11 @@ eval_sub (Lisp_Object form)
   GCPRO1 (form);
   maybe_gc ();
   UNGCPRO;
+
+  scm_dynwind_begin (0);
+  scm_dynwind_unwind_handler (set_lisp_eval_depth,
+                              (void *) lisp_eval_depth,
+                              SCM_F_WIND_EXPLICITLY);
 
   if (++lisp_eval_depth > max_lisp_eval_depth)
     {
@@ -2259,10 +2314,9 @@ eval_sub (Lisp_Object form)
 	xsignal1 (Qinvalid_function, original_fun);
     }
 
-  lisp_eval_depth--;
   if (backtrace_debug_on_exit (specpdl_ptr - 1))
     val = call_debugger (list2 (Qexit, val));
-  specpdl_ptr--;
+  scm_dynwind_end ();
 
   return val;
 }
@@ -2747,6 +2801,11 @@ usage: (funcall FUNCTION &rest ARGUMENTS)  */)
 
   QUIT;
 
+  scm_dynwind_begin (0);
+  scm_dynwind_unwind_handler (set_lisp_eval_depth,
+                              (void *) lisp_eval_depth,
+                              SCM_F_WIND_EXPLICITLY);
+
   if (++lisp_eval_depth > max_lisp_eval_depth)
     {
       if (max_lisp_eval_depth < 100)
@@ -2876,10 +2935,9 @@ usage: (funcall FUNCTION &rest ARGUMENTS)  */)
       else
 	xsignal1 (Qinvalid_function, original_fun);
     }
-  lisp_eval_depth--;
   if (backtrace_debug_on_exit (specpdl_ptr - 1))
     val = call_debugger (list2 (Qexit, val));
-  specpdl_ptr--;
+  scm_dynwind_end ();
   return val;
 }
 
@@ -3175,7 +3233,7 @@ specbind (Lisp_Object symbol, Lisp_Object value)
 		specpdl_ptr->let.kind = SPECPDL_LET_DEFAULT;
 		grow_specpdl ();
 		Fset_default (symbol, value);
-		return;
+		goto done;
 	      }
 	  }
 	else
@@ -3187,6 +3245,9 @@ specbind (Lisp_Object symbol, Lisp_Object value)
       }
     default: emacs_abort ();
     }
+
+ done:
+  scm_dynwind_unwind_handler (unbind_once, NULL, SCM_F_WIND_EXPLICITLY);
 }
 
 /* Push unwind-protect entries of various types.  */
@@ -3195,11 +3256,7 @@ void
 record_unwind_protect_1 (void (*function) (Lisp_Object), Lisp_Object arg,
                          bool wind_explicitly)
 {
-  specpdl_ptr->unwind.kind = SPECPDL_UNWIND;
-  specpdl_ptr->unwind.func = function;
-  specpdl_ptr->unwind.arg = arg;
-  specpdl_ptr->unwind.wind_explicitly = wind_explicitly;
-  grow_specpdl ();
+  record_unwind_protect_ptr_1 (function, arg, wind_explicitly);
 }
 
 void
@@ -3212,11 +3269,11 @@ void
 record_unwind_protect_ptr_1 (void (*function) (void *), void *arg,
                              bool wind_explicitly)
 {
-  specpdl_ptr->unwind_ptr.kind = SPECPDL_UNWIND_PTR;
-  specpdl_ptr->unwind_ptr.func = function;
-  specpdl_ptr->unwind_ptr.arg = arg;
-  specpdl_ptr->unwind_ptr.wind_explicitly = wind_explicitly;
-  grow_specpdl ();
+  scm_dynwind_unwind_handler (function,
+                              arg,
+                              (wind_explicitly
+                               ? SCM_F_WIND_EXPLICITLY
+                               : 0));
 }
 
 void
@@ -3229,11 +3286,7 @@ void
 record_unwind_protect_int_1 (void (*function) (int), int arg,
                              bool wind_explicitly)
 {
-  specpdl_ptr->unwind_int.kind = SPECPDL_UNWIND_INT;
-  specpdl_ptr->unwind_int.func = function;
-  specpdl_ptr->unwind_int.arg = arg;
-  specpdl_ptr->unwind_int.wind_explicitly = wind_explicitly;
-  grow_specpdl ();
+  record_unwind_protect_ptr_1 (function, arg, wind_explicitly);
 }
 
 void
@@ -3242,14 +3295,17 @@ record_unwind_protect_int (void (*function) (int), int arg)
   record_unwind_protect_int_1 (function, arg, true);
 }
 
+static void
+call_void (void *data)
+{
+  ((void (*) (void)) data) ();
+}
+
 void
 record_unwind_protect_void_1 (void (*function) (void),
                               bool wind_explicitly)
 {
-  specpdl_ptr->unwind_void.kind = SPECPDL_UNWIND_VOID;
-  specpdl_ptr->unwind_void.func = function;
-  specpdl_ptr->unwind_void.wind_explicitly = wind_explicitly;
-  grow_specpdl ();
+  record_unwind_protect_ptr_1 (call_void, function, wind_explicitly);
 }
 
 void
@@ -3258,8 +3314,8 @@ record_unwind_protect_void (void (*function) (void))
   record_unwind_protect_void_1 (function, true);
 }
 
-void
-unbind_once (bool explicit)
+static void
+unbind_once (void *ignore)
 {
   /* Decrement specpdl_ptr before we do the work to unbind it, so
      that an error in unbinding won't try to unbind the same entry
@@ -3270,22 +3326,6 @@ unbind_once (bool explicit)
 
   switch (specpdl_ptr->kind)
     {
-    case SPECPDL_UNWIND:
-      if (specpdl_ptr->unwind.wind_explicitly || ! explicit)
-        specpdl_ptr->unwind.func (specpdl_ptr->unwind.arg);
-      break;
-    case SPECPDL_UNWIND_PTR:
-      if (specpdl_ptr->unwind_ptr.wind_explicitly || ! explicit)
-        specpdl_ptr->unwind_ptr.func (specpdl_ptr->unwind_ptr.arg);
-      break;
-    case SPECPDL_UNWIND_INT:
-      if (specpdl_ptr->unwind_int.wind_explicitly || ! explicit)
-        specpdl_ptr->unwind_int.func (specpdl_ptr->unwind_int.arg);
-      break;
-    case SPECPDL_UNWIND_VOID:
-      if (specpdl_ptr->unwind_void.wind_explicitly || ! explicit)
-        specpdl_ptr->unwind_void.func ();
-      break;
     case SPECPDL_BACKTRACE:
       break;
     case SPECPDL_LET:
@@ -3327,52 +3367,13 @@ unbind_once (bool explicit)
 void
 dynwind_begin (void)
 {
-  specpdl_ptr->kind = SPECPDL_FRAME;
-  grow_specpdl ();
+  scm_dynwind_begin (0);
 }
 
 void
 dynwind_end (void)
 {
-  enum specbind_tag last;
-  Lisp_Object quitf = Vquit_flag;
-  union specbinding *pdl = specpdl_ptr;
-
-  Vquit_flag = Qnil;
-
-  do
-    pdl--;
-  while (pdl->kind != SPECPDL_FRAME);
-
-  while (specpdl_ptr != pdl)
-    unbind_once (true);
-
-  Vquit_flag = quitf;
-}
-
-static Lisp_Object
-unbind_to_1 (ptrdiff_t count, Lisp_Object value, bool explicit)
-{
-  Lisp_Object quitf = Vquit_flag;
-  struct gcpro gcpro1, gcpro2;
-
-  GCPRO2 (value, quitf);
-  Vquit_flag = Qnil;
-
-  while (specpdl_ptr != specpdl + count)
-    unbind_once (explicit);
-
-  if (NILP (Vquit_flag) && !NILP (quitf))
-    Vquit_flag = quitf;
-
-  UNGCPRO;
-  return value;
-}
-
-Lisp_Object
-unbind_to (ptrdiff_t count, Lisp_Object value)
-{
-  return unbind_to_1 (count, value, true);
+  scm_dynwind_end ();
 }
 
 DEFUN ("special-variable-p", Fspecial_variable_p, Sspecial_variable_p, 1, 1, 0,
@@ -3525,13 +3526,6 @@ backtrace_eval_unrewind (int distance)
       /*  */
       switch (tmp->kind)
 	{
-	  /* FIXME: Ideally we'd like to "temporarily unwind" (some of) those
-	     unwind_protect, but the problem is that we don't know how to
-	     rewind them afterwards.  */
-	case SPECPDL_UNWIND:
-	case SPECPDL_UNWIND_PTR:
-	case SPECPDL_UNWIND_INT:
-	case SPECPDL_UNWIND_VOID:
 	case SPECPDL_BACKTRACE:
 	  break;
 	case SPECPDL_LET:
@@ -3696,7 +3690,38 @@ Lisp_Object backtrace_top_function (void)
   union specbinding *pdl = backtrace_top ();
   return (backtrace_p (pdl) ? backtrace_function (pdl) : Qnil);
 }
+
+_Noreturn SCM
+abort_to_prompt (SCM tag, SCM arglst)
+{
+  static SCM var = SCM_UNDEFINED;
+  if (SCM_UNBNDP (var))
+    var = scm_c_public_lookup ("guile", "abort-to-prompt");
 
+  scm_apply_1 (scm_variable_ref (var), tag, arglst);
+  emacs_abort ();
+}
+
+SCM
+call_with_prompt (SCM tag, SCM thunk, SCM handler)
+{
+  static SCM var = SCM_UNDEFINED;
+  if (SCM_UNBNDP (var))
+    var = scm_c_public_lookup ("guile", "call-with-prompt");
+
+  return scm_call_3 (scm_variable_ref (var), tag, thunk, handler);
+}
+
+SCM
+make_prompt_tag (void)
+{
+  static SCM var = SCM_UNDEFINED;
+  if (SCM_UNBNDP (var))
+    var = scm_c_public_lookup ("guile", "make-prompt-tag");
+
+  return scm_call_0 (scm_variable_ref (var));
+}
+
 void
 syms_of_eval (void)
 {
