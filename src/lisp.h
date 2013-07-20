@@ -381,6 +381,8 @@ scm_t_bits lisp_vectorlike_tag;
 
 enum Lisp_Type
   {
+    Lisp_Other,
+
     /* Integer.  XINT (obj) is the integer value.  */
     Lisp_Int,
 
@@ -658,7 +660,7 @@ XTYPE (Lisp_Object o)
   else if (FLOATP (o))
     return Lisp_Float;
   else
-    abort ();
+    return Lisp_Other;
 }
 
 /* Extract a value or address from a Lisp_Object.  */
