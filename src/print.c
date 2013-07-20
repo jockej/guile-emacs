@@ -2146,6 +2146,19 @@ print_object (Lisp_Object obj, Lisp_Object printcharfun, bool escapeflag)
 	}
       break;
 
+    case Lisp_Other:
+      {
+        SCM port = scm_open_output_string ();
+        if (escapeflag)
+          scm_display (obj, port);
+        else
+          scm_write (obj, port);
+        strout (scm_to_locale_string (scm_get_output_string (port)),
+                -1, -1, printcharfun);
+        scm_close_port (port);
+      }
+      break;
+
     default:
     badtype:
       {
