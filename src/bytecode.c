@@ -796,6 +796,7 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 	varbind:
 	  /* Specbind can signal and thus GC.  */
 	  BEFORE_POTENTIAL_GC ();
+          dynwind_begin ();
 	  specbind (vectorp[op], POP);
 	  AFTER_POTENTIAL_GC ();
 	  NEXT;
@@ -856,16 +857,13 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 	  op -= Bunbind;
 	dounbind:
 	  BEFORE_POTENTIAL_GC ();
-	  unbind_to (SPECPDL_INDEX () - op, Qnil);
+          for (int i = 0; i < op; i++)
+            dynwind_end ();
 	  AFTER_POTENTIAL_GC ();
 	  NEXT;
 
 	CASE (Bunbind_all):	/* Obsolete.  Never used.  */
-	  /* To unbind back to the beginning of this frame.  Not used yet,
-	     but will be needed for tail-recursion elimination.  */
-	  BEFORE_POTENTIAL_GC ();
-	  unbind_to (count, Qnil);
-	  AFTER_POTENTIAL_GC ();
+          emacs_abort ();
 	  NEXT;
 
 	CASE (Bgoto):
@@ -984,28 +982,31 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 	  NEXT;
 
 	CASE (Bsave_excursion):
+          dynwind_begin ();
 	  record_unwind_protect (save_excursion_restore,
 				 save_excursion_save ());
 	  NEXT;
 
 	CASE (Bsave_current_buffer): /* Obsolete since ??.  */
 	CASE (Bsave_current_buffer_1):
+          dynwind_begin ();
 	  record_unwind_current_buffer ();
 	  NEXT;
 
 	CASE (Bsave_window_excursion): /* Obsolete since 24.1.  */
 	  {
-	    ptrdiff_t count1 = SPECPDL_INDEX ();
+            dynwind_begin ();
 	    record_unwind_protect (restore_window_configuration,
 				   Fcurrent_window_configuration (Qnil));
 	    BEFORE_POTENTIAL_GC ();
 	    TOP = Fprogn (TOP);
-	    unbind_to (count1, TOP);
+            dynwind_end ();
 	    AFTER_POTENTIAL_GC ();
 	    NEXT;
 	  }
 
 	CASE (Bsave_restriction):
+          dynwind_begin ();
 	  record_unwind_protect (save_restriction_restore,
 				 save_restriction_save ());
 	  NEXT;
@@ -1067,6 +1068,7 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 	CASE (Bunwind_protect):	/* FIXME: avoid closure for lexbind.  */
 	  {
 	    Lisp_Object handler = POP;
+            dynwind_begin ();
 	    /* Support for a function here is new in 24.4.  */
 	    record_unwind_protect (NILP (Ffunctionp (handler))
 				   ? unwind_body : bcall0,
@@ -1088,6 +1090,7 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 	CASE (Btemp_output_buffer_setup): /* Obsolete since 24.1.  */
 	  BEFORE_POTENTIAL_GC ();
 	  CHECK_STRING (TOP);
+          dynwind_begin ();
 	  temp_output_buffer_setup (SSDATA (TOP));
 	  AFTER_POTENTIAL_GC ();
 	  TOP = Vstandard_output;
@@ -1101,7 +1104,7 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 	    temp_output_buffer_show (TOP);
 	    TOP = v1;
 	    /* pop binding of standard-output */
-	    unbind_to (SPECPDL_INDEX () - 1, Qnil);
+            dynwind_end ();
 	    AFTER_POTENTIAL_GC ();
 	    NEXT;
 	  }

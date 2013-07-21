@@ -1068,7 +1068,6 @@ This function is an internal primitive--use `make-frame' instead.  */)
   int minibuffer_only = 0;
   long window_prompting = 0;
   int width, height;
-  ptrdiff_t count = specpdl_ptr - specpdl;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   Lisp_Object display;
   struct ns_display_info *dpyinfo = NULL;
@@ -1142,6 +1141,8 @@ This function is an internal primitive--use `make-frame' instead.  */)
     fset_icon_name (f, Qnil);
 
   FRAME_DISPLAY_INFO (f) = dpyinfo;
+
+  dynwind_begin ();
 
   /* With FRAME_DISPLAY_INFO set up, this unwind-protect is safe.  */
   record_unwind_protect (unwind_create_frame, frame);
@@ -1360,7 +1361,8 @@ This function is an internal primitive--use `make-frame' instead.  */)
      and similar functions.  */
   Vwindow_list = Qnil;
 
-  return unbind_to (count, frame);
+  dynwind_end ();
+  return frame;
 }
 
 void
@@ -2724,11 +2726,11 @@ Text larger than the specified size is clipped.  */)
 {
   int root_x, root_y;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
-  ptrdiff_t count = SPECPDL_INDEX ();
   struct frame *f;
   char *str;
   NSSize size;
 
+  dynwind_begin ();
   specbind (Qinhibit_redisplay, Qt);
 
   GCPRO4 (string, parms, frame, timeout);
@@ -2769,7 +2771,8 @@ Text larger than the specified size is clipped.  */)
   unblock_input ();
 
   UNGCPRO;
-  return unbind_to (count, Qnil);
+  dynwind_end ();
+  return Qnil;
 }
 
 

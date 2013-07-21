@@ -2842,8 +2842,6 @@ usage: (make-network-process &rest ARGS)  */)
   int xerrno = 0;
   int s = -1, outch, inch;
   struct gcpro gcpro1;
-  ptrdiff_t count = SPECPDL_INDEX ();
-  ptrdiff_t count1;
   Lisp_Object colon_address;  /* Either QClocal or QCremote.  */
   Lisp_Object tem;
   Lisp_Object name, buffer, host, service, address;
@@ -2856,6 +2854,8 @@ usage: (make-network-process &rest ARGS)  */)
 
   if (nargs == 0)
     return Qnil;
+
+  dynwind_begin ();
 
   /* Save arguments for process-contact and clone-process.  */
   contact = Flist (nargs, args);
@@ -3122,7 +3122,7 @@ usage: (make-network-process &rest ARGS)  */)
  open_socket:
 
   /* Do this in case we never enter the for-loop below.  */
-  count1 = SPECPDL_INDEX ();
+  dynwind_begin ();
   s = -1;
 
   for (lres = res; lres; lres = lres->ai_next)
@@ -3269,7 +3269,8 @@ usage: (make-network-process &rest ARGS)  */)
 
       immediate_quit = 0;
 
-      unbind_to (count1, Qnil);
+      dynwind_end ();
+      dynwind_begin ();
       emacs_close (s);
       s = -1;
 
@@ -3338,7 +3339,11 @@ usage: (make-network-process &rest ARGS)  */)
 	 the normal blocking calls to open-network-stream handles this error
 	 better.  */
       if (is_non_blocking_client)
+        {
+          dynwind_end ();
+          dynwind_end ();
 	  return Qnil;
+        }
 
       report_file_errno ((is_server
 			  ? "make server process failed"
@@ -3377,10 +3382,10 @@ usage: (make-network-process &rest ARGS)  */)
   p->infd  = inch;
   p->outfd = outch;
 
-  unbind_to (count1, Qnil);
+  dynwind_end ();
 
   /* Unwind bind_polling_period and request_sigio.  */
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   if (is_server && socktype != SOCK_DGRAM)
     pset_status (p, Qlisten);

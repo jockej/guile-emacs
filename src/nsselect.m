@@ -183,13 +183,12 @@ ns_get_local_selection (Lisp_Object selection_name,
 {
   Lisp_Object local_value;
   Lisp_Object handler_fn, value, check;
-  ptrdiff_t count;
 
   local_value = assq_no_quit (selection_name, Vselection_alist);
 
   if (NILP (local_value)) return Qnil;
 
-  count = specpdl_ptr - specpdl;
+  dynwind_begin ();
   specbind (Qinhibit_quit, Qt);
   CHECK_SYMBOL (target_type);
   handler_fn = Fcdr (Fassq (target_type, Vselection_converter_alist));
@@ -198,7 +197,7 @@ ns_get_local_selection (Lisp_Object selection_name,
                 XCAR (XCDR (local_value)));
   else
     value = Qnil;
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   check = value;
   if (CONSP (value) && SYMBOLP (XCAR (value)))

@@ -1160,6 +1160,7 @@ no quit occurs and `x-popup-menu' returns nil.  */)
   Lisp_Object x, y, window;
   int menuflags = 0;
   ptrdiff_t specpdl_count = SPECPDL_INDEX ();
+  ptrdiff_t specpdl_count2;
   struct gcpro gcpro1;
 
   if (NILP (position))
@@ -1406,6 +1407,8 @@ no quit occurs and `x-popup-menu' returns nil.  */)
     }
 #endif
 
+  specpdl_count2 = SPECPDL_INDEX ();
+
 #ifdef HAVE_NS			/* FIXME: ns-specific, why? --Stef  */
   record_unwind_protect_void (discard_menu_items);
 #endif
@@ -1417,11 +1420,11 @@ no quit occurs and `x-popup-menu' returns nil.  */)
     selection = FRAME_TERMINAL (f)->menu_show_hook (f, xpos, ypos, menuflags,
 						    title, &error_name);
 
-#ifdef HAVE_NS
-  unbind_to (specpdl_count, Qnil);
-#else
+#ifndef HAVE_NS
   discard_menu_items ();
 #endif
+
+  unbind_to (specpdl_count2, Qnil);
 
 #ifdef HAVE_NTGUI     /* FIXME: Is it really w32-specific?  --Stef  */
   if (FRAME_W32_P (f))

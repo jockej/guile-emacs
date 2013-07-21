@@ -3437,7 +3437,6 @@ by calling `format-decode', which see.  */)
   ptrdiff_t how_much;
   off_t beg_offset, end_offset;
   int unprocessed;
-  ptrdiff_t count = SPECPDL_INDEX ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   Lisp_Object handler, val, insval, orig_filename, old_undo;
   Lisp_Object p;
@@ -3457,7 +3456,8 @@ by calling `format-decode', which see.  */)
        && BEG == Z);
   Lisp_Object old_Vdeactivate_mark = Vdeactivate_mark;
   bool we_locked_file = 0;
-  ptrdiff_t fd_index;
+
+  dynwind_begin ();
 
   if (current_buffer->base_buffer && ! NILP (visit))
     error ("Cannot do file visiting in an indirect buffer");
@@ -3508,7 +3508,6 @@ by calling `format-decode', which see.  */)
       goto notfound;
     }
 
-  fd_index = SPECPDL_INDEX ();
   record_unwind_protect_ptr (close_file_ptr_unwind, &fd);
 
   /* Replacement should preserve point as it preserves markers.  */
@@ -3643,7 +3642,7 @@ by calling `format-decode', which see.  */)
 		  Lisp_Object workbuf;
 		  struct buffer *buf;
 
-                  ptrdiff_t count1 = SPECPDL_INDEX ();
+                  dynwind_begin ();
 		  record_unwind_current_buffer ();
 
 		  workbuf = Fget_buffer_create (build_string (" *code-converting-work*"));
@@ -3666,7 +3665,7 @@ by calling `format-decode', which see.  */)
 		  coding_system = call2 (Vset_auto_coding_function,
 					 filename, make_number (nread));
 
-                  unbind_to (count1, Qnil);
+                  dynwind_end ();
 
 		  /* Rewind the file for the actual read done later.  */
 		  if (lseek (fd, 0, SEEK_SET) < 0)
@@ -3918,12 +3917,12 @@ by calling `format-decode', which see.  */)
       unsigned char *decoded;
       ptrdiff_t temp;
       ptrdiff_t this = 0;
-      ptrdiff_t this_count = SPECPDL_INDEX ();
       bool multibyte
 	= ! NILP (BVAR (current_buffer, enable_multibyte_characters));
       Lisp_Object conversion_buffer;
       struct gcpro gcpro1;
 
+      dynwind_begin ();
       conversion_buffer = code_conversion_save (1, multibyte);
 
       /* First read the whole file, performing code conversion into
@@ -4002,7 +4001,7 @@ by calling `format-decode', which see.  */)
 	    }
 	  inserted = 0;
 
-	  unbind_to (this_count, Qnil);
+          dynwind_end ();
 	  goto handled;
 	}
 
@@ -4082,7 +4081,7 @@ by calling `format-decode', which see.  */)
       /* Set point before the inserted characters.  */
       SET_PT_BOTH (temp, same_at_start);
 
-      unbind_to (this_count, Qnil);
+      dynwind_end ();
 
       goto handled;
     }
@@ -4245,7 +4244,7 @@ by calling `format-decode', which see.  */)
 	     care of marker adjustment.  By this way, we can run Lisp
 	     program safely before decoding the inserted text.  */
 	  Lisp_Object unwind_data;
-	  ptrdiff_t count1 = SPECPDL_INDEX ();
+          dynwind_begin ();
 
 	  unwind_data = Fcons (BVAR (current_buffer, enable_multibyte_characters),
 			       Fcons (BVAR (current_buffer, undo_list),
@@ -4272,7 +4271,7 @@ by calling `format-decode', which see.  */)
 	      if (CONSP (coding_system))
 		coding_system = XCAR (coding_system);
 	    }
-	  unbind_to (count1, Qnil);
+          dynwind_end ();
 	  inserted = Z_BYTE - BEG_BYTE;
 	}
 
@@ -4379,8 +4378,8 @@ by calling `format-decode', which see.  */)
   if (inserted > 0)
     {
       /* Don't run point motion or modification hooks when decoding.  */
-      ptrdiff_t count1 = SPECPDL_INDEX ();
       ptrdiff_t old_inserted = inserted;
+      dynwind_begin ();
       specbind (Qinhibit_point_motion_hooks, Qt);
       specbind (Qinhibit_modification_hooks, Qt);
 
@@ -4495,7 +4494,7 @@ by calling `format-decode', which see.  */)
 	   Otherwise start with an empty undo_list.  */
 	bset_undo_list (current_buffer, EQ (old_undo, Qt) ? Qt : Qnil);
 
-      unbind_to (count1, Qnil);
+      dynwind_end ();
     }
 
   if (!NILP (visit)
@@ -4524,7 +4523,8 @@ by calling `format-decode', which see.  */)
   if (NILP (val))
     val = list2 (orig_filename, make_number (inserted));
 
-  RETURN_UNGCPRO (unbind_to (count, val));
+  dynwind_end ();
+  return val;
 }
 
 static Lisp_Object build_annotations (Lisp_Object, Lisp_Object);
@@ -4711,8 +4711,6 @@ write_region (Lisp_Object start, Lisp_Object end, Lisp_Object filename,
   const char *fn;
   struct stat st;
   struct timespec modtime;
-  ptrdiff_t count = SPECPDL_INDEX ();
-  ptrdiff_t count1 IF_LINT (= 0);
   Lisp_Object handler;
   Lisp_Object visit_file;
   Lisp_Object annotations;
@@ -4771,6 +4769,7 @@ write_region (Lisp_Object start, Lisp_Object end, Lisp_Object filename,
       return val;
     }
 
+  dynwind_begin ();
   record_unwind_protect (save_restriction_restore, save_restriction_save ());
 
   /* Special kludge to simplify auto-saving.  */
@@ -4856,7 +4855,7 @@ write_region (Lisp_Object start, Lisp_Object end, Lisp_Object filename,
 	  report_file_errno ("Opening output file", filename, open_errno);
 	}
 
-      count1 = SPECPDL_INDEX ();
+      dynwind_begin ();
       record_unwind_protect_int_1 (close_file_unwind, desc, false);
     }
 
@@ -4933,7 +4932,7 @@ write_region (Lisp_Object start, Lisp_Object end, Lisp_Object filename,
       if (emacs_close (desc) < 0)
 	ok = 0, save_errno = errno;
 
-      unbind_to (count1, Qnil);
+      dynwind_end ();
     }
 
   /* Some file systems have a bug where st_mtime is not updated
@@ -5007,7 +5006,7 @@ write_region (Lisp_Object start, Lisp_Object end, Lisp_Object filename,
   	= XCDR (Vwrite_region_annotation_buffers);
     }
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   if (file_locked)
     unlock_file (lockname);

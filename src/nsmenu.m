@@ -174,10 +174,11 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
       int *submenu_n_panes;
       struct buffer *prev = current_buffer;
       Lisp_Object buffer;
-      ptrdiff_t specpdl_count = SPECPDL_INDEX ();
       int previous_menu_items_used = f->menu_bar_items_used;
       Lisp_Object *previous_items
 	= alloca (previous_menu_items_used * sizeof *previous_items);
+
+      dynwind_begin ();
 
       /* lisp preliminaries */
       buffer = XWINDOW (FRAME_SELECTED_WINDOW (f))->contents;
@@ -258,7 +259,7 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
           fprintf (stderr, "ERROR: did not find lisp menu for submenu '%s'.\n",
                   [[submenu title] UTF8String]);
 	  discard_menu_items ();
-	  unbind_to (specpdl_count, Qnil);
+          dynwind_end ();
           [pool release];
           unblock_input ();
 	  return;
@@ -316,7 +317,7 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
 
               free_menubar_widget_value_tree (first_wv);
               discard_menu_items ();
-              unbind_to (specpdl_count, Qnil);
+              dynwind_end ();
               [pool release];
               unblock_input ();
               return;
@@ -328,7 +329,7 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
       f->menu_bar_items_used = menu_items_used;
 
       /* Calls restore_menu_items, etc., as they were outside */
-      unbind_to (specpdl_count, Qnil);
+      dynwind_end ();
 
       /* Parse stage 2a: now GC cannot happen during the lifetime of the
          widget_value, so it's safe to store data from a Lisp_String */
@@ -818,11 +819,12 @@ ns_menu_show (struct frame *f, int x, int y, int menuflags,
   EmacsMenu *pmenu;
   NSPoint p;
   Lisp_Object tem;
-  ptrdiff_t specpdl_count = SPECPDL_INDEX ();
   widget_value *wv, *first_wv = 0;
   bool keymaps = (menuflags & MENU_KEYMAPS);
 
   block_input ();
+
+  dynwind_begin ();
 
   p.x = x; p.y = y;
 
@@ -999,7 +1001,7 @@ ns_menu_show (struct frame *f, int x, int y, int menuflags,
                                [NSString stringWithUTF8String: SSDATA (title)]];
   [pmenu fillWithWidgetValue: first_wv->contents];
   free_menubar_widget_value_tree (first_wv);
-  unbind_to (specpdl_count, Qnil);
+  dynwind_end ();
 
   popup_activated_flag = 1;
   tem = [pmenu runMenuAt: p forFrame: f keymaps: keymaps];
@@ -1459,16 +1461,16 @@ ns_popup_dialog (struct frame *f, Lisp_Object header, Lisp_Object contents)
                                            isQuestion: isQ];
 
   {
-    ptrdiff_t specpdl_count = SPECPDL_INDEX ();
     struct Popdown_data *unwind_data = xmalloc (sizeof (*unwind_data));
 
     unwind_data->pool = pool;
     unwind_data->dialog = dialog;
 
+    dynwind_begin ();
     record_unwind_protect_ptr (pop_down_menu, unwind_data);
     popup_activated_flag = 1;
     tem = [dialog runDialogAt: p];
-    unbind_to (specpdl_count, Qnil);  /* calls pop_down_menu */
+    dynwind_end ();
   }
 
   unblock_input ();
