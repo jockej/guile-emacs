@@ -57,6 +57,9 @@ DEPFLAGS = @DEPFLAGS@
 ## ${MKDIR_P} ${DEPDIR} (if AUTO_DEPEND); else ':'.
 MKDEPDIR = @MKDEPDIR@
 
+GUILE_CFLAGS=@GUILE_CFLAGS@
+GUILE_LIBS=@GUILE_LIBS@
+
 ## ../src is where the generated file (config.h, globals.h) are.
 ## $(srcdir)/../src is where the non-generated files (lisp.h) are.
 ## (In an out-of-tree build, these two are not the same.)
@@ -64,6 +67,7 @@ MKDEPDIR = @MKDEPDIR@
 ## There are no generated lwlib files, hence no need for -I.
 ALL_CFLAGS= $(C_SWITCH_SYSTEM) $(C_SWITCH_X_SITE) \
   $(C_SWITCH_MACHINE) $(DEPFLAGS) \
+  $(GUILE_CFLAGS) \
   $(WARN_CFLAGS) $(WERROR_CFLAGS) $(PROFILING_CFLAGS) $(CFLAGS) \
   -Demacs -I../src \
   -I$(srcdir) -I$(srcdir)/../src -I../lib -I$(srcdir)/../lib
