@@ -365,6 +365,7 @@ DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
 /* When compiling via gcc -O0, define the key operations as macros, as
    Emacs is too slow otherwise.  To disable this optimization, compile
    with -DINLINING=false.  */
+#if 0
 #if (defined __NO_INLINE__ \
      && ! defined __OPTIMIZE__ && ! defined __OPTIMIZE_SIZE__ \
      && ! (defined INLINING && ! INLINING))
@@ -399,6 +400,7 @@ DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
 #  define XTYPE(a) lisp_h_XTYPE (a)
 #  define XUNTAG(a, type) lisp_h_XUNTAG (a, type)
 # endif
+#endif
 #endif
 
 /* Define NAME as a lisp.h inline function that returns TYPE and has
