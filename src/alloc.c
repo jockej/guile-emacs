@@ -1171,30 +1171,36 @@ set_symbol_name (Lisp_Object sym, Lisp_Object name)
   XSYMBOL (sym)->name = name;
 }
 
+void
+initialize_symbol (Lisp_Object val, Lisp_Object name)
+{
+  struct Lisp_Symbol *p = xmalloc (sizeof *p);
+
+  scm_module_define (symbol_module, val, scm_from_pointer (p, NULL));
+  p = XSYMBOL (val);
+  p->self = val;
+  set_symbol_name (val, name);
+  set_symbol_plist (val, Qnil);
+  p->redirect = SYMBOL_PLAINVAL;
+  SET_SYMBOL_VAL (p, Qunbound);
+  set_symbol_function (val, Qnil);
+  p->interned = SYMBOL_UNINTERNED;
+  p->constant = 0;
+  p->declared_special = false;
+}
+
 DEFUN ("make-symbol", Fmake_symbol, Smake_symbol, 1, 1, 0,
        doc: /* Return a newly allocated uninterned symbol whose name is NAME.
 Its value is void, and its function definition and property list are nil.  */)
   (Lisp_Object name)
 {
   register Lisp_Object val;
-  register struct Lisp_Symbol *p;
 
   CHECK_STRING (name);
 
-  p = xmalloc (sizeof *p);
-  SCM_NEWSMOB (p->self, lisp_symbol_tag, p);
-  XSETSYMBOL (val, p);
-  p = XSYMBOL (val);
-  set_symbol_name (val, name);
-  set_symbol_plist (val, Qnil);
-  p->redirect = SYMBOL_PLAINVAL;
-  SET_SYMBOL_VAL (p, Qunbound);
-  set_symbol_function (val, Qnil);
-  set_symbol_next (val, NULL);
-  p->interned = SYMBOL_UNINTERNED;
-  p->constant = 0;
-  p->declared_special = false;
-  p->pinned = false;
+  val = scm_make_symbol (scm_from_utf8_stringn (SSDATA (name),
+                                                SBYTES (name)));
+  initialize_symbol (val, name);
   return val;
 }
 
@@ -1639,7 +1645,6 @@ die (const char *msg, const char *file, int line)
 void
 init_alloc_once (void)
 {
-  lisp_symbol_tag = scm_make_smob_type ("elisp-symbol", 0);
   lisp_misc_tag = scm_make_smob_type ("elisp-misc", 0);
   lisp_string_tag = scm_make_smob_type ("elisp-string", 0);
   lisp_vectorlike_tag = scm_make_smob_type ("elisp-vectorlike", 0);

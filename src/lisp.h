@@ -303,45 +303,11 @@ DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
 #define lisp_h_SYMBOL_CONSTANT_P(sym) (XSYMBOL (sym)->constant)
 #define lisp_h_SYMBOL_VAL(sym) \
    (eassert ((sym)->redirect == SYMBOL_PLAINVAL), (sym)->val.value)
-#define lisp_h_SYMBOLP(x) (SMOB_TYPEP (x, lisp_symbol_tag))
+#define lisp_h_SYMBOLP(x) (x && scm_is_symbol (x))
 #define lisp_h_VECTORLIKEP(x) (SMOB_TYPEP (x, lisp_vectorlike_tag))
 #define lisp_h_XCAR(c) (scm_car (c))
 #define lisp_h_XCDR(c) (scm_cdr (c))
 #define lisp_h_XHASH(a) (SCM_UNPACK (a))
-#define lisp_h_XSYMBOL(a) \
-   (eassert (SYMBOLP (a)), (struct Lisp_Symbol *) SMOB_PTR (a))
-
-/* When compiling via gcc -O0, define the key operations as macros, as
-   Emacs is too slow otherwise.  To disable this optimization, compile
-   with -DINLINING=false.  */
-#if 0
-#if (defined __NO_INLINE__ \
-     && ! defined __OPTIMIZE__ && ! defined __OPTIMIZE_SIZE__ \
-     && ! (defined INLINING && ! INLINING))
-# define XLI(o) lisp_h_XLI (o)
-# define XIL(i) lisp_h_XIL (i)
-# define CHECK_LIST_CONS(x, y) lisp_h_CHECK_LIST_CONS (x, y)
-# define CHECK_NUMBER(x) lisp_h_CHECK_NUMBER (x)
-# define CHECK_SYMBOL(x) lisp_h_CHECK_SYMBOL (x)
-# define CHECK_TYPE(ok, predicate, x) lisp_h_CHECK_TYPE (ok, predicate, x)
-# define CONSP(x) lisp_h_CONSP (x)
-# define EQ(x, y) lisp_h_EQ (x, y)
-# define FLOATP(x) lisp_h_FLOATP (x)
-# define INTEGERP(x) lisp_h_INTEGERP (x)
-# define MARKERP(x) lisp_h_MARKERP (x)
-# define MISCP(x) lisp_h_MISCP (x)
-# define NILP(x) lisp_h_NILP (x)
-# define SET_SYMBOL_VAL(sym, v) lisp_h_SET_SYMBOL_VAL (sym, v)
-# define SYMBOL_CONSTANT_P(sym) lisp_h_SYMBOL_CONSTANT_P (sym)
-# define SYMBOL_VAL(sym) lisp_h_SYMBOL_VAL (sym)
-# define SYMBOLP(x) lisp_h_SYMBOLP (x)
-# define VECTORLIKEP(x) lisp_h_VECTORLIKEP (x)
-# define XCAR(c) lisp_h_XCAR (c)
-# define XCDR(c) lisp_h_XCDR (c)
-# define XHASH(a) lisp_h_XHASH (a)
-# define XSYMBOL(a) lisp_h_XSYMBOL (a)
-#endif
-#endif
 
 /* Define NAME as a lisp.h inline function that returns TYPE and has
    arguments declared as ARGDECLS and passed as ARGS.  ARGDECLS and
@@ -374,7 +340,6 @@ DEFINE_GDB_SYMBOL_END (USE_LSB_TAG)
 #define ENUM_BF(TYPE) enum TYPE
 #endif
 
-scm_t_bits lisp_symbol_tag;
 scm_t_bits lisp_misc_tag;
 scm_t_bits lisp_string_tag;
 scm_t_bits lisp_vectorlike_tag;
@@ -679,7 +644,18 @@ XSTRING (Lisp_Object a)
   return SMOB_PTR (a);
 }
 
-LISP_MACRO_DEFUN (XSYMBOL, struct Lisp_Symbol *, (Lisp_Object a), (a))
+extern void initialize_symbol (Lisp_Object, Lisp_Object);
+INLINE Lisp_Object build_string (const char *);
+extern Lisp_Object symbol_module;
+
+INLINE struct Lisp_Symbol *
+XSYMBOL (Lisp_Object a)
+{
+  Lisp_Object tem;
+  eassert (SYMBOLP (a));
+  tem = scm_variable_ref (scm_module_lookup (symbol_module, a));
+  return scm_to_pointer (tem);
+}
 
 /* Pseudovector types.  */
 
@@ -1367,9 +1343,6 @@ struct Lisp_Symbol
 
   /* The symbol's property list.  */
   Lisp_Object plist;
-
-  /* Next symbol in obarray bucket, if the symbol is interned.  */
-  struct Lisp_Symbol *next;
 };
 
 /* Value is name of symbol.  */
@@ -2792,12 +2765,6 @@ set_symbol_plist (Lisp_Object sym, Lisp_Object plist)
   XSYMBOL (sym)->plist = plist;
 }
 
-INLINE void
-set_symbol_next (Lisp_Object sym, struct Lisp_Symbol *next)
-{
-  XSYMBOL (sym)->next = next;
-}
-
 /* Buffer-local (also frame-local) variable access functions.  */
 
 INLINE int
@@ -3331,6 +3298,7 @@ extern Lisp_Object Qlexical_binding;
 extern Lisp_Object check_obarray (Lisp_Object);
 extern Lisp_Object intern_1 (const char *, ptrdiff_t);
 extern Lisp_Object intern_c_string_1 (const char *, ptrdiff_t);
+extern Lisp_Object obhash (Lisp_Object);
 extern Lisp_Object oblookup (Lisp_Object, const char *, ptrdiff_t, ptrdiff_t);
 INLINE void
 LOADHIST_ATTACH (Lisp_Object x)
