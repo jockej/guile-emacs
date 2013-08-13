@@ -696,9 +696,19 @@ close_output_streams (void)
      _exit (EXIT_FAILURE);
 }
 
-/* ARGSUSED */
+static int main2 (void *, int, char **);
+
 int
 main (int argc, char **argv)
+{
+  /* Override Guile's libgc configuration. */
+  xputenv ("GC_ALL_INTERIOR_POINTERS=1");
+  scm_boot_guile (argc, argv, main2, NULL);
+}
+
+/* ARGSUSED */
+static int
+main2 (void *ignore, int argc, char **argv)
 {
   bool do_initial_setlocale;
   bool dumping;
@@ -765,10 +775,6 @@ main (int argc, char **argv)
 #endif
 
   atexit (close_output_streams);
-
-  /* Override Guile's libgc configuration. */
-  xputenv ("GC_ALL_INTERIOR_POINTERS=1");
-  scm_init_guile ();
 
   sort_args (argc, argv);
   argc = 0;
