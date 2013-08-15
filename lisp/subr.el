@@ -1250,8 +1250,6 @@ is converted into a string by expressing it in decimal."
 (make-obsolete 'unfocus-frame "it does nothing." "22.1")
 (make-obsolete 'make-variable-frame-local
 	       "explicitly check for a frame-parameter instead." "22.2")
-(set-advertised-calling-convention
- 'all-completions '(string collection &optional predicate) "23.1")
 (set-advertised-calling-convention 'unintern '(name obarray) "23.3")
 (set-advertised-calling-convention 'redirect-frame-focus '(frame focus-frame) "24.3")
 (set-advertised-calling-convention 'decode-char '(ch charset) "21.4")

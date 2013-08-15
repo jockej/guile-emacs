@@ -89,6 +89,391 @@
 
 (eval-when-compile (require 'cl-lib))
 
+(defun minibuf-conform-representation (string basis)
+  (cond
+   ((eq (multibyte-string-p string) (multibyte-string-p basis))
+    string)
+   ((multibyte-string-p string)
+    (string-make-unibyte string))
+   (t
+    (string-make-multibyte string))))
+
+(defun try-completion (string collection &optional predicate)
+  "Return common substring of all completions of STRING in COLLECTION.
+Test each possible completion specified by COLLECTION
+to see if it begins with STRING.  The possible completions may be
+strings or symbols.  Symbols are converted to strings before testing,
+see `symbol-name'.
+All that match STRING are compared together; the longest initial sequence
+common to all these matches is the return value.
+If there is no match at all, the return value is nil.
+For a unique match which is exact, the return value is t.
+
+If COLLECTION is an alist, the keys (cars of elements) are the
+possible completions.  If an element is not a cons cell, then the
+element itself is the possible completion.
+If COLLECTION is a hash-table, all the keys that are strings or symbols
+are the possible completions.
+If COLLECTION is an obarray, the names of all symbols in the obarray
+are the possible completions.
+
+COLLECTION can also be a function to do the completion itself.
+It receives three arguments: the values STRING, PREDICATE and nil.
+Whatever it returns becomes the value of `try-completion'.
+
+If optional third argument PREDICATE is non-nil,
+it is used to test each possible match.
+The match is a candidate only if PREDICATE returns non-nil.
+The argument given to PREDICATE is the alist element
+or the symbol from the obarray.  If COLLECTION is a hash-table,
+predicate is called with two arguments: the key and the value.
+Additionally to this predicate, `completion-regexp-list'
+is used to further constrain the set of candidates."
+  (catch 'return
+   (let (bestmatch
+         eltstring
+         ;; Size in bytes of BESTMATCH.
+         (bestmatchsize 0)
+         ;; These are in bytes, too.
+         (compare 0)
+         (matchsize 0)
+         (type (cond
+                ((hash-table-p collection) 'hash-table)
+                ((vectorp collection) 'obarray)
+                ((or (null collection)
+                     (and (consp collection)
+                          (not (functionp collection))))
+                 'list)
+                (t 'function)))
+         (matchcount 0))
+     ;;(cl-check-type string string)
+     (when (eq type 'function)
+       (throw 'return
+              (funcall collection string predicate nil)))
+     (catch 'break
+       (funcall
+        (cond
+         ((eq type 'hash-table) #'maphash)
+         ((eq type 'list) #'mapc)
+         ((eq type 'obarray) #'mapatoms))
+        (lambda (elt &optional hash-value)
+          (catch 'continue
+            ;; Is this element a possible completion?
+            (setq eltstring (if (and (eq type 'list) (consp elt))
+                                (car elt)
+                              elt))
+            (when (symbolp eltstring)
+              (setq eltstring (symbol-name eltstring)))
+            (when (and (stringp eltstring)
+                       (<= (length string) (length eltstring))
+                       (eq t (compare-strings eltstring
+                                              0
+                                              (length string)
+                                              string
+                                              0
+                                              nil
+                                              completion-ignore-case)))
+              ;; Yes.
+              (let ((case-fold-search completion-ignore-case))
+                (let ((regexps completion-regexp-list))
+                  (while (consp regexps)
+                    (when (null (string-match (car regexps) eltstring 0))
+                      (throw 'continue nil))
+                    (setq regexps (cdr regexps)))))
+              ;; Ignore this element if there is a predicate and the
+              ;; predicate doesn't like it.
+              (unless (cond
+                       ((null predicate) t)
+                       ((eq predicate 'commandp)
+                        (commandp elt nil))
+                       ((eq type 'hash-table)
+                        (funcall predicate elt hash-value))
+                       (t (funcall predicate elt)))
+                (throw 'continue nil))
+              ;; Update computation of how much all possible completions match
+              (if (null bestmatch)
+                  (setq matchcount 1
+                        bestmatch eltstring
+                        bestmatchsize (length eltstring))
+                (setq compare (min bestmatchsize (length eltstring))
+                      matchsize
+                      (let ((tem (compare-strings bestmatch
+                                                  0
+                                                  compare
+                                                  eltstring
+                                                  0
+                                                  compare
+                                                  completion-ignore-case)))
+                        (if (eq tem t) compare (1- (abs tem)))))
+                (when completion-ignore-case
+                  ;; If this is an exact match except for case, use it as
+                  ;; the best match rather than one that is not an exact
+                  ;; match. This way, we get the case pattern of the actual
+                  ;; match.
+                  (when (or (and (eql matchsize (length eltstring))
+                                 (< matchsize (length bestmatch)))
+                            ;; If there is more than one exact match
+                            ;; ignoring case, and one of them is exact
+                            ;; including case, prefer that one. If there is
+                            ;; no exact match ignoring case, prefer a match
+                            ;; that does not change the case of the input.
+                            (and (eql (eql matchsize (length eltstring))
+                                      (eql matchsize (length bestmatch)))
+                                 (eq t (compare-strings eltstring
+                                                        0
+                                                        (length string)
+                                                        string
+                                                        0
+                                                        nil
+                                                        nil))
+                                 (not (eq t (compare-strings bestmatch
+                                                             0
+                                                             (length string)
+                                                             string
+                                                             0
+                                                             nil
+                                                             nil)))))
+                    (setq bestmatch eltstring)))
+                (when (or (not (eql bestmatchsize (length eltstring)))
+                          (not (eql bestmatchsize matchsize)))
+                  ;; Don't count the same string multiple times.
+                  (if (<= matchcount 1)
+                      (setq matchcount (+ matchcount 1))))
+                (setq bestmatchsize matchsize)
+                (when (and (<= matchsize (length string))
+                           ;; If completion-ignore-case is non-nil, don't
+                           ;; short-circuit because we want to find the
+                           ;; best possible match *including* case
+                           ;; differences.
+                           (not completion-ignore-case)
+                           (> matchcount 1))
+                  ;; No need to look any further.
+                  (throw 'break nil))))))
+        collection))
+     (cond
+      ;; No completions found.
+      ((null bestmatch)
+       nil)
+      ;; If we are ignoring case, and there is no exact match, and no
+      ;; additional text was supplied, don't change the case of what the
+      ;; user typed.
+      ((and completion-ignore-case
+            (eql bestmatchsize (length string))
+            (> (length bestmatch) bestmatchsize))
+       (minibuf-conform-representation string bestmatch))
+      ;; Return t if the supplied string is an exact match (counting
+      ;; case); it does not require any change to be made.
+      ((and (eql matchcount 1) (equal bestmatch string))
+       t)
+      ;; Else extract the part in which all completions agree.
+      (t (substring bestmatch 0 bestmatchsize))))))
+
+(defun all-completions (string collection &optional predicate hide-spaces)
+  "Search for partial matches to STRING in COLLECTION.
+Test each of the possible completions specified by COLLECTION
+to see if it begins with STRING.  The possible completions may be
+strings or symbols.  Symbols are converted to strings before testing,
+see `symbol-name'.
+The value is a list of all the possible completions that match STRING.
+
+If COLLECTION is an alist, the keys (cars of elements) are the
+possible completions.  If an element is not a cons cell, then the
+element itself is the possible completion.
+If COLLECTION is a hash-table, all the keys that are strings or symbols
+are the possible completions.
+If COLLECTION is an obarray, the names of all symbols in the obarray
+are the possible completions.
+
+COLLECTION can also be a function to do the completion itself.
+It receives three arguments: the values STRING, PREDICATE and t.
+Whatever it returns becomes the value of `all-completions'.
+
+If optional third argument PREDICATE is non-nil,
+it is used to test each possible match.
+The match is a candidate only if PREDICATE returns non-nil.
+The argument given to PREDICATE is the alist element
+or the symbol from the obarray.  If COLLECTION is a hash-table,
+predicate is called with two arguments: the key and the value.
+Additionally to this predicate, `completion-regexp-list'
+is used to further constrain the set of candidates.
+
+An obsolete optional fourth argument HIDE-SPACES is still accepted for
+backward compatibility.  If non-nil, strings in COLLECTION that start
+with a space are ignored unless STRING itself starts with a space."
+  (catch 'return
+   (let (eltstring
+         allmatches
+         (type (cond ((hash-table-p collection) 'hash-table)
+                     ((vectorp collection) 'obarray)
+                     ((or (null collection)
+                          (and (consp collection)
+                               (not (functionp collection))))
+                      'list)
+                     (t 'function))))
+     ;;(cl-check-type string string)
+     (when (eq type 'function)
+       (throw 'return
+              (funcall collection string predicate t)))
+     (catch 'break
+       (funcall
+        (cond
+         ((eq type 'hash-table) #'maphash)
+         ((eq type 'obarray) #'mapatoms)
+         ((eq type 'list) #'mapc))
+        (lambda (elt &optional hash-value)
+          (catch 'continue
+            (setq eltstring (if (and (eq type 'list) (consp elt))
+                                (car elt)
+                              elt))
+            ;; Is this element a possible completion?
+            (when (symbolp eltstring)
+              (setq eltstring (symbol-name eltstring)))
+            (when (and (stringp eltstring)
+                       (<= (length string) (length eltstring))
+                       ;; If HIDE_SPACES, reject alternatives that start
+                       ;; with space unless the input starts with space.
+                       (or (not hide-spaces)
+                           (and (> (length string) 0)
+                                (eql (aref string 0) ?\ ))
+                           (eql (aref eltstring 0) ?\ ))
+                       (eq t (compare-strings eltstring 0
+                                              (length string)
+                                              string 0
+                                              (length string)
+                                              completion-ignore-case)))
+              (let ((case-fold-search completion-ignore-case))
+                (let ((regexps completion-regexp-list))
+                  (while (consp regexps)
+                    (unless (string-match (car regexps) eltstring 0)
+                      (throw 'continue nil))
+                    (setq regexps (cdr regexps)))))
+              ;; Ignore this element if there is a predicate and the
+              ;; predicate doesn't like it.
+              (unless (cond
+                       ((not predicate) t)
+                       ((eq predicate 'commandp) (commandp elt nil))
+                       ((eq type 'hash-table) (funcall predicate elt hash-value))
+                       (t (funcall predicate elt)))
+                (throw 'continue nil))
+              ;; Ok => put it on the list.
+              (setq allmatches (cons eltstring allmatches)))))
+        collection))
+     (nreverse allmatches))))
+
+(set-advertised-calling-convention
+ 'all-completions '(string collection &optional predicate) "23.1")
+
+(defun test-completion (string collection &optional predicate)
+  "Return non-nil if STRING is a valid completion.
+Takes the same arguments as `all-completions' and `try-completion'.
+If COLLECTION is a function, it is called with three arguments:
+the values STRING, PREDICATE and `lambda'."
+  (catch 'return
+   (let (tem)
+     ;; check-string string
+     (cond
+      ((or (null collection)
+           (and (consp collection)
+                (not (functionp collection))))
+       (setq tem (assoc-string string collection completion-ignore-case))
+       (unless tem
+         (throw 'return nil)))
+      ((vectorp collection)
+       (setq tem (intern-soft string collection)) ; XXX nil
+       (unless tem
+         (let ((string (if (multibyte-string-p string)
+                           (string-make-unibyte string)
+                         (string-make-multibyte string))))
+           (setq tem (intern-soft string collection))))
+       (when (and completion-ignore-case (not tem))
+         (catch 'break
+          (mapatoms
+           #'(lambda (symbol)
+               (if (eq t (compare-strings string 0 nil
+                                          (symbol-name symbol) 0 nil
+                                          t))
+                   (setq tem symbol)
+                 (throw 'break nil)))
+           collection)))
+       (unless tem
+         (throw 'return nil)))
+      ((hash-table-p collection)
+       (let ((unique (cons nil nil)))
+         (let ((x (gethash string collection unique)))
+           (if (not (eq x unique))
+               (setq tem x)
+             (catch 'break
+              (maphash
+               #'(lambda (key value)
+		   value ; ignore
+                   (let ((key (if (symbolp key) (symbol-name key) key)))
+                     (when (and (stringp key)
+                                (eq t (compare-strings string 0 nil
+                                                       key 0 nil
+                                                       completion-ignore-case)))
+                       (setq tem key)
+                       (throw 'break nil))))
+               collection)))
+           (unless (stringp tem)
+             (throw 'return nil)))))
+      (t (throw 'return (funcall collection string predicate 'lambda))))
+     ;; Reject this element if it fails to match all the regexps.
+     (when (consp completion-regexp-list)
+       (let ((case-fold-search completion-ignore-case))
+         (let ((regexps completion-regexp-list))
+           (while (consp regexps)
+             (unless (string-match (car regexps)
+                                   (if (symbolp tem) string tem)
+                                   nil)
+               (throw 'return nil))
+             (setq regexps (cdr regexps))))))
+     ;; Finally, check the predicate.
+     (if predicate
+         (if (hash-table-p collection)
+             (funcall predicate tem (gethash tem collection))
+           (funcall predicate tem))
+       t))))
+
+(defun internal-complete-buffer (string predicate flag)
+  "Perform completion on buffer names.
+STRING and PREDICATE have the same meanings as in `try-completion',
+`all-completions', and `test-completion'.
+
+If FLAG is nil, invoke `try-completion'; if it is t, invoke
+`all-completions'; otherwise invoke `test-completion'."
+  (let ((buffer-alist (mapcar #'(lambda (buf)
+				  (cons (buffer-name buf) buf))
+			      (buffer-list))))
+    (cond
+     ((not flag)
+      (try-completion string buffer-alist predicate))
+     ((eq flag t)
+      (let ((res (all-completions string buffer-alist predicate nil)))
+	(if (> (length string) 0)
+	    res
+	  ;; Strip out internal buffers.
+	  (let ((bufs res))
+	    ;; First, look for a non-internal buffer in `res'.
+	    (while (and (consp bufs)
+			(eql (aref (car bufs) 0) ?\ ))
+	      (setq bufs (cdr bufs)))
+	    (if (null bufs)
+		(if (eql (length res) (length buffer-alist))
+		    ;; If all bufs are internal don't strip them out.
+		    res
+		  bufs)
+	      (setq res bufs)
+	      (while (consp (cdr bufs))
+		(if (eql (aref (cadr bufs) 0) ?\ )
+		    (rplacd bufs (cddr bufs))
+		  (setq bufs (cdr bufs))))
+	      res)))))
+     ((eq flag 'lambda)
+      (test-completion string buffer-alist predicate))
+     ((eq flag 'metadata)
+      (list 'metadata (cons 'category 'buffer)))
+     (t nil))))
+
 ;;; Completion table manipulation
 
 ;; New completion-table operation.
