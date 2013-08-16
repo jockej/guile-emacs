@@ -3389,6 +3389,7 @@ extern _Noreturn void xsignal3 (Lisp_Object, Lisp_Object, Lisp_Object,
 				Lisp_Object);
 extern _Noreturn void signal_error (const char *, Lisp_Object);
 extern Lisp_Object eval_sub (Lisp_Object form);
+extern Lisp_Object Ffuncall (ptrdiff_t nargs, Lisp_Object *args);
 extern Lisp_Object apply1 (Lisp_Object, Lisp_Object);
 extern Lisp_Object call0 (Lisp_Object);
 extern Lisp_Object call1 (Lisp_Object, Lisp_Object);
