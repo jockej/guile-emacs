@@ -2763,6 +2763,12 @@ set_symbol_function (Lisp_Object sym, Lisp_Object function)
   scm_variable_set_x (scm_module_lookup (function_module, sym), function);
 }
 
+INLINE Lisp_Object
+symbol_plist (Lisp_Object sym)
+{
+  return XSYMBOL (sym)->plist;
+}
+
 INLINE void
 set_symbol_plist (Lisp_Object sym, Lisp_Object plist)
 {
