@@ -1180,7 +1180,7 @@ initialize_symbol (Lisp_Object val, Lisp_Object name)
   p = XSYMBOL (val);
   p->self = val;
   set_symbol_name (val, name);
-  set_symbol_plist (val, Qnil);
+  scm_module_define (plist_module, val, Qnil);
   p->redirect = SYMBOL_PLAINVAL;
   SET_SYMBOL_VAL (p, Qunbound);
   scm_module_define (function_module, val, Qnil);

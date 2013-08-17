@@ -648,6 +648,7 @@ extern void initialize_symbol (Lisp_Object, Lisp_Object);
 INLINE Lisp_Object build_string (const char *);
 extern Lisp_Object symbol_module;
 extern Lisp_Object function_module;
+extern Lisp_Object plist_module;
 
 INLINE struct Lisp_Symbol *
 XSYMBOL (Lisp_Object a)
@@ -1338,9 +1339,6 @@ struct Lisp_Symbol
     struct Lisp_Buffer_Local_Value *blv;
     union Lisp_Fwd *fwd;
   } val;
-
-  /* The symbol's property list.  */
-  Lisp_Object plist;
 };
 
 /* Value is name of symbol.  */
@@ -2766,13 +2764,13 @@ set_symbol_function (Lisp_Object sym, Lisp_Object function)
 INLINE Lisp_Object
 symbol_plist (Lisp_Object sym)
 {
-  return XSYMBOL (sym)->plist;
+  return scm_variable_ref (scm_module_lookup (plist_module, sym));
 }
 
 INLINE void
 set_symbol_plist (Lisp_Object sym, Lisp_Object plist)
 {
-  XSYMBOL (sym)->plist = plist;
+  scm_variable_set_x (scm_module_lookup (plist_module, sym), plist);
 }
 
 /* Buffer-local (also frame-local) variable access functions.  */
