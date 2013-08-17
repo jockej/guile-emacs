@@ -1284,15 +1284,6 @@ CHAR_TABLE_EXTRA_SLOTS (struct Lisp_Char_Table *ct)
 			       Symbols
  ***********************************************************************/
 
-/* Interned state of a symbol.  */
-
-enum symbol_interned
-{
-  SYMBOL_UNINTERNED = 0,
-  SYMBOL_INTERNED = 1,
-  SYMBOL_INTERNED_IN_INITIAL_OBARRAY = 2
-};
-
 enum symbol_redirect
 {
   SYMBOL_PLAINVAL  = 4,
@@ -1316,10 +1307,6 @@ struct Lisp_Symbol
      should signal an error.  If the value is 3, then the var
      can be changed, but only by `defconst'.  */
   unsigned constant : 2;
-
-  /* Interned state of the symbol.  This is an enumerator from
-     enum symbol_interned.  */
-  unsigned interned : 2;
 
   /* True means that this variable has been explicitly declared
      special (with `defvar' etc), and shouldn't be lexically bound.  */
@@ -1394,15 +1381,7 @@ SYMBOL_NAME (Lisp_Object sym)
 INLINE bool
 SYMBOL_INTERNED_P (Lisp_Object sym)
 {
-  return XSYMBOL (sym)->interned != SYMBOL_UNINTERNED;
-}
-
-/* Value is true if SYM is interned in initial_obarray.  */
-
-INLINE bool
-SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (Lisp_Object sym)
-{
-  return XSYMBOL (sym)->interned == SYMBOL_INTERNED_IN_INITIAL_OBARRAY;
+  return scm_is_true (scm_symbol_interned_p (sym));
 }
 
 INLINE Lisp_Object

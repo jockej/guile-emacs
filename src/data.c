@@ -347,6 +347,15 @@ DEFUN ("symbolp", Fsymbolp, Ssymbolp, 1, 1, 0,
   return Qnil;
 }
 
+static bool
+SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (Lisp_Object sym)
+{
+  /* Should be initial_obarray */
+  Lisp_Object tem = Ffind_symbol (SYMBOL_NAME (sym), Vobarray);
+  return (! NILP (scm_c_value_ref (tem, 1))
+          && (EQ (sym, scm_c_value_ref (tem, 0))));
+}
+
 /* Define this in C to avoid unnecessarily consing up the symbol
    name.  */
 DEFUN ("keywordp", Fkeywordp, Skeywordp, 1, 1, 0,
