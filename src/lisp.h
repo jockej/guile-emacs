@@ -647,6 +647,7 @@ XSTRING (Lisp_Object a)
 extern void initialize_symbol (Lisp_Object, Lisp_Object);
 INLINE Lisp_Object build_string (const char *);
 extern Lisp_Object symbol_module;
+extern Lisp_Object function_module;
 
 INLINE struct Lisp_Symbol *
 XSYMBOL (Lisp_Object a)
@@ -1338,9 +1339,6 @@ struct Lisp_Symbol
     union Lisp_Fwd *fwd;
   } val;
 
-  /* Function value of the symbol or Qnil if not fboundp.  */
-  Lisp_Object function;
-
   /* The symbol's property list.  */
   Lisp_Object plist;
 };
@@ -1410,6 +1408,12 @@ INLINE bool
 SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (Lisp_Object sym)
 {
   return XSYMBOL (sym)->interned == SYMBOL_INTERNED_IN_INITIAL_OBARRAY;
+}
+
+INLINE Lisp_Object
+SYMBOL_FUNCTION (Lisp_Object sym)
+{
+  return scm_variable_ref (scm_module_lookup (function_module, sym));
 }
 
 /* Value is non-zero if symbol is considered a constant, i.e. its
@@ -2756,7 +2760,7 @@ set_hash_value_slot (struct Lisp_Hash_Table *h, ptrdiff_t idx, Lisp_Object val)
 INLINE void
 set_symbol_function (Lisp_Object sym, Lisp_Object function)
 {
-  XSYMBOL (sym)->function = function;
+  scm_variable_set_x (scm_module_lookup (function_module, sym), function);
 }
 
 INLINE void

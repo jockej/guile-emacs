@@ -448,11 +448,11 @@ internal_self_insert (int c, EMACS_INT n)
 	 and the hook has a non-nil `no-self-insert' property,
 	 return right away--don't really self-insert.  */
       if (SYMBOLP (sym) && ! NILP (sym)
-	  && ! NILP (XSYMBOL (sym)->function)
-	  && SYMBOLP (XSYMBOL (sym)->function))
+	  && ! NILP (SYMBOL_FUNCTION (sym))
+	  && SYMBOLP (SYMBOL_FUNCTION (sym)))
 	{
 	  Lisp_Object prop;
-	  prop = Fget (XSYMBOL (sym)->function, intern ("no-self-insert"));
+	  prop = Fget (SYMBOL_FUNCTION (sym), intern ("no-self-insert"));
 	  if (! NILP (prop))
 	    return 1;
 	}
