@@ -1165,12 +1165,6 @@ usage: (make-byte-code ARGLIST BYTE-CODE CONSTANTS DEPTH &optional DOCSTRING INT
 			   Symbol Allocation
  ***********************************************************************/
 
-static void
-set_symbol_name (Lisp_Object sym, Lisp_Object name)
-{
-  XSYMBOL (sym)->name = name;
-}
-
 void
 initialize_symbol (Lisp_Object val, Lisp_Object name)
 {
@@ -1179,7 +1173,6 @@ initialize_symbol (Lisp_Object val, Lisp_Object name)
   scm_module_define (symbol_module, val, scm_from_pointer (p, NULL));
   p = XSYMBOL (val);
   p->self = val;
-  set_symbol_name (val, name);
   scm_module_define (plist_module, val, Qnil);
   p->redirect = SYMBOL_PLAINVAL;
   SET_SYMBOL_VAL (p, Qunbound);

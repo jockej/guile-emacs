@@ -1328,9 +1328,6 @@ struct Lisp_Symbol
   /* True if pointed to from purespace and hence can't be GC'd.  */
   bool_bf pinned : 1;
 
-  /* The symbol's name, as a Lisp string.  */
-  Lisp_Object name;
-
   /* Value of the symbol or Qunbound if unbound.  Which alternative of the
      union is used depends on the `redirect' field above.  */
   union {
@@ -1389,7 +1386,7 @@ SET_SYMBOL_FWD (struct Lisp_Symbol *sym, union Lisp_Fwd *v)
 INLINE Lisp_Object
 SYMBOL_NAME (Lisp_Object sym)
 {
-  return XSYMBOL (sym)->name;
+  return build_string (scm_to_locale_string (scm_symbol_to_string (sym)));
 }
 
 /* Value is true if SYM is an interned symbol.  */
