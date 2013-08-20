@@ -3989,7 +3989,7 @@ functionp (Lisp_Object object)
       return EQ (car, Qlambda) || EQ (car, Qclosure);
     }
   else
-    return false;
+    return scm_is_true (scm_procedure_p (object));
 }
 
 INLINE_HEADER_END
