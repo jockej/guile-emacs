@@ -38,6 +38,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "keymap.h"
 
 Lisp_Object Qnil, Qt, Qquote, Qlambda, Qunbound;
+Lisp_Object Qnil_, Qt_;
 static Lisp_Object Qsubr;
 Lisp_Object Qerror_conditions, Qerror_message, Qtop_level;
 Lisp_Object Qerror, Quser_error, Qquit, Qargs_out_of_range;
