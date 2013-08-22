@@ -2346,6 +2346,6 @@ syms_of_xmenu (void)
 
 #if defined (USE_GTK) || defined (USE_X_TOOLKIT)
   Ffset (intern_c_string ("accelerate-menu"),
-	 intern_c_string (Sx_menu_bar_open_internal.symbol_name));
+         intern_c_string ("x-menu-bar-open-internal"));
 #endif
 }

@@ -1198,6 +1198,11 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
       init_minibuf_once ();	/* Create list of minibuffers.  */
 				/* Must precede init_window_once.  */
 
+      /* Called before syms_of_fileio, because it sets up
+         Qerror_condition.  Called before other symbol-initialization
+         functions because it sets up symbols used by defsubr.  */
+      syms_of_data ();
+
       /* Call syms_of_xfaces before init_window_once because that
 	 function creates Vterminal_frame.  Termcap frames now use
 	 faces, and the face implementation uses some symbols as
@@ -1212,8 +1217,6 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
 	 CANNOT_DUMP is defined.  */
       syms_of_keyboard ();
 
-      /* Called before syms_of_fileio, because it sets up Qerror_condition.  */
-      syms_of_data ();
       syms_of_fns ();	   /* Before syms_of_charset which uses hashtables.  */
       syms_of_fileio ();
       /* Before syms_of_coding to initialize Vgc_cons_threshold.  */

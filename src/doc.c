@@ -350,18 +350,17 @@ string is passed through `substitute-command-keys'.  */)
     }
 
   fun = Findirect_function (function, Qnil);
-  if (CONSP (fun) && EQ (XCAR (fun), Qmacro))
+  if (CONSP (fun)
+      && (EQ (XCAR (fun), Qmacro)
+          || EQ (XCAR (fun), Qspecial_operator)))
     fun = XCDR (fun);
-  if (SUBRP (fun))
+  if (scm_is_true (scm_procedure_p (fun)))
     {
-      if (XSUBR (fun)->doc == 0)
-	return Qnil;
-      /* FIXME: This is not portable, as it assumes that string
-	 pointers have the top bit clear.  */
-      else if ((intptr_t) XSUBR (fun)->doc >= 0)
-	doc = build_string (XSUBR (fun)->doc);
+      Lisp_Object tem = scm_procedure_property (fun, intern ("emacs-documentation"));
+      if (scm_is_true (tem))
+        doc = tem;
       else
-	doc = make_number ((intptr_t) XSUBR (fun)->doc);
+        return Qnil;
     }
   else if (COMPILEDP (fun))
     {
@@ -501,11 +500,12 @@ store_function_docstring (Lisp_Object obj, ptrdiff_t offset)
 
   /* The type determines where the docstring is stored.  */
 
-  /* Lisp_Subrs have a slot for it.  */
-  if (SUBRP (fun))
+
+  if (scm_is_true (scm_procedure_p (fun)))
     {
-      intptr_t negative_offset = - offset;
-      XSUBR (fun)->doc = (char *) negative_offset;
+      scm_set_procedure_property_x (fun,
+                                    intern ("emacs-documentation"),
+                                    make_number (offset));
     }
 
   /* If it's a lisp form, stick it in the form.  */
@@ -523,7 +523,7 @@ store_function_docstring (Lisp_Object obj, ptrdiff_t offset)
 	       correctness is quite delicate.  */
 	    XSETCAR (tem, make_number (offset));
 	}
-      else if (EQ (tem, Qmacro))
+      else if (EQ (tem, Qmacro) || EQ (tem, Qspecial_operator))
 	store_function_docstring (XCDR (fun), offset);
     }
 

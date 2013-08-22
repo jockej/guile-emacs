@@ -1872,11 +1872,9 @@ then strings and vectors are not accepted.  */)
       fun = Fsymbol_function (fun);
     }
 
-  /* Emacs primitives are interactive if their DEFUN specifies an
-     interactive spec.  */
-  if (SUBRP (fun))
-    return XSUBR (fun)->intspec ? Qt : if_prop;
-
+  if (scm_is_true (scm_procedure_p (fun)))
+    return (scm_is_true (scm_procedure_property (fun, Qinteractive_form))
+            ? Qt : if_prop);
   /* Bytecode objects are interactive if they are long enough to
      have an element whose index is COMPILED_INTERACTIVE, which is
      where the interactive spec is stored.  */
@@ -2180,119 +2178,13 @@ eval_sub_1 (Lisp_Object form)
           args[argnum++] = eval_sub (Fcar (args_left));
           args_left = Fcdr (args_left);
         }
+      set_backtrace_args (specpdl_ptr - 1, args);
+      set_backtrace_nargs (specpdl_ptr - 1, argnum);
       val = scm_call_n (fun, args, argnum);
     }
-  else if (SUBRP (fun))
+  else if (CONSP (fun) && EQ (XCAR (fun), Qspecial_operator))
     {
-      Lisp_Object numargs;
-      Lisp_Object argvals[8];
-      Lisp_Object args_left;
-      register int i, maxargs;
-
-      args_left = original_args;
-      numargs = Flength (args_left);
-
-      if (XINT (numargs) < XSUBR (fun)->min_args
-	  || (XSUBR (fun)->max_args >= 0
-	      && XSUBR (fun)->max_args < XINT (numargs)))
-	xsignal2 (Qwrong_number_of_arguments, original_fun, numargs);
-
-      else if (XSUBR (fun)->max_args == UNEVALLED)
-	val = (XSUBR (fun)->function.aUNEVALLED) (args_left);
-      else if (XSUBR (fun)->max_args == MANY)
-	{
-	  /* Pass a vector of evaluated arguments.  */
-	  Lisp_Object *vals;
-	  ptrdiff_t argnum = 0;
-	  USE_SAFE_ALLOCA;
-
-	  SAFE_ALLOCA_LISP (vals, XINT (numargs));
-
-	  GCPRO3 (args_left, fun, fun);
-	  gcpro3.var = vals;
-	  gcpro3.nvars = 0;
-
-	  while (!NILP (args_left))
-	    {
-	      vals[argnum++] = eval_sub (Fcar (args_left));
-	      args_left = Fcdr (args_left);
-	      gcpro3.nvars = argnum;
-	    }
-
-	  set_backtrace_args (specpdl_ptr - 1, vals);
-	  set_backtrace_nargs (specpdl_ptr - 1, XINT (numargs));
-
-	  val = (XSUBR (fun)->function.aMANY) (XINT (numargs), vals);
-	  UNGCPRO;
-	  SAFE_FREE ();
-	}
-      else
-	{
-	  GCPRO3 (args_left, fun, fun);
-	  gcpro3.var = argvals;
-	  gcpro3.nvars = 0;
-
-	  maxargs = XSUBR (fun)->max_args;
-	  for (i = 0; i < maxargs; args_left = Fcdr (args_left))
-	    {
-	      argvals[i] = eval_sub (Fcar (args_left));
-	      gcpro3.nvars = ++i;
-	    }
-
-	  UNGCPRO;
-
-	  set_backtrace_args (specpdl_ptr - 1, argvals);
-	  set_backtrace_nargs (specpdl_ptr - 1, XINT (numargs));
-
-	  switch (i)
-	    {
-	    case 0:
-	      val = (XSUBR (fun)->function.a0 ());
-	      break;
-	    case 1:
-	      val = (XSUBR (fun)->function.a1 (argvals[0]));
-	      break;
-	    case 2:
-	      val = (XSUBR (fun)->function.a2 (argvals[0], argvals[1]));
-	      break;
-	    case 3:
-	      val = (XSUBR (fun)->function.a3
-		     (argvals[0], argvals[1], argvals[2]));
-	      break;
-	    case 4:
-	      val = (XSUBR (fun)->function.a4
-		     (argvals[0], argvals[1], argvals[2], argvals[3]));
-	      break;
-	    case 5:
-	      val = (XSUBR (fun)->function.a5
-		     (argvals[0], argvals[1], argvals[2], argvals[3],
-		      argvals[4]));
-	      break;
-	    case 6:
-	      val = (XSUBR (fun)->function.a6
-		     (argvals[0], argvals[1], argvals[2], argvals[3],
-		      argvals[4], argvals[5]));
-	      break;
-	    case 7:
-	      val = (XSUBR (fun)->function.a7
-		     (argvals[0], argvals[1], argvals[2], argvals[3],
-		      argvals[4], argvals[5], argvals[6]));
-	      break;
-
-	    case 8:
-	      val = (XSUBR (fun)->function.a8
-		     (argvals[0], argvals[1], argvals[2], argvals[3],
-		      argvals[4], argvals[5], argvals[6], argvals[7]));
-	      break;
-
-	    default:
-	      /* Someone has created a subr that takes more arguments than
-		 is supported by this code.  We need to either rewrite the
-		 subr to use a different argument protocol, or add more
-		 cases to this switch.  */
-	      emacs_abort ();
-	    }
-	}
+      val = scm_apply_0 (XCDR (fun), original_args);
     }
   else if (COMPILEDP (fun))
     val = apply_lambda (fun, original_args);
@@ -2413,26 +2305,8 @@ usage: (apply FUNCTION &rest ARGUMENTS)  */)
     {
       /* Let funcall get the error.  */
       fun = args[0];
-      goto funcall;
     }
 
-  if (SUBRP (fun))
-    {
-      if (numargs < XSUBR (fun)->min_args
-	  || (XSUBR (fun)->max_args >= 0 && XSUBR (fun)->max_args < numargs))
-	goto funcall;		/* Let funcall get the error.  */
-      else if (XSUBR (fun)->max_args >= 0 && XSUBR (fun)->max_args > numargs)
-	{
-	  /* Avoid making funcall cons up a yet another new vector of arguments
-	     by explicitly supplying nil's for optional values.  */
-	  SAFE_ALLOCA_LISP (funcall_args, 1 + XSUBR (fun)->max_args);
-	  for (i = numargs; i < XSUBR (fun)->max_args;)
-	    funcall_args[++i] = Qnil;
-	  GCPRO1 (*funcall_args);
-	  gcpro1.nvars = 1 + XSUBR (fun)->max_args;
-	}
-    }
- funcall:
   /* We add 1 to numargs because funcall_args includes the
      function itself as well as its arguments.  */
   if (!funcall_args)
@@ -2888,86 +2762,6 @@ usage: (funcall FUNCTION &rest ARGUMENTS)  */)
   if (scm_is_true (scm_procedure_p (fun)))
     {
       val = scm_call_n (fun, args + 1, numargs);
-    }
-  else if (SUBRP (fun))
-    {
-      if (numargs < XSUBR (fun)->min_args
-	  || (XSUBR (fun)->max_args >= 0 && XSUBR (fun)->max_args < numargs))
-	{
-	  XSETFASTINT (lisp_numargs, numargs);
-	  xsignal2 (Qwrong_number_of_arguments, original_fun, lisp_numargs);
-	}
-
-      else if (XSUBR (fun)->max_args == UNEVALLED)
-	xsignal1 (Qinvalid_function, original_fun);
-
-      else if (XSUBR (fun)->max_args == MANY)
-	val = (XSUBR (fun)->function.aMANY) (numargs, args + 1);
-      else
-	{
-	  if (XSUBR (fun)->max_args > numargs)
-	    {
-	      internal_args = alloca (XSUBR (fun)->max_args
-				      * sizeof *internal_args);
-	      memcpy (internal_args, args + 1, numargs * word_size);
-	      for (i = numargs; i < XSUBR (fun)->max_args; i++)
-		internal_args[i] = Qnil;
-	    }
-	  else
-	    internal_args = args + 1;
-	  switch (XSUBR (fun)->max_args)
-	    {
-	    case 0:
-	      val = (XSUBR (fun)->function.a0 ());
-	      break;
-	    case 1:
-	      val = (XSUBR (fun)->function.a1 (internal_args[0]));
-	      break;
-	    case 2:
-	      val = (XSUBR (fun)->function.a2
-		     (internal_args[0], internal_args[1]));
-	      break;
-	    case 3:
-	      val = (XSUBR (fun)->function.a3
-		     (internal_args[0], internal_args[1], internal_args[2]));
-	      break;
-	    case 4:
-	      val = (XSUBR (fun)->function.a4
-		     (internal_args[0], internal_args[1], internal_args[2],
-		     internal_args[3]));
-	      break;
-	    case 5:
-	      val = (XSUBR (fun)->function.a5
-		     (internal_args[0], internal_args[1], internal_args[2],
-		      internal_args[3], internal_args[4]));
-	      break;
-	    case 6:
-	      val = (XSUBR (fun)->function.a6
-		     (internal_args[0], internal_args[1], internal_args[2],
-		      internal_args[3], internal_args[4], internal_args[5]));
-	      break;
-	    case 7:
-	      val = (XSUBR (fun)->function.a7
-		     (internal_args[0], internal_args[1], internal_args[2],
-		      internal_args[3], internal_args[4], internal_args[5],
-		      internal_args[6]));
-	      break;
-
-	    case 8:
-	      val = (XSUBR (fun)->function.a8
-		     (internal_args[0], internal_args[1], internal_args[2],
-		      internal_args[3], internal_args[4], internal_args[5],
-		      internal_args[6], internal_args[7]));
-	      break;
-
-	    default:
-
-	      /* If a subr takes more than 8 arguments without using MANY
-		 or UNEVALLED, we need to extend this function to support it.
-		 Until this is done, there is no way to call the function.  */
-	      emacs_abort ();
-	    }
-	}
     }
   else if (COMPILEDP (fun))
     val = funcall_lambda (fun, numargs, args + 1);

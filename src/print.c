@@ -1768,12 +1768,6 @@ print_object (Lisp_Object obj, Lisp_Object printcharfun, bool escapeflag)
 
 	  UNGCPRO;
 	}
-      else if (SUBRP (obj))
-	{
-	  strout ("#<subr ", -1, -1, printcharfun);
-	  strout (XSUBR (obj)->symbol_name, -1, -1, printcharfun);
-	  PRINTCHAR ('>');
-	}
       else if (WINDOWP (obj))
 	{
 	  int len;
@@ -2206,7 +2200,7 @@ void
 init_print_once (void)
 {
   DEFSYM (Qexternal_debugging_output, "external-debugging-output");
-  defsubr (&Sexternal_debugging_output);
+  defsubr ("external-debugging-output", gsubr_Fexternal_debugging_output, 1, 1, 0);
 }
 
 void

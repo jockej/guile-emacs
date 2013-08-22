@@ -4035,14 +4035,32 @@ init_obarray (void)
 }
 
 void
-defsubr (struct Lisp_Subr *sname)
+defsubr (const char *lname, scm_t_subr gsubr_fn, short min_args, short max_args, const char *intspec)
 {
-  Lisp_Object sym, tem;
-  sym = intern_c_string (sname->symbol_name);
-  SCM_NEWSMOB (sname->header.self, lisp_vectorlike_tag, sname);
-  XSETPVECTYPE (sname, PVEC_SUBR);
-  XSETSUBR (tem, sname);
-  set_symbol_function (sym, tem);
+  Lisp_Object sym = intern_c_string (lname);
+  Lisp_Object fn;
+  switch (max_args)
+    {
+    case MANY:
+      fn = scm_c_make_gsubr (lname, 0, 0, 1, gsubr_fn);
+      break;
+    case UNEVALLED:
+      fn = Fcons (Qspecial_operator,
+                  scm_c_make_gsubr (lname, 0, 0, 1, gsubr_fn));
+      break;
+    default:
+      fn = scm_c_make_gsubr (lname, min_args, max_args - min_args, 0, gsubr_fn);
+      break;
+    }
+  set_symbol_function (sym, fn);
+  if (intspec)
+    {
+      Lisp_Object tem = ((*intspec != '(')
+                         ? build_string (intspec)
+                         : Fcar (Fread_from_string (build_string (intspec),
+                                                    Qnil, Qnil)));
+      scm_set_procedure_property_x (fn, Qinteractive_form, tem);
+    }
 }
 
 /* Define an "integer variable"; a symbol whose value is forwarded to a

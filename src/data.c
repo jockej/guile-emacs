@@ -87,6 +87,7 @@ static Lisp_Object Qmany, Qunevalled;
 Lisp_Object Qfont_spec, Qfont_entity, Qfont_object;
 static Lisp_Object Qdefun;
 
+Lisp_Object Qspecial_operator;
 Lisp_Object Qinteractive_form;
 static Lisp_Object Qdefalias_fset_function;
 
@@ -141,7 +142,7 @@ XOBJFWD (union Lisp_Fwd *a)
 static void
 CHECK_SUBR (Lisp_Object x)
 {
-  CHECK_TYPE (SUBRP (x), Qsubrp, x);
+  CHECK_TYPE (! NILP (Fsubrp (x)), Qsubrp, x);
 }
 
 static void
@@ -274,8 +275,6 @@ for example, (type-of 1) returns `integer'.  */)
 	return Qprocess;
       if (WINDOWP (object))
 	return Qwindow;
-      if (SUBRP (object))
-	return Qsubr;
       if (COMPILEDP (object))
 	return Qcompiled_function;
       if (BUFFERP (object))
@@ -298,6 +297,8 @@ for example, (type-of 1) returns `integer'.  */)
     }
   else if (FLOATP (object))
     return Qfloat;
+  else if (! NILP (Fsubrp (object)))
+    return Qsubr;
   else
     return Qt;
 }
@@ -469,7 +470,9 @@ DEFUN ("subrp", Fsubrp, Ssubrp, 1, 1, 0,
        doc: /* Return t if OBJECT is a built-in function.  */)
   (Lisp_Object object)
 {
-  if (SUBRP (object))
+  if (CONSP (object) && EQ (XCAR (object), Qspecial_operator))
+    object = XCDR (object);
+  if (SCM_PRIMITIVE_P (object))
     return Qt;
   return Qnil;
 }
@@ -800,14 +803,27 @@ of args.  MAX is the maximum number or the symbol `many', for a
 function with `&rest' args, or `unevalled' for a special form.  */)
   (Lisp_Object subr)
 {
-  short minargs, maxargs;
+  Lisp_Object min, max;
+  Lisp_Object arity;
+  bool special = false;
+
   CHECK_SUBR (subr);
-  minargs = XSUBR (subr)->min_args;
-  maxargs = XSUBR (subr)->max_args;
-  return Fcons (make_number (minargs),
-		maxargs == MANY ?        Qmany
-		: maxargs == UNEVALLED ? Qunevalled
-		:                        make_number (maxargs));
+  if (CONSP (subr) && EQ (XCAR (subr), Qspecial_operator))
+    {
+      subr = XCDR (subr);
+      special = true;
+    }
+  arity = scm_procedure_minimum_arity (subr);
+  if (scm_is_false (arity))
+    return Qnil;
+  min = XCAR (arity);
+  if (special)
+    max = Qunevalled;
+  else if (scm_is_true (XCAR (XCDR (XCDR (arity)))))
+    max = Qmany;
+  else
+    max = scm_sum (min, XCAR (XCDR (arity)));
+  return Fcons (min, max);
 }
 
 DEFUN ("subr-name", Fsubr_name, Ssubr_name, 1, 1, 0,
@@ -815,10 +831,10 @@ DEFUN ("subr-name", Fsubr_name, Ssubr_name, 1, 1, 0,
 SUBR must be a built-in function.  */)
   (Lisp_Object subr)
 {
-  const char *name;
   CHECK_SUBR (subr);
-  name = XSUBR (subr)->symbol_name;
-  return build_string (name);
+  if (CONSP (subr) && EQ (XCAR (subr), Qspecial_operator))
+    subr = XCDR (subr);
+  return Fsymbol_name (SCM_SUBR_NAME (subr));
 }
 
 DEFUN ("interactive-form", Finteractive_form, Sinteractive_form, 1, 1, 0,
@@ -844,13 +860,11 @@ Value, if non-nil, is a list \(interactive SPEC).  */)
 	fun = Fsymbol_function (fun);
     }
 
-  if (SUBRP (fun))
+  if (scm_is_true (scm_procedure_p (fun)))
     {
-      const char *spec = XSUBR (fun)->intspec;
-      if (spec)
-	return list2 (Qinteractive,
-		      (*spec != '(') ? build_string (spec) :
-		      Fcar (Fread_from_string (build_string (spec), Qnil, Qnil)));
+      Lisp_Object tem = scm_procedure_property (fun, Qinteractive_form);
+      if (scm_is_true (tem))
+        return list2 (Qinteractive, tem);
     }
   else if (COMPILEDP (fun))
     {
@@ -3387,6 +3401,10 @@ syms_of_data (void)
 {
   Lisp_Object error_tail, arith_tail;
 
+  /* Used by defsubr.  */
+  DEFSYM (Qspecial_operator, "special-operator");
+  DEFSYM (Qinteractive_form, "interactive-form");
+
 #include "data.x"
 
   DEFSYM (Qquote, "quote");
@@ -3553,7 +3571,6 @@ syms_of_data (void)
   DEFSYM (Qfont_entity, "font-entity");
   DEFSYM (Qfont_object, "font-object");
 
-  DEFSYM (Qinteractive_form, "interactive-form");
   DEFSYM (Qdefalias_fset_function, "defalias-fset-function");
 
   set_symbol_function (Qwholenump, SYMBOL_FUNCTION (Qnatnump));
