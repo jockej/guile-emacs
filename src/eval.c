@@ -2265,6 +2265,18 @@ DEFUN ("values", Fvalues, Svalues, 0, MANY, 0,
   return scm_c_values (args, nargs);
 }
 
+DEFUN ("bind-symbol", Fbind_symbol, Sbind_symbol, 3, 3, 0,
+       doc: /* Bind symbol.  */)
+  (Lisp_Object symbol, Lisp_Object value, Lisp_Object thunk)
+{
+  Lisp_Object val;
+  dynwind_begin ();
+  specbind (symbol, value);
+  val = call0 (thunk);
+  dynwind_end ();
+  return val;
+}
+
 DEFUN ("apply", Fapply, Sapply, 1, MANY, 0,
        doc: /* Call FUNCTION with our remaining args, using our last arg as list of args.
 Then return the value FUNCTION returns.
