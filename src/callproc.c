@@ -156,11 +156,17 @@ record_kill_process (struct Lisp_Process *p, Lisp_Object tempfile)
 /* Clean up files, file descriptors and processes created by Fcall_process.  */
 
 static void
-delete_temp_file_ptr (Lisp_Object *name_ptr)
+delete_temp_file (Lisp_Object name)
 {
-  Lisp_Object name = *name_ptr;
   if (! NILP (name))
     unlink (SSDATA (name));
+}
+
+static void
+delete_temp_file_ptr (Lisp_Object *name_ptr)
+{
+  if (name_ptr)
+    delete_temp_file (*name_ptr);
 }
 
 static void
@@ -181,7 +187,7 @@ call_process_kill (void *ptr)
       synch_process_pid = 0;
     }
   else if (STRINGP (synch_process_tempfile))
-    delete_temp_file_ptr (&synch_process_tempfile);
+    delete_temp_file (synch_process_tempfile);
 }
 
 /* Clean up when exiting Fcall_process: restore the buffer, and
