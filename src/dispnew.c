@@ -5477,7 +5477,7 @@ change_frame_size_1 (struct frame *f, int new_width, int new_height,
   int new_text_width, new_text_height, new_root_width;
   int old_root_width = WINDOW_PIXEL_WIDTH (XWINDOW (FRAME_ROOT_WINDOW (f)));
   int new_cols, new_lines;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   /* If we can't deal with the change now, queue it for later.  */
   if (delay || (redisplaying_p && !safe))
@@ -5486,6 +5486,7 @@ change_frame_size_1 (struct frame *f, int new_width, int new_height,
       f->new_height = new_height;
       f->new_pixelwise = pixelwise;
       delayed_size_change = 1;
+      dynwind_end ();
       return;
     }
 
@@ -5532,7 +5533,10 @@ change_frame_size_1 (struct frame *f, int new_width, int new_height,
 	  FRAME_TEXT_TO_PIXEL_HEIGHT (f, new_text_height))
       && (FRAME_PIXEL_WIDTH (f) ==
 	  FRAME_TEXT_TO_PIXEL_WIDTH (f, new_text_width)))
-    return;
+    {
+      dynwind_end ();
+      return;
+    }
 
   block_input ();
 
@@ -5602,7 +5606,7 @@ change_frame_size_1 (struct frame *f, int new_width, int new_height,
 
   run_window_configuration_change_hook (f);
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 }
 
 /***********************************************************************
@@ -5839,11 +5843,11 @@ immediately by pending input.  */)
       || !NILP (Vexecuting_kbd_macro))
     return Qnil;
 
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   if (!NILP (force) && !redisplay_dont_pause)
     specbind (Qredisplay_dont_pause, Qt);
   redisplay_preserve_echo_area (2);
-  unbind_to (count, Qnil);
+  dynwind_end ();
   return Qt;
 }
 

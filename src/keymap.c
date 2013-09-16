@@ -356,7 +356,7 @@ Return PARENT.  PARENT should be nil or another keymap.  */)
 	{
 	  CHECK_IMPURE (prev);
 	  XSETCDR (prev, parent);
-	  RETURN_UNGCPRO (parent);
+	  return parent;
 	}
       prev = list;
     }
@@ -1131,7 +1131,7 @@ binding KEY to DEF is added at the front of KEYMAP.  */)
 
   length = XFASTINT (Flength (key));
   if (length == 0)
-    RETURN_UNGCPRO (Qnil);
+    return Qnil;
 
   if (SYMBOLP (def) && !EQ (Vdefine_key_rebound_commands, Qt))
     Vdefine_key_rebound_commands = Fcons (def, Vdefine_key_rebound_commands);
@@ -1194,7 +1194,7 @@ binding KEY to DEF is added at the front of KEYMAP.  */)
 	message_with_string ("Key sequence contains invalid event %s", c, 1);
 
       if (idx == length)
-	RETURN_UNGCPRO (store_in_keymap (keymap, c, def));
+	return store_in_keymap (keymap, c, def);
 
       cmd = access_keymap (keymap, c, 0, 1, 1);
 
@@ -1287,7 +1287,7 @@ recognize the default bindings, just as `read-key-sequence' does.  */)
 
   length = XFASTINT (Flength (key));
   if (length == 0)
-    RETURN_UNGCPRO (keymap);
+    return keymap;
 
   idx = 0;
   while (1)
@@ -1308,11 +1308,11 @@ recognize the default bindings, just as `read-key-sequence' does.  */)
 
       cmd = access_keymap (keymap, c, t_ok, 0, 1);
       if (idx == length)
-	RETURN_UNGCPRO (cmd);
+	return cmd;
 
       keymap = get_keymap (cmd, 0, 1);
       if (!CONSP (keymap))
-	RETURN_UNGCPRO (make_number (idx));
+	return make_number (idx);
 
       QUIT;
     }
@@ -1544,7 +1544,7 @@ OLP if non-nil indicates that we should obey `overriding-local-map' and
 like in the respective argument of `key-binding'.  */)
   (Lisp_Object olp, Lisp_Object position)
 {
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   Lisp_Object keymaps = list1 (current_global_map);
 
@@ -1662,7 +1662,7 @@ like in the respective argument of `key-binding'.  */)
 	keymaps = Fcons (otlp, keymaps);
     }
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   return keymaps;
 }
@@ -1806,7 +1806,7 @@ bindings; see the description of `lookup-key' for more details about this.  */)
 	if (KEYMAPP (binding))
 	  maps[j++] = Fcons (modes[i], binding);
 	else if (j == 0)
-	  RETURN_UNGCPRO (list1 (Fcons (modes[i], binding)));
+	  return list1 (Fcons (modes[i], binding));
       }
 
   UNGCPRO;
@@ -2647,11 +2647,11 @@ The optional 5th arg NO-REMAP alters how command remapping is handled:
       /* We have a list of advertised bindings.  */
       while (CONSP (tem))
 	if (EQ (shadow_lookup (keymaps, XCAR (tem), Qnil, 0), definition))
-	  RETURN_UNGCPRO (XCAR (tem));
+	  return XCAR (tem);
 	else
 	  tem = XCDR (tem);
       if (EQ (shadow_lookup (keymaps, tem, Qnil, 0), definition))
-	RETURN_UNGCPRO (tem);
+	return tem;
     }
 
   sequences = Freverse (where_is_internal (definition, keymaps,
@@ -2720,10 +2720,10 @@ The optional 5th arg NO-REMAP alters how command remapping is handled:
 	 nil, then we should return the first ascii-only binding
 	 we find.  */
       if (EQ (firstonly, Qnon_ascii))
-	RETURN_UNGCPRO (sequence);
+	return sequence;
       else if (!NILP (firstonly)
 	       && 2 == preferred_sequence_p (sequence))
-	RETURN_UNGCPRO (sequence);
+	return sequence;
     }
 
   UNGCPRO;
@@ -3407,7 +3407,7 @@ This is text showing the elements of vector matched against indices.
 DESCRIBER is the output function used; nil means use `princ'.  */)
   (Lisp_Object vector, Lisp_Object describer)
 {
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   if (NILP (describer))
     describer = intern ("princ");
   specbind (Qstandard_output, Fcurrent_buffer ());
@@ -3415,7 +3415,8 @@ DESCRIBER is the output function used; nil means use `princ'.  */)
   describe_vector (vector, Qnil, describer, describe_vector_princ, 0,
 		   Qnil, Qnil, 0, 0);
 
-  return unbind_to (count, Qnil);
+  dynwind_end ();
+  return Qnil;
 }
 
 /* Insert in the current buffer a description of the contents of VECTOR.

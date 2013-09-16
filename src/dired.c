@@ -143,7 +143,7 @@ directory_files_internal (Lisp_Object directory, Lisp_Object full,
   Lisp_Object list, dirfilename, encoded_directory;
   struct re_pattern_buffer *bufp = NULL;
   bool needsep = 0;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   struct dirent *dp;
 
@@ -306,13 +306,13 @@ directory_files_internal (Lisp_Object directory, Lisp_Object full,
       UNGCPRO;
     }
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   if (NILP (nosort))
     list = Fsort (Fnreverse (list),
 		  attrs ? Qfile_attributes_lessp : Qstring_lessp);
 
-  RETURN_UNGCPRO (list);
+  return list;
 }
 
 
@@ -452,7 +452,7 @@ file_name_completion (Lisp_Object file, Lisp_Object dirname, bool all_flag,
      well as "." and "..".  Until shown otherwise, assume we can't exclude
      anything.  */
   bool includeall = 1;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
 
   elt = Qnil;
@@ -743,7 +743,7 @@ file_name_completion (Lisp_Object file, Lisp_Object dirname, bool all_flag,
 
   UNGCPRO;
   /* This closes the directory.  */
-  unbind_to (count, bestmatch);
+  dynwind_end ();
 
   if (all_flag || NILP (bestmatch))
     return bestmatch;

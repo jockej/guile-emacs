@@ -4344,7 +4344,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
   int minibuffer_only = 0;
   long window_prompting = 0;
   int width, height;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   Lisp_Object display;
   struct w32_display_info *dpyinfo = NULL;
@@ -4667,7 +4667,8 @@ This function is an internal primitive--use `make-frame' instead.  */)
      and similar functions.  */
   Vwindow_list = Qnil;
 
-  return unbind_to (count, frame);
+  dynwind_end ();
+  return frame;
 }
 
 /* FRAME is used only to get a handle on the X display.  We don't pass the
@@ -5646,7 +5647,7 @@ x_create_tip_frame (struct w32_display_info *dpyinfo,
   Lisp_Object name;
   long window_prompting = 0;
   int width, height;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3;
   struct kboard *kb;
   int face_change_count_before = face_change_count;
@@ -5866,7 +5867,8 @@ x_create_tip_frame (struct w32_display_info *dpyinfo,
   face_change_count = face_change_count_before;
 
   /* Discard the unwind_protect.  */
-  return unbind_to (count, frame);
+  dynwind_end ();
+  return frame;
 }
 
 
@@ -5993,7 +5995,7 @@ Text larger than the specified size is clipped.  */)
   int i, width, height, seen_reversed_p;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   int old_windows_or_buffers_changed = windows_or_buffers_changed;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   specbind (Qinhibit_redisplay, Qt);
 
@@ -6280,7 +6282,8 @@ Text larger than the specified size is clipped.  */)
 		     intern ("x-hide-tip"));
 
   UNGCPRO;
-  return unbind_to (count, Qnil);
+  dynwind_end ();
+  return Qnil;
 }
 
 
@@ -6302,7 +6305,7 @@ Value is t if tooltip was open, nil otherwise.  */)
   GCPRO2 (frame, timer);
   tip_frame = tip_timer = deleted = Qnil;
 
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   specbind (Qinhibit_redisplay, Qt);
   specbind (Qinhibit_quit, Qt);
 
@@ -6316,7 +6319,8 @@ Value is t if tooltip was open, nil otherwise.  */)
     }
 
   UNGCPRO;
-  return unbind_to (count, deleted);
+  dynwind_end ();
+  return deleted;
 }
 
 /***********************************************************************
@@ -6656,7 +6660,7 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
 #endif	/* !NTGUI_UNICODE */
 
     {
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
       /* Prevent redisplay.  */
       specbind (Qinhibit_redisplay, Qt);
       block_input ();
@@ -6675,7 +6679,7 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
 	}
 #endif	/* !NTGUI_UNICODE */
       unblock_input ();
-      unbind_to (count, Qnil);
+      dynwind_end ();
     }
 
     if (file_opened)
@@ -6727,7 +6731,7 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
   if (NILP (filename))
     Fsignal (Qquit, Qnil);
 
-  RETURN_UNGCPRO (filename);
+  return filename;
 }
 
 

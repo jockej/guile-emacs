@@ -1959,7 +1959,7 @@ permissions.  */)
 {
   Lisp_Object handler;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   Lisp_Object encoded_file, encoded_newname;
 #if HAVE_LIBSELINUX
   security_context_t con;
@@ -1994,10 +1994,10 @@ permissions.  */)
   /* Likewise for output file name.  */
   if (NILP (handler))
     handler = Ffind_file_name_handler (newname, Qcopy_file);
-  if (!NILP (handler))
-    RETURN_UNGCPRO (call7 (handler, Qcopy_file, file, newname,
-			   ok_if_already_exists, keep_time, preserve_uid_gid,
-			   preserve_permissions));
+  if (!NILP (handler)) {
+    dynwind_end ();
+    return call7 (handler, Qcopy_file, file, newname, ok_if_already_exists, keep_time, preserve_uid_gid, preserve_permissions);
+  }
 
   encoded_file = ENCODE_FILE (file);
   encoded_newname = ENCODE_FILE (newname);
@@ -2176,7 +2176,7 @@ permissions.  */)
 #endif /* MSDOS */
 #endif /* not WINDOWSNT */
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   UNGCPRO;
   return Qnil;
@@ -2333,8 +2333,7 @@ This is what happens in interactive use with M-x.  */)
   if (NILP (handler))
     handler = Ffind_file_name_handler (newname, Qrename_file);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qrename_file,
-			   file, newname, ok_if_already_exists));
+    return call4 (handler, Qrename_file, file, newname, ok_if_already_exists);
 
   encoded_file = ENCODE_FILE (file);
   encoded_newname = ENCODE_FILE (newname);
@@ -2368,14 +2367,14 @@ This is what happens in interactive use with M-x.  */)
 			NILP (ok_if_already_exists) ? Qnil : Qt,
 			Qt, Qt, Qt);
 
-	  count = SPECPDL_INDEX ();
+	  dynwind_begin ();
 	  specbind (Qdelete_by_moving_to_trash, Qnil);
 
 	  if (!NILP (Ffile_directory_p (file)) && NILP (symlink_target))
 	    call2 (Qdelete_directory, file, Qt);
 	  else
 	    Fdelete_file (file, Qnil);
-	  unbind_to (count, Qnil);
+	  dynwind_end ();
 	}
       else
 	report_file_errno ("Renaming", list2 (file, newname), rename_errno);
@@ -2412,15 +2411,13 @@ This is what happens in interactive use with M-x.  */)
      call the corresponding file handler.  */
   handler = Ffind_file_name_handler (file, Qadd_name_to_file);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qadd_name_to_file, file,
-			   newname, ok_if_already_exists));
+    return call4 (handler, Qadd_name_to_file, file, newname, ok_if_already_exists);
 
   /* If the new name has special constructs in it,
      call the corresponding file handler.  */
   handler = Ffind_file_name_handler (newname, Qadd_name_to_file);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qadd_name_to_file, file,
-			   newname, ok_if_already_exists));
+    return call4 (handler, Qadd_name_to_file, file, newname, ok_if_already_exists);
 
   encoded_file = ENCODE_FILE (file);
   encoded_newname = ENCODE_FILE (newname);
@@ -2474,15 +2471,13 @@ This happens for interactive use with M-x.  */)
      call the corresponding file handler.  */
   handler = Ffind_file_name_handler (filename, Qmake_symbolic_link);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qmake_symbolic_link, filename,
-			   linkname, ok_if_already_exists));
+    return call4 (handler, Qmake_symbolic_link, filename, linkname, ok_if_already_exists);
 
   /* If the new link name has special constructs in it,
      call the corresponding file handler.  */
   handler = Ffind_file_name_handler (linkname, Qmake_symbolic_link);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qmake_symbolic_link, filename,
-			   linkname, ok_if_already_exists));
+    return call4 (handler, Qmake_symbolic_link, filename, linkname, ok_if_already_exists);
 
   encoded_filename = ENCODE_FILE (filename);
   encoded_linkname = ENCODE_FILE (linkname);
@@ -5532,7 +5527,7 @@ A non-nil CURRENT-ONLY argument means save only current buffer.  */)
   int do_handled_files;
   Lisp_Object oquit;
   FILE *stream = NULL;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   bool orig_minibuffer_auto_raise = minibuffer_auto_raise;
   bool old_message_p = 0;
   struct auto_save_unwind auto_save_unwind;
@@ -5715,7 +5710,7 @@ A non-nil CURRENT-ONLY argument means save only current buffer.  */)
   Vquit_flag = oquit;
 
   /* This restores the message-stack status.  */
-  unbind_to (count, Qnil);
+  dynwind_end ();
   return Qnil;
 }
 

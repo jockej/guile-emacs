@@ -1560,7 +1560,7 @@ and returns whatever that function returns.  */)
   GCPRO1 (retval);
   if (!NILP (Vmouse_position_function))
     retval = call1 (Vmouse_position_function, retval);
-  RETURN_UNGCPRO (retval);
+  return retval;
 }
 
 DEFUN ("mouse-pixel-position", Fmouse_pixel_position,

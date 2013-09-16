@@ -759,7 +759,7 @@ This function does not move point.  */)
   (Lisp_Object n)
 {
   ptrdiff_t orig, orig_byte, end;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   specbind (Qinhibit_point_motion_hooks, Qt);
 
   if (NILP (n))
@@ -774,7 +774,7 @@ This function does not move point.  */)
 
   SET_PT_BOTH (orig, orig_byte);
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   /* Return END constrained to the current input field.  */
   return Fconstrain_to_field (make_number (end), make_number (orig),
@@ -934,12 +934,13 @@ usage: (save-excursion &rest BODY)  */)
   (Lisp_Object args)
 {
   register Lisp_Object val;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   record_unwind_protect (save_excursion_restore, save_excursion_save ());
 
   val = Fprogn (args);
-  return unbind_to (count, val);
+  dynwind_end ();
+  return val;
 }
 
 DEFUN ("save-current-buffer", Fsave_current_buffer, Ssave_current_buffer, 0, UNEVALLED, 0,
@@ -948,10 +949,12 @@ BODY is executed just like `progn'.
 usage: (save-current-buffer &rest BODY)  */)
   (Lisp_Object args)
 {
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   record_unwind_current_buffer ();
-  return unbind_to (count, Fprogn (args));
+  Lisp_Object tem0 = Fprogn (args);
+  dynwind_end ();
+  return tem0;
 }
 
 DEFUN ("buffer-size", Fbuffer_size, Sbuffer_size, 0, 1, 0,
@@ -2828,7 +2831,7 @@ Both characters must have the same length of multi-byte form.  */)
   ptrdiff_t changed = 0;
   unsigned char fromstr[MAX_MULTIBYTE_LENGTH], tostr[MAX_MULTIBYTE_LENGTH];
   unsigned char *p;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 #define COMBINING_NO	 0
 #define COMBINING_BEFORE 1
 #define COMBINING_AFTER  2
@@ -2993,7 +2996,7 @@ Both characters must have the same length of multi-byte form.  */)
       update_compositions (changed, last_changed, CHECK_ALL);
     }
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   return Qnil;
 }
 
@@ -3405,11 +3408,12 @@ usage: (save-restriction &rest BODY)  */)
   (Lisp_Object body)
 {
   register Lisp_Object val;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   record_unwind_protect (save_restriction_restore, save_restriction_save ());
   val = Fprogn (body);
-  return unbind_to (count, val);
+  dynwind_end ();
+  return val;
 }
 
 DEFUN ("message", Fmessage, Smessage, 1, MANY, 0,
@@ -3539,7 +3543,7 @@ usage: (propertize STRING &rest PROPERTIES)  */)
   Fadd_text_properties (make_number (0),
 			make_number (SCHARS (string)),
 			properties, string);
-  RETURN_UNGCPRO (string);
+  return string;
 }
 
 DEFUN ("format", Fformat, Sformat, 1, MANY, 0,

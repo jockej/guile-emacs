@@ -2616,7 +2616,7 @@ safe__call (bool inhibit_quit, ptrdiff_t nargs, Lisp_Object func, va_list ap)
   else
     {
       ptrdiff_t i;
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
       struct gcpro gcpro1;
       Lisp_Object *args = alloca (nargs * word_size);
 
@@ -2634,7 +2634,7 @@ safe__call (bool inhibit_quit, ptrdiff_t nargs, Lisp_Object func, va_list ap)
       val = internal_condition_case_n (Ffuncall, nargs, args, Qt,
 				       safe_eval_handler);
       UNGCPRO;
-      unbind_to (count, val);
+      dynwind_end ();
     }
 
   return val;
@@ -3811,7 +3811,7 @@ handle_fontified_prop (struct it *it)
 	     no amount of fontifying will be able to change it.  */
 	  NILP (prop) && IT_CHARPOS (*it) < Z))
     {
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
       Lisp_Object val;
       struct buffer *obuf = current_buffer;
       ptrdiff_t begv = BEGV, zv = ZV;
@@ -3859,7 +3859,7 @@ handle_fontified_prop (struct it *it)
 	  UNGCPRO;
 	}
 
-      unbind_to (count, Qnil);
+      dynwind_end ();
 
       /* Fontification functions routinely call `save-restriction'.
 	 Normally, this tags clip_changed, which can confuse redisplay
@@ -4823,7 +4823,7 @@ handle_single_display_spec (struct it *it, Lisp_Object spec, Lisp_Object object,
 
   if (!NILP (form) && !EQ (form, Qt))
     {
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
       struct gcpro gcpro1;
 
       /* Bind `object' to the object having the `display' property, a
@@ -4839,7 +4839,7 @@ handle_single_display_spec (struct it *it, Lisp_Object spec, Lisp_Object object,
       GCPRO1 (form);
       form = safe_eval (form);
       UNGCPRO;
-      unbind_to (count, Qnil);
+      dynwind_end ();
     }
 
   if (NILP (form))
@@ -4897,11 +4897,11 @@ handle_single_display_spec (struct it *it, Lisp_Object spec, Lisp_Object object,
 		{
 		  /* Evaluate IT->font_height with `height' bound to the
 		     current specified height to get the new height.  */
-		  ptrdiff_t count = SPECPDL_INDEX ();
+		  dynwind_begin ();
 
 		  specbind (Qheight, face->lface[LFACE_HEIGHT_INDEX]);
 		  value = safe_eval (it->font_height);
-		  unbind_to (count, Qnil);
+		  dynwind_end ();
 
 		  if (NUMBERP (value))
 		    new_height = XFLOATINT (value);
@@ -10425,7 +10425,7 @@ with_echo_area_buffer (struct window *w, int which,
 {
   Lisp_Object buffer;
   int this_one, the_other, clear_buffer_p, rc;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   /* If buffers aren't live, make new ones.  */
   ensure_echo_area_buffers ();
@@ -10499,7 +10499,7 @@ with_echo_area_buffer (struct window *w, int which,
   eassert (BEGV >= BEG);
   eassert (ZV <= Z && ZV >= BEGV);
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   return rc;
 }
 
@@ -10604,11 +10604,11 @@ setup_echo_area_for_printing (int multibyte_p)
 
       if (Z > BEG)
 	{
-	  ptrdiff_t count = SPECPDL_INDEX ();
+	  dynwind_begin ();
 	  specbind (Qinhibit_read_only, Qt);
 	  /* Note that undo recording is always disabled.  */
 	  del_range (BEG, Z);
-	  unbind_to (count, Qnil);
+	  dynwind_end ();
 	}
       TEMP_SET_PT_BOTH (BEG, BEG_BYTE);
 
@@ -11185,11 +11185,11 @@ echo_area_display (int update_frame_p)
 	      /* Must update other windows.  Likewise as in other
 		 cases, don't let this update be interrupted by
 		 pending input.  */
-	      ptrdiff_t count = SPECPDL_INDEX ();
+	      dynwind_begin ();
 	      specbind (Qredisplay_dont_pause, Qt);
 	      windows_or_buffers_changed = 44;
 	      redisplay_internal ();
-	      unbind_to (count, Qnil);
+	      dynwind_end ();
 	    }
 	  else if (FRAME_WINDOW_P (f) && n == 0)
 	    {
@@ -11481,7 +11481,7 @@ x_consider_frame_title (Lisp_Object frame)
       char *title;
       ptrdiff_t len;
       struct it it;
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
 
       FOR_EACH_FRAME (tail, other_frame)
 	{
@@ -11517,7 +11517,7 @@ x_consider_frame_title (Lisp_Object frame)
       display_mode_element (&it, 0, -1, -1, fmt, Qnil, 0);
       len = MODE_LINE_NOPROP_LEN (title_start);
       title = mode_line_noprop_buf + title_start;
-      unbind_to (count, Qnil);
+      dynwind_end ();
 
       /* Set the title only if it's changed.  This avoids consing in
 	 the common case where it hasn't.  (If it turns out that we've
@@ -11625,7 +11625,7 @@ prepare_menu_bars (void)
   if (all_windows)
     {
       Lisp_Object tail, frame;
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
       /* 1 means that update_menu_bar has run its hooks
 	 so any further calls to update_menu_bar shouldn't do so again.  */
       int menu_bar_hooks_run = 0;
@@ -11681,7 +11681,7 @@ prepare_menu_bars (void)
 	  UNGCPRO;
 	}
 
-      unbind_to (count, Qnil);
+      dynwind_end ();
     }
   else
     {
@@ -11744,7 +11744,7 @@ update_menu_bar (struct frame *f, int save_match_data, int hooks_run)
 	  || window_buffer_changed (w))
 	{
 	  struct buffer *prev = current_buffer;
-	  ptrdiff_t count = SPECPDL_INDEX ();
+	  dynwind_begin ();
 
 	  specbind (Qinhibit_menubar_update, Qt);
 
@@ -11797,7 +11797,7 @@ update_menu_bar (struct frame *f, int save_match_data, int hooks_run)
 	  w->update_mode_line = 1;
 #endif /* ! (USE_X_TOOLKIT || HAVE_NTGUI || HAVE_NS || USE_GTK) */
 
-	  unbind_to (count, Qnil);
+	  dynwind_end ();
 	  set_buffer_internal_1 (prev);
 	}
     }
@@ -11861,7 +11861,7 @@ update_tool_bar (struct frame *f, int save_match_data)
 	  || window_buffer_changed (w))
 	{
 	  struct buffer *prev = current_buffer;
-	  ptrdiff_t count = SPECPDL_INDEX ();
+	  dynwind_begin ();
 	  Lisp_Object frame, new_tool_bar;
           int new_n_tool_bar;
 	  struct gcpro gcpro1;
@@ -11917,7 +11917,7 @@ update_tool_bar (struct frame *f, int save_match_data)
 
 	  UNGCPRO;
 
-	  unbind_to (count, Qnil);
+	  dynwind_end ();
 	  set_buffer_internal_1 (prev);
 	}
     }
@@ -13381,7 +13381,7 @@ redisplay_internal (void)
 
   /* Record a function that clears redisplaying_p
      when we leave this function.  */
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   record_unwind_protect_void (unwind_redisplay);
   redisplaying_p = 1;
   specbind (Qinhibit_free_realized_faces, Qnil);
@@ -14021,7 +14021,7 @@ redisplay_internal (void)
   if (interrupt_input && interrupts_deferred)
     request_sigio ();
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   RESUME_POLLING;
 }
 
@@ -15810,7 +15810,7 @@ redisplay_window (Lisp_Object window, bool just_this_one_p)
      It indicates that the buffer contents and narrowing are unchanged.  */
   bool buffer_unchanged_p = false;
   int temp_scroll_step = 0;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   int rc;
   int centering_position = -1;
   int last_line_misfit = 0;
@@ -16749,7 +16749,7 @@ redisplay_window (Lisp_Object window, bool just_this_one_p)
   if (CHARPOS (lpoint) <= ZV)
     TEMP_SET_PT_BOTH (CHARPOS (lpoint), BYTEPOS (lpoint));
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 }
 
 
@@ -21503,7 +21503,7 @@ display_mode_line (struct window *w, enum face_id face_id, Lisp_Object format)
 {
   struct it it;
   struct face *face;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   init_iterator (&it, w, -1, -1, NULL, face_id);
   /* Don't extend on a previously drawn mode-line.
@@ -21531,7 +21531,7 @@ display_mode_line (struct window *w, enum face_id face_id, Lisp_Object format)
   display_mode_element (&it, 0, 0, 0, format, Qnil, 0);
   pop_kboard ();
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   /* Fill up with spaces.  */
   display_string (" ", Qnil, Qnil, 0, 0, &it, 10000, -1, -1, 0);
@@ -22183,7 +22183,7 @@ are the selected window and the WINDOW's buffer).  */)
   struct buffer *old_buffer = NULL;
   int face_id;
   int no_props = INTEGERP (face);
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   Lisp_Object str;
   int string_start = 0;
 
@@ -22196,8 +22196,10 @@ are the selected window and the WINDOW's buffer).  */)
 
   /* Make formatting the modeline a non-op when noninteractive, otherwise
      there will be problems later caused by a partially initialized frame.  */
-  if (NILP (format) || noninteractive)
+  if (NILP (format) || noninteractive) {
+    dynwind_end ();
     return empty_unibyte_string;
+  }
 
   if (no_props)
     face = Qnil;
@@ -22258,7 +22260,7 @@ are the selected window and the WINDOW's buffer).  */)
 			empty_unibyte_string);
     }
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   return str;
 }
 

@@ -1048,7 +1048,7 @@ Return t if the file exists and loads successfully.  */)
 {
   FILE *stream = NULL;
   int fd;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3;
   Lisp_Object found, efound, hist_file_name;
   /* True means we printed the ".el is newer" message.  */
@@ -1084,8 +1084,10 @@ Return t if the file exists and loads successfully.  */)
     {
       file = internal_condition_case_1 (Fsubstitute_in_file_name, file,
 					Qt, load_error_handler);
-      if (NILP (file))
-	return Qnil;
+      if (NILP (file)) {
+        dynwind_end ();
+        return Qnil;
+      }
     }
   else
     file = Fsubstitute_in_file_name (file);
@@ -1141,6 +1143,7 @@ Return t if the file exists and loads successfully.  */)
     {
       if (NILP (noerror))
 	report_file_error ("Cannot open load file", file);
+      dynwind_end ();
       return Qnil;
     }
 
@@ -1158,8 +1161,10 @@ Return t if the file exists and loads successfully.  */)
 	handler = Ffind_file_name_handler (found, Qt);
       else
 	handler = Ffind_file_name_handler (found, Qload);
-      if (! NILP (handler))
-	return call5 (handler, Qload, found, noerror, nomessage, Qt);
+      if (! NILP (handler)) {
+        dynwind_end ();
+        return call5 (handler, Qload, found, noerror, nomessage, Qt);
+      }
 #ifdef DOS_NT
       /* Tramp has to deal with semi-broken packages that prepend
 	 drive letters to remote files.  For that reason, Tramp
@@ -1299,7 +1304,8 @@ Return t if the file exists and loads successfully.  */)
 	  val = call4 (Vload_source_file_function, found, hist_file_name,
 		       NILP (noerror) ? Qnil : Qt,
 		       (NILP (nomessage) || force_load_messages) ? Qnil : Qt);
-	  return unbind_to (count, val);
+	  dynwind_end ();
+	  return val;
 	}
     }
 
@@ -1363,7 +1369,7 @@ Return t if the file exists and loads successfully.  */)
       readevalloop (Qget_emacs_mule_file_char, stream, hist_file_name,
 		    0, Qnil, Qnil, Qnil, Qnil);
     }
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   /* Run any eval-after-load forms for this file.  */
   if (!NILP (Ffboundp (Qdo_after_load_evaluation)))
@@ -1796,7 +1802,7 @@ readevalloop (Lisp_Object readcharfun,
 {
   register int c;
   register Lisp_Object val;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   struct buffer *b = 0;
   bool continue_reading_p;
@@ -1858,7 +1864,7 @@ readevalloop (Lisp_Object readcharfun,
   continue_reading_p = 1;
   while (continue_reading_p)
     {
-      ptrdiff_t count1 = SPECPDL_INDEX ();
+      dynwind_begin ();
 
       if (b != 0 && !BUFFER_LIVE_P (b))
 	error ("Reading from killed buffer");
@@ -1901,7 +1907,7 @@ readevalloop (Lisp_Object readcharfun,
 	}
       if (c < 0)
 	{
-	  unbind_to (count1, Qnil);
+	  dynwind_end ();
 	  break;
 	}
 
@@ -1942,7 +1948,7 @@ readevalloop (Lisp_Object readcharfun,
 	start = Fpoint_marker ();
 
       /* Restore saved point and BEGV.  */
-      unbind_to (count1, Qnil);
+      dynwind_end ();
 
       /* Now eval what we just read.  */
       if (!NILP (macroexpand))
@@ -1967,7 +1973,7 @@ readevalloop (Lisp_Object readcharfun,
 
   UNGCPRO;
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 }
 
 DEFUN ("eval-buffer", Feval_buffer, Seval_buffer, 0, 5, "",
@@ -1986,7 +1992,7 @@ DO-ALLOW-PRINT, if non-nil, specifies that `print' and related
 This function preserves the position of point.  */)
   (Lisp_Object buffer, Lisp_Object printflag, Lisp_Object filename, Lisp_Object unibyte, Lisp_Object do_allow_print)
 {
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   Lisp_Object tem, buf;
 
   if (NILP (buffer))
@@ -2011,7 +2017,7 @@ This function preserves the position of point.  */)
   specbind (Qlexical_binding, lisp_file_lexically_bound_p (buf) ? Qt : Qnil);
   readevalloop (buf, 0, filename,
 		!NILP (printflag), unibyte, Qnil, Qnil, Qnil);
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   return Qnil;
 }
@@ -2031,7 +2037,7 @@ This function does not move point.  */)
   (Lisp_Object start, Lisp_Object end, Lisp_Object printflag, Lisp_Object read_function)
 {
   /* FIXME: Do the eval-sexp-add-defvars dance!  */
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   Lisp_Object tem, cbuf;
 
   cbuf = Fcurrent_buffer ();
@@ -2048,7 +2054,8 @@ This function does not move point.  */)
 		!NILP (printflag), Qnil, read_function,
 		start, end);
 
-  return unbind_to (count, Qnil);
+  dynwind_end ();
+  return Qnil;
 }
 
 

@@ -390,7 +390,7 @@ x_get_local_selection (Lisp_Object selection_symbol, Lisp_Object target_type,
       /* Don't allow a quit within the converter.
 	 When the user types C-g, he would be surprised
 	 if by luck it came during a converter.  */
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
       specbind (Qinhibit_quit, Qt);
 
       CHECK_SYMBOL (target_type);
@@ -404,7 +404,7 @@ x_get_local_selection (Lisp_Object selection_symbol, Lisp_Object target_type,
 		       XCAR (XCDR (local_value)));
       else
 	value = Qnil;
-      unbind_to (count, Qnil);
+      dynwind_end ();
     }
 
   /* Make sure this value is of a type that we could transmit
@@ -570,7 +570,7 @@ x_reply_selection_request (struct input_event *event,
   Window window = SELECTION_EVENT_REQUESTOR (event);
   ptrdiff_t bytes_remaining;
   int max_bytes = selection_quantum (display);
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct selection_data *cs;
 
   reply->type = SelectionNotify;
@@ -737,7 +737,7 @@ x_reply_selection_request (struct input_event *event,
      and then BLOCK again because x_uncatch_errors requires it.  */
   block_input ();
   /* This calls x_uncatch_errors.  */
-  unbind_to (count, Qnil);
+  dynwind_end ();
   unblock_input ();
 }
 
@@ -759,7 +759,7 @@ x_handle_selection_request (struct input_event *event)
   Atom property = SELECTION_EVENT_PROPERTY (event);
   Lisp_Object local_selection_data;
   int success = 0;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   GCPRO2 (local_selection_data, target_symbol);
 
   if (!dpyinfo) goto DONE;
@@ -849,7 +849,7 @@ x_handle_selection_request (struct input_event *event)
       Frun_hook_with_args (4, args);
     }
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   UNGCPRO;
 }
 
@@ -1105,7 +1105,7 @@ wait_for_property_change_unwind (void *loc)
 static void
 wait_for_property_change (struct prop_location *location)
 {
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   if (property_change_reply_object)
     emacs_abort ();
@@ -1134,7 +1134,7 @@ wait_for_property_change (struct prop_location *location)
 	}
     }
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 }
 
 /* Called from XTread_socket in response to a PropertyNotify event.  */
@@ -2003,8 +2003,7 @@ On Nextstep, TIME-STAMP and TERMINAL are unused.  */)
     {
       Lisp_Object frame;
       XSETFRAME (frame, f);
-      RETURN_UNGCPRO (x_get_foreign_selection (selection_symbol, target_type,
-					       time_stamp, frame));
+      return x_get_foreign_selection (selection_symbol, target_type, time_stamp, frame);
     }
 
   if (CONSP (val) && SYMBOLP (XCAR (val)))
@@ -2013,7 +2012,7 @@ On Nextstep, TIME-STAMP and TERMINAL are unused.  */)
       if (CONSP (val) && NILP (XCDR (val)))
 	val = XCAR (val);
     }
-  RETURN_UNGCPRO (clean_local_selection_data (val));
+  return clean_local_selection_data (val);
 }
 
 DEFUN ("x-disown-selection-internal", Fx_disown_selection_internal,

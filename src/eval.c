@@ -276,7 +276,7 @@ Lisp_Object
 call_debugger (Lisp_Object arg)
 {
   bool debug_while_redisplaying;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   Lisp_Object val;
   EMACS_INT old_depth = max_lisp_eval_depth;
   /* Do not allow max_specpdl_size less than actual depth (Bug#16603).  */
@@ -332,7 +332,8 @@ call_debugger (Lisp_Object arg)
   if (debug_while_redisplaying)
     Ftop_level ();
 
-  return unbind_to (count, val);
+  dynwind_end ();
+  return val;
 }
 
 static void
@@ -850,7 +851,7 @@ usage: (let* VARLIST BODY...)  */)
   (Lisp_Object args)
 {
   Lisp_Object varlist, var, val, elt, lexenv;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3;
 
   GCPRO3 (args, elt, varlist);
@@ -899,7 +900,8 @@ usage: (let* VARLIST BODY...)  */)
     }
   UNGCPRO;
   val = Fprogn (XCDR (args));
-  return unbind_to (count, val);
+  dynwind_end ();
+  return val;
 }
 
 DEFUN ("let", Flet, Slet, 1, UNEVALLED, 0,
@@ -913,7 +915,7 @@ usage: (let VARLIST BODY...)  */)
 {
   Lisp_Object *temps, tem, lexenv;
   register Lisp_Object elt, varlist;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   ptrdiff_t argnum;
   struct gcpro gcpro1, gcpro2;
   USE_SAFE_ALLOCA;
@@ -970,7 +972,8 @@ usage: (let VARLIST BODY...)  */)
 
   elt = Fprogn (XCDR (args));
   SAFE_FREE ();
-  return unbind_to (count, elt);
+  dynwind_end ();
+  return elt;
 }
 
 DEFUN ("while", Fwhile, Swhile, 1, UNEVALLED, 0,
@@ -1205,11 +1208,12 @@ usage: (unwind-protect BODYFORM UNWINDFORMS...)  */)
   (Lisp_Object args)
 {
   Lisp_Object val;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   record_unwind_protect (unwind_body, XCDR (args));
   val = eval_sub (XCAR (args));
-  return unbind_to (count, val);
+  dynwind_end ();
+  return val;
 }
 
 DEFUN ("condition-case", Fcondition_case, Scondition_case, 2, UNEVALLED, 0,
@@ -1919,17 +1923,21 @@ If equal to `macro', MACRO-ONLY specifies that FUNDEF should only be loaded if
 it is defines a macro.  */)
   (Lisp_Object fundef, Lisp_Object funname, Lisp_Object macro_only)
 {
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3;
 
-  if (!CONSP (fundef) || !EQ (Qautoload, XCAR (fundef)))
+  if (!CONSP (fundef) || !EQ (Qautoload, XCAR (fundef))) {
+    dynwind_end ();
     return fundef;
+  }
 
   if (EQ (macro_only, Qmacro))
     {
       Lisp_Object kind = Fnth (make_number (4), fundef);
-      if (! (EQ (kind, Qt) || EQ (kind, Qmacro)))
-	return fundef;
+      if (! (EQ (kind, Qt) || EQ (kind, Qmacro))) {
+        dynwind_end ();
+        return fundef;
+      }
     }
 
   /* This is to make sure that loadup.el gives a clear picture
@@ -1960,7 +1968,7 @@ it is defines a macro.  */)
 
   /* Once loading finishes, don't undo it.  */
   Vautoload_queue = Qt;
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   UNGCPRO;
 
@@ -1986,10 +1994,12 @@ LEXICAL can also be an actual lexical environment, in the form of an
 alist mapping symbols to their value.  */)
   (Lisp_Object form, Lisp_Object lexical)
 {
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   specbind (Qinternal_interpreter_environment,
 	    CONSP (lexical) || NILP (lexical) ? lexical : list1 (Qt));
-  return unbind_to (count, eval_sub (form));
+  Lisp_Object tem0 = eval_sub (form);
+  dynwind_end ();
+  return tem0;
 }
 
 /* Grow the specpdl stack by one entry.
@@ -2231,7 +2241,7 @@ eval_sub (Lisp_Object form)
 	}
       if (EQ (funcar, Qmacro))
 	{
-	  ptrdiff_t count = SPECPDL_INDEX ();
+	  dynwind_begin ();
 	  Lisp_Object exp;
 	  /* Bind lexical-binding during expansion of the macro, so the
 	     macro can know reliably if the code it outputs will be
@@ -2239,7 +2249,7 @@ eval_sub (Lisp_Object form)
 	  specbind (Qlexical_binding,
 		    NILP (Vinternal_interpreter_environment) ? Qnil : Qt);
 	  exp = apply1 (Fcdr (fun), original_args);
-	  unbind_to (count, Qnil);
+	  dynwind_end ();
 	  val = eval_sub (exp);
 	}
       else if (EQ (funcar, Qlambda)
@@ -2564,14 +2574,14 @@ apply1 (Lisp_Object fn, Lisp_Object arg)
 
   GCPRO1 (fn);
   if (NILP (arg))
-    RETURN_UNGCPRO (Ffuncall (1, &fn));
+    return Ffuncall (1, &fn);
   gcpro1.nvars = 2;
   {
     Lisp_Object args[2];
     args[0] = fn;
     args[1] = arg;
     gcpro1.var = args;
-    RETURN_UNGCPRO (Fapply (2, args));
+    return Fapply (2, args);
   }
 }
 
@@ -2582,7 +2592,7 @@ call0 (Lisp_Object fn)
   struct gcpro gcpro1;
 
   GCPRO1 (fn);
-  RETURN_UNGCPRO (Ffuncall (1, &fn));
+  return Ffuncall (1, &fn);
 }
 
 /* Call function fn with 1 argument arg1.  */
@@ -2597,7 +2607,7 @@ call1 (Lisp_Object fn, Lisp_Object arg1)
   args[1] = arg1;
   GCPRO1 (args[0]);
   gcpro1.nvars = 2;
-  RETURN_UNGCPRO (Ffuncall (2, args));
+  return Ffuncall (2, args);
 }
 
 /* Call function fn with 2 arguments arg1, arg2.  */
@@ -2612,7 +2622,7 @@ call2 (Lisp_Object fn, Lisp_Object arg1, Lisp_Object arg2)
   args[2] = arg2;
   GCPRO1 (args[0]);
   gcpro1.nvars = 3;
-  RETURN_UNGCPRO (Ffuncall (3, args));
+  return Ffuncall (3, args);
 }
 
 /* Call function fn with 3 arguments arg1, arg2, arg3.  */
@@ -2628,7 +2638,7 @@ call3 (Lisp_Object fn, Lisp_Object arg1, Lisp_Object arg2, Lisp_Object arg3)
   args[3] = arg3;
   GCPRO1 (args[0]);
   gcpro1.nvars = 4;
-  RETURN_UNGCPRO (Ffuncall (4, args));
+  return Ffuncall (4, args);
 }
 
 /* Call function fn with 4 arguments arg1, arg2, arg3, arg4.  */
@@ -2646,7 +2656,7 @@ call4 (Lisp_Object fn, Lisp_Object arg1, Lisp_Object arg2, Lisp_Object arg3,
   args[4] = arg4;
   GCPRO1 (args[0]);
   gcpro1.nvars = 5;
-  RETURN_UNGCPRO (Ffuncall (5, args));
+  return Ffuncall (5, args);
 }
 
 /* Call function fn with 5 arguments arg1, arg2, arg3, arg4, arg5.  */
@@ -2665,7 +2675,7 @@ call5 (Lisp_Object fn, Lisp_Object arg1, Lisp_Object arg2, Lisp_Object arg3,
   args[5] = arg5;
   GCPRO1 (args[0]);
   gcpro1.nvars = 6;
-  RETURN_UNGCPRO (Ffuncall (6, args));
+  return Ffuncall (6, args);
 }
 
 /* Call function fn with 6 arguments arg1, arg2, arg3, arg4, arg5, arg6.  */
@@ -2685,7 +2695,7 @@ call6 (Lisp_Object fn, Lisp_Object arg1, Lisp_Object arg2, Lisp_Object arg3,
   args[6] = arg6;
   GCPRO1 (args[0]);
   gcpro1.nvars = 7;
-  RETURN_UNGCPRO (Ffuncall (7, args));
+  return Ffuncall (7, args);
 }
 
 /* Call function fn with 7 arguments arg1, arg2, arg3, arg4, arg5, arg6, arg7.  */
@@ -2706,7 +2716,7 @@ call7 (Lisp_Object fn, Lisp_Object arg1, Lisp_Object arg2, Lisp_Object arg3,
   args[7] = arg7;
   GCPRO1 (args[0]);
   gcpro1.nvars = 8;
-  RETURN_UNGCPRO (Ffuncall (8, args));
+  return Ffuncall (8, args);
 }
 
 /* The caller should GCPRO all the elements of ARGS.  */
@@ -2925,7 +2935,7 @@ funcall_lambda (Lisp_Object fun, ptrdiff_t nargs,
 		register Lisp_Object *arg_vector)
 {
   Lisp_Object val, syms_left, next, lexenv;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   ptrdiff_t i;
   bool optional, rest;
 
@@ -2962,6 +2972,7 @@ funcall_lambda (Lisp_Object fun, ptrdiff_t nargs,
 	     and constants vector yet, fetch them from the file.  */
 	  if (CONSP (AREF (fun, COMPILED_BYTECODE)))
 	    Ffetch_bytecode (fun);
+	  dynwind_end ();
 	  return exec_byte_code (AREF (fun, COMPILED_BYTECODE),
 				 AREF (fun, COMPILED_CONSTANTS),
 				 AREF (fun, COMPILED_STACK_DEPTH),
@@ -3034,7 +3045,8 @@ funcall_lambda (Lisp_Object fun, ptrdiff_t nargs,
 			    Qnil, 0, 0);
     }
 
-  return unbind_to (count, val);
+  dynwind_end ();
+  return val;
 }
 
 DEFUN ("fetch-bytecode", Ffetch_bytecode, Sfetch_bytecode,
@@ -3575,7 +3587,7 @@ NFRAMES and BASE specify the activation frame to use, as in `backtrace-frame'.  
      (Lisp_Object exp, Lisp_Object nframes, Lisp_Object base)
 {
   union specbinding *pdl = get_backtrace_frame (nframes, base);
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   ptrdiff_t distance = specpdl_ptr - pdl;
   eassert (distance >= 0);
 
@@ -3588,7 +3600,9 @@ NFRAMES and BASE specify the activation frame to use, as in `backtrace-frame'.  
   /* Use eval_sub rather than Feval since the main motivation behind
      backtrace-eval is to be able to get/set the value of lexical variables
      from the debugger.  */
-  return unbind_to (count, eval_sub (exp));
+  Lisp_Object tem1 = eval_sub (exp);
+  dynwind_end ();
+  return tem1;
 }
 
 DEFUN ("backtrace--locals", Fbacktrace__locals, Sbacktrace__locals, 1, 2, NULL,

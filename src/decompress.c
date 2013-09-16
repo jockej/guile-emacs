@@ -139,7 +139,7 @@ This function can be called only in unibyte buffers.  */)
   z_stream stream;
   int inflate_status;
   struct decompress_unwind_data unwind_data;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   validate_region (&start, &end);
 
@@ -149,8 +149,10 @@ This function can be called only in unibyte buffers.  */)
 #ifdef WINDOWSNT
   if (!zlib_initialized)
     zlib_initialized = init_zlib_functions ();
-  if (!zlib_initialized)
+  if (!zlib_initialized) {
+    dynwind_end ();
     return Qnil;
+  }
 #endif
 
   /* This is a unibyte buffer, so character positions and bytes are
@@ -167,8 +169,10 @@ This function can be called only in unibyte buffers.  */)
 
   /* The magic number 32 apparently means "autodetect both the gzip and
      zlib formats" according to zlib.h.  */
-  if (fn_inflateInit2 (&stream, MAX_WBITS + 32) != Z_OK)
+  if (fn_inflateInit2 (&stream, MAX_WBITS + 32) != Z_OK) {
+    dynwind_end ();
     return Qnil;
+  }
 
   unwind_data.start = iend;
   unwind_data.stream = &stream;
@@ -206,15 +210,19 @@ This function can be called only in unibyte buffers.  */)
     }
   while (inflate_status == Z_OK);
 
-  if (inflate_status != Z_STREAM_END)
-    return unbind_to (count, Qnil);
+  if (inflate_status != Z_STREAM_END){
+    
+      dynwind_end ();
+      return Qnil;
+    }
 
   unwind_data.start = 0;
 
   /* Delete the compressed data.  */
   del_range (istart, iend);
 
-  return unbind_to (count, Qt);
+  dynwind_end ();
+  return Qt;
 }
 
 

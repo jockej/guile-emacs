@@ -946,7 +946,7 @@ xd_retrieve_arg (int dtype, DBusMessageIter *iter)
 	    dbus_message_iter_next (&subiter);
 	  }
 	XD_DEBUG_MESSAGE ("%c %s", dtype, XD_OBJECT_TO_STRING (result));
-	RETURN_UNGCPRO (Fnreverse (result));
+	return Fnreverse (result);
       }
 
     default:
@@ -1534,7 +1534,7 @@ usage: (dbus-message-internal &rest REST)  */)
   dbus_message_unref (dmessage);
 
   /* Return the result.  */
-  RETURN_UNGCPRO (result);
+  return result;
 }
 
 /* Read one queued incoming message of the D-Bus BUS.

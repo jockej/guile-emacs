@@ -1159,14 +1159,17 @@ no quit occurs and `x-popup-menu' returns nil.  */)
   struct frame *f = NULL;
   Lisp_Object x, y, window;
   int menuflags = 0;
-  ptrdiff_t specpdl_count = SPECPDL_INDEX ();
+  dynwind_begin ();
   ptrdiff_t specpdl_count2;
   struct gcpro gcpro1;
 
   if (NILP (position))
     /* This is an obsolete call, which wants us to precompute the
        keybinding equivalents, but we don't do that any more anyway.  */
-    return Qnil;
+    {
+      dynwind_end ();
+      return Qnil;
+    }
 
   {
     bool get_current_pos_p = 0;
@@ -1384,7 +1387,7 @@ no quit occurs and `x-popup-menu' returns nil.  */)
       menuflags &= ~MENU_KEYMAPS;
     }
 
-  unbind_to (specpdl_count, Qnil);
+  dynwind_end ();
 
 #ifdef HAVE_WINDOW_SYSTEM
   /* Hide a previous tip, if any.  */
@@ -1407,7 +1410,7 @@ no quit occurs and `x-popup-menu' returns nil.  */)
     }
 #endif
 
-  specpdl_count2 = SPECPDL_INDEX ();
+  dynwind_begin ();
 
 #ifdef HAVE_NS			/* FIXME: ns-specific, why? --Stef  */
   record_unwind_protect_void (discard_menu_items);
@@ -1424,7 +1427,7 @@ no quit occurs and `x-popup-menu' returns nil.  */)
   discard_menu_items ();
 #endif
 
-  unbind_to (specpdl_count2, Qnil);
+  dynwind_end ();
 
 #ifdef HAVE_NTGUI     /* FIXME: Is it really w32-specific?  --Stef  */
   if (FRAME_W32_P (f))

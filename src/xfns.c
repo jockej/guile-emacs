@@ -2886,7 +2886,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
   int minibuffer_only = 0;
   long window_prompting = 0;
   int width, height;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   Lisp_Object display;
   struct x_display_info *dpyinfo = NULL;
@@ -3153,7 +3153,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
      could get an infloop in next_frame since the frame is not yet in
      Vframe_list.  */
   {
-    ptrdiff_t count2 = SPECPDL_INDEX ();
+    dynwind_begin ();
     record_unwind_protect (unwind_create_frame_1, inhibit_lisp_code);
     inhibit_lisp_code = Qt;
 
@@ -3166,7 +3166,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
 			 ? make_number (0) : make_number (1),
 			 NULL, NULL, RES_TYPE_NUMBER);
 
-    unbind_to (count2, Qnil);
+    dynwind_end ();
   }
 
   x_default_parameter (f, parms, Qbuffer_predicate, Qnil,
@@ -3314,7 +3314,8 @@ This function is an internal primitive--use `make-frame' instead.  */)
      and similar functions.  */
   Vwindow_list = Qnil;
 
-  return unbind_to (count, frame);
+  dynwind_end ();
+  return frame;
 }
 
 
@@ -4907,7 +4908,7 @@ x_create_tip_frame (struct x_display_info *dpyinfo,
   Lisp_Object frame;
   Lisp_Object name;
   int width, height;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3;
   int face_change_count_before = face_change_count;
   Lisp_Object buffer;
@@ -5206,7 +5207,8 @@ x_create_tip_frame (struct x_display_info *dpyinfo,
   face_change_count = face_change_count_before;
 
   /* Discard the unwind_protect.  */
-  return unbind_to (count, frame);
+  dynwind_end ();
+  return frame;
 }
 
 
@@ -5304,7 +5306,7 @@ Text larger than the specified size is clipped.  */)
   int i, width, height, seen_reversed_p;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   int old_windows_or_buffers_changed = windows_or_buffers_changed;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   specbind (Qinhibit_redisplay, Qt);
 
@@ -5565,7 +5567,8 @@ Text larger than the specified size is clipped.  */)
 		     intern ("x-hide-tip"));
 
   UNGCPRO;
-  return unbind_to (count, Qnil);
+  dynwind_end ();
+  return Qnil;
 }
 
 
@@ -5587,7 +5590,7 @@ Value is t if tooltip was open, nil otherwise.  */)
   GCPRO2 (frame, timer);
   tip_frame = tip_timer = deleted = Qnil;
 
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   specbind (Qinhibit_redisplay, Qt);
   specbind (Qinhibit_quit, Qt);
 
@@ -5630,7 +5633,8 @@ Value is t if tooltip was open, nil otherwise.  */)
     }
 
   UNGCPRO;
-  return unbind_to (count, deleted);
+  dynwind_end ();
+  return deleted;
 }
 
 
@@ -5714,7 +5718,7 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
   Arg al[10];
   int ac = 0;
   XmString dir_xmstring, pattern_xmstring;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5, gcpro6;
 
   check_window_system (f);
@@ -5853,7 +5857,8 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
 
   decoded_file = DECODE_FILE (file);
 
-  return unbind_to (count, decoded_file);
+  dynwind_end ();
+  return decoded_file;
 }
 
 #endif /* USE_MOTIF */
@@ -5881,7 +5886,7 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
   char *fn;
   Lisp_Object file = Qnil;
   Lisp_Object decoded_file;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5, gcpro6;
   char *cdef_file;
 
@@ -5925,7 +5930,8 @@ Otherwise, if ONLY-DIR-P is non-nil, the user can only select directories.  */)
 
   decoded_file = DECODE_FILE (file);
 
-  return unbind_to (count, decoded_file);
+  dynwind_end ();
+  return decoded_file;
 }
 
 
@@ -5945,7 +5951,7 @@ nil, it defaults to the selected frame. */)
   Lisp_Object font_param;
   char *default_name = NULL;
   struct gcpro gcpro1, gcpro2;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   if (popup_activated ())
     error ("Trying to use a menu from within a menu-entry");
@@ -5977,7 +5983,8 @@ nil, it defaults to the selected frame. */)
   if (NILP (font))
     Fsignal (Qquit, Qnil);
 
-  return unbind_to (count, font);
+  dynwind_end ();
+  return font;
 }
 #endif /* HAVE_FREETYPE */
 

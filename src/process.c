@@ -1388,7 +1388,7 @@ usage: (start-process NAME BUFFER PROGRAM &rest PROGRAM-ARGS)  */)
   Lisp_Object buffer, name, program, proc, current_dir, tem;
   register unsigned char **new_argv;
   ptrdiff_t i;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   buffer = args[1];
   if (!NILP (buffer))
@@ -1592,7 +1592,8 @@ usage: (start-process NAME BUFFER PROGRAM &rest PROGRAM-ARGS)  */)
   else
     create_pty (proc);
 
-  return unbind_to (count, proc);
+  dynwind_end ();
+  return proc;
 }
 
 /* This function is the unwind_protect form for Fstart_process.  If
@@ -2564,7 +2565,7 @@ usage:  (make-serial-process &rest ARGS)  */)
     name = port;
   CHECK_STRING (name);
   proc = make_process (name);
-  specpdl_count = SPECPDL_INDEX ();
+  dynwind_begin ();
   record_unwind_protect_1 (remove_process, proc, false);
   p = XPROCESS (proc);
 
@@ -2648,7 +2649,7 @@ usage:  (make-serial-process &rest ARGS)  */)
 
   Fserial_process_configure (nargs, args);
 
-  unbind_to (specpdl_count, Qnil);
+  dynwind_end ();
 
   UNGCPRO;
   return proc;
@@ -3536,7 +3537,7 @@ network_interface_list (void)
   s = socket (AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (s < 0)
     return Qnil;
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   record_unwind_protect_int (close_file_unwind, s);
 
   do
@@ -3548,12 +3549,13 @@ network_interface_list (void)
 	{
 	  emacs_close (s);
 	  xfree (buf);
+	  dynwind_end ();
 	  return Qnil;
 	}
     }
   while (ifconf.ifc_len == buf_size);
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   ifreq = ifconf.ifc_req;
   while ((char *) ifreq < (char *) ifconf.ifc_req + ifconf.ifc_len)
     {
@@ -3688,7 +3690,7 @@ network_interface_info (Lisp_Object ifname)
   s = socket (AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (s < 0)
     return Qnil;
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   record_unwind_protect_int (close_file_unwind, s);
 
   elt = Qnil;
@@ -3808,7 +3810,9 @@ network_interface_info (Lisp_Object ifname)
 #endif
   res = Fcons (elt, res);
 
-  return unbind_to (count, any ? res : Qnil);
+  Lisp_Object tem0 = any ? res : Qnil;
+  dynwind_end ();
+  return tem0;
 }
 #endif	/* !SIOCGIFADDR && !SIOCGIFHWADDR && !SIOCGIFFLAGS */
 #endif	/* defined (HAVE_NET_IF_H) */
@@ -4045,7 +4049,7 @@ server_accept_connection (Lisp_Object server, int channel)
       return;
     }
 
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   record_unwind_protect_int_1 (close_file_unwind, s, false);
 
   connect_counter++;
@@ -4165,7 +4169,7 @@ server_accept_connection (Lisp_Object server, int channel)
   pset_command (p, Qnil);
   p->pid = 0;
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   p->open_fd[SUBPROCESS_STDIN] = s;
   p->infd  = s;
@@ -4286,7 +4290,7 @@ wait_reading_process_output (intmax_t time_limit, int nsecs, int read_kbd,
   Lisp_Object proc;
   struct timespec timeout, end_time;
   int got_some_input = -1;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   FD_ZERO (&Available);
   FD_ZERO (&Writeok);
@@ -4924,7 +4928,7 @@ wait_reading_process_output (intmax_t time_limit, int nsecs, int read_kbd,
 	}			/* End for each file descriptor.  */
     }				/* End while exit conditions not met.  */
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   /* If calling from keyboard input, do not quit
      since we want to return C-g as an input character.
@@ -4982,7 +4986,7 @@ read_process_output (Lisp_Object proc, register int channel)
   struct coding_system *coding = proc_decode_coding_system[channel];
   int carryover = p->decoding_carryover;
   int readmax = 4096;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   Lisp_Object odeactivate;
 
   chars = alloca (carryover + readmax);
@@ -5052,8 +5056,10 @@ read_process_output (Lisp_Object proc, register int channel)
      (including the one in proc_buffered_char[channel]).  */
   if (nbytes <= 0)
     {
-      if (nbytes < 0 || coding->mode & CODING_MODE_LAST_BLOCK)
-	return nbytes;
+      if (nbytes < 0 || coding->mode & CODING_MODE_LAST_BLOCK) {
+        dynwind_end ();
+        return nbytes;
+      }
       coding->mode |= CODING_MODE_LAST_BLOCK;
     }
 
@@ -5071,7 +5077,7 @@ read_process_output (Lisp_Object proc, register int channel)
   /* Handling the process output should not deactivate the mark.  */
   Vdeactivate_mark = odeactivate;
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   return nbytes;
 }
 
@@ -6258,12 +6264,14 @@ exec_sentinel (Lisp_Object proc, Lisp_Object reason)
 {
   Lisp_Object sentinel, odeactivate;
   struct Lisp_Process *p = XPROCESS (proc);
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   bool outer_running_asynch_code = running_asynch_code;
   int waiting = waiting_for_user_input_p;
 
-  if (inhibit_sentinels)
+  if (inhibit_sentinels) {
+    dynwind_end ();
     return;
+  }
 
   /* No need to gcpro these, because all we do with them later
      is test them for EQness, and none of them should be a string.  */
@@ -6326,7 +6334,7 @@ exec_sentinel (Lisp_Object proc, Lisp_Object reason)
     if (waiting_for_user_input_p == -1)
       record_asynch_buffer_change ();
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
 }
 
 /* Report all recent events of a change in process status

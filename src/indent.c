@@ -2150,7 +2150,7 @@ whether or not it is currently displayed in some window.  */)
 		       old_charpos, old_bytepos);
     }
 
-  RETURN_UNGCPRO (make_number (it.vpos));
+  return make_number (it.vpos);
 }
 
 

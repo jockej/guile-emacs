@@ -56,7 +56,7 @@ conv_filename_to_w32_unicode (Lisp_Object in, int absolute_p)
   ssize_t converted_len;
   Lisp_Object converted;
   unsigned flags;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   chdir_to_default_directory ();
 
@@ -76,7 +76,8 @@ conv_filename_to_w32_unicode (Lisp_Object in, int absolute_p)
                         SDATA (converted), converted_len))
     error ("cygwin_conv_path: %s", strerror (errno));
 
-  return unbind_to (count, converted);
+  dynwind_end ();
+  return converted;
 }
 
 static Lisp_Object
@@ -85,7 +86,7 @@ conv_filename_from_w32_unicode (const wchar_t* in, int absolute_p)
   ssize_t converted_len;
   Lisp_Object converted;
   unsigned flags;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   chdir_to_default_directory ();
 
@@ -102,7 +103,9 @@ conv_filename_from_w32_unicode (const wchar_t* in, int absolute_p)
   if (cygwin_conv_path (flags, in, SDATA (converted), converted_len))
     error ("cygwin_conv_path: %s", strerror (errno));
 
-  return unbind_to (count, DECODE_FILE (converted));
+  Lisp_Object tem0 = DECODE_FILE (converted);
+  dynwind_end ();
+  return tem0;
 }
 
 DEFUN ("cygwin-convert-file-name-to-windows",

@@ -582,7 +582,7 @@ update_compositions (ptrdiff_t from, ptrdiff_t to, int check_mask)
     }
   if (min_pos < max_pos)
     {
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
 
       specbind (Qinhibit_read_only, Qt);
       specbind (Qinhibit_modification_hooks, Qt);
@@ -590,7 +590,7 @@ update_compositions (ptrdiff_t from, ptrdiff_t to, int check_mask)
       Fremove_list_of_text_properties (make_number (min_pos),
 				       make_number (max_pos),
 				       list1 (Qauto_composed), Qnil);
-      unbind_to (count, Qnil);
+      dynwind_end ();
     }
 }
 
@@ -869,7 +869,7 @@ autocmp_chars (Lisp_Object rule, ptrdiff_t charpos, ptrdiff_t bytepos,
 	       ptrdiff_t limit, struct window *win, struct face *face,
 	       Lisp_Object string)
 {
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
   struct frame *f = XFRAME (win->frame);
   Lisp_Object pos = make_number (charpos);
   ptrdiff_t to;
@@ -881,8 +881,11 @@ autocmp_chars (Lisp_Object rule, ptrdiff_t charpos, ptrdiff_t bytepos,
   re = AREF (rule, 0);
   if (NILP (re))
     len = 1;
-  else if (! STRINGP (re))
-    return unbind_to (count, Qnil);
+  else if (! STRINGP (re)){
+    
+      dynwind_end ();
+      return Qnil;
+    }
   else if ((len = fast_looking_at (re, charpos, bytepos, limit, -1, string))
 	   > 0)
     {
@@ -891,8 +894,11 @@ autocmp_chars (Lisp_Object rule, ptrdiff_t charpos, ptrdiff_t bytepos,
       else
 	len = string_byte_to_char (string, bytepos + len) - charpos;
     }
-  if (len <= 0)
-    return unbind_to (count, Qnil);
+  if (len <= 0){
+    
+      dynwind_end ();
+      return Qnil;
+    }
   to = limit = charpos + len;
 #ifdef HAVE_WINDOW_SYSTEM
   if (FRAME_WINDOW_P (f))
@@ -901,8 +907,11 @@ autocmp_chars (Lisp_Object rule, ptrdiff_t charpos, ptrdiff_t bytepos,
       if (! FONT_OBJECT_P (font_object)
 	  || (! NILP (re)
 	      && to < limit
-	      && (fast_looking_at (re, charpos, bytepos, to, -1, string) <= 0)))
-	return unbind_to (count, Qnil);
+	      && (fast_looking_at (re, charpos, bytepos, to, -1, string) <= 0))){
+	
+	  dynwind_end ();
+  	return Qnil;
+	}
     }
   else
 #endif	/* not HAVE_WINDOW_SYSTEM */
@@ -918,7 +927,8 @@ autocmp_chars (Lisp_Object rule, ptrdiff_t charpos, ptrdiff_t bytepos,
       lgstring = safe_call (6, Vauto_composition_function, AREF (rule, 2),
 			    pos, make_number (to), font_object, string);
     }
-  return unbind_to (count, lgstring);
+  dynwind_end ();
+  return lgstring;
 }
 
 /* 1 iff the character C is composable.  Characters of general

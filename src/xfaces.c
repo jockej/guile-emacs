@@ -5201,7 +5201,7 @@ static bool
 realize_basic_faces (struct frame *f)
 {
   bool success_p = 0;
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   /* Block input here so that we won't be surprised by an X expose
      event, for instance, without having the faces set up.  */
@@ -5240,7 +5240,7 @@ realize_basic_faces (struct frame *f)
       success_p = 1;
     }
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   unblock_input ();
   return success_p;
 }

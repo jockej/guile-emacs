@@ -299,7 +299,7 @@ set_frame_menubar (struct frame *f, bool first_time, bool deep_p)
 
       struct buffer *prev = current_buffer;
       Lisp_Object buffer;
-      ptrdiff_t specpdl_count = SPECPDL_INDEX ();
+      dynwind_begin ();
       int previous_menu_items_used = f->menu_bar_items_used;
       Lisp_Object *previous_items
 	= (Lisp_Object *) alloca (previous_menu_items_used
@@ -408,7 +408,7 @@ set_frame_menubar (struct frame *f, bool first_time, bool deep_p)
 	{
 	  free_menubar_widget_value_tree (first_wv);
 	  discard_menu_items ();
-          unbind_to (specpdl_count, Qnil);
+          dynwind_end ();
 	  return;
 	}
 
@@ -416,7 +416,7 @@ set_frame_menubar (struct frame *f, bool first_time, bool deep_p)
       f->menu_bar_items_used = menu_items_used;
 
       /* This undoes save_menu_items.  */
-      unbind_to (specpdl_count, Qnil);
+      dynwind_end ();
 
       /* Now GC cannot happen during the lifetime of the widget_value,
 	 so it's safe to store data from a Lisp_String, as long as

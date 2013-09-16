@@ -2950,7 +2950,7 @@ system_process_attributes (Lisp_Object pid)
   if (gr)
     attrs = Fcons (Fcons (Qgroup, build_string (gr->gr_name)), attrs);
 
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   strcpy (fn, procfn);
   procfn_end = fn + strlen (fn);
   strcpy (procfn_end, "/stat");
@@ -3061,7 +3061,7 @@ system_process_attributes (Lisp_Object pid)
 	  attrs = Fcons (Fcons (Qpmem, make_float (pmem)), attrs);
 	}
     }
-  unbind_to (count, Qnil);
+  dynwind_end ();
 
   /* args */
   strcpy (procfn_end, "/cmdline");
@@ -3186,7 +3186,7 @@ system_process_attributes (Lisp_Object pid)
   if (gr)
     attrs = Fcons (Fcons (Qgroup, build_string (gr->gr_name)), attrs);
 
-  count = SPECPDL_INDEX ();
+  dynwind_begin ();
   strcpy (fn, procfn);
   procfn_end = fn + strlen (fn);
   strcpy (procfn_end, "/psinfo");
@@ -3260,7 +3260,7 @@ system_process_attributes (Lisp_Object pid)
 		      Vlocale_coding_system, 0));
       attrs = Fcons (Fcons (Qargs, decoded_cmd), attrs);
     }
-  unbind_to (count, Qnil);
+  dynwind_end ();
   UNGCPRO;
   return attrs;
 }

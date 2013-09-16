@@ -951,7 +951,7 @@ Otherwise, return a new string.  */)
   else
     tem = string;
   xfree (buf);
-  RETURN_UNGCPRO (tem);
+  return tem;
 }
 
 void

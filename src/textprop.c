@@ -812,7 +812,7 @@ past position LIMIT; return LIMIT if nothing is found before LIMIT.  */)
   else
     {
       Lisp_Object initial_value, value;
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
 
       if (! NILP (object))
 	CHECK_BUFFER (object);
@@ -853,7 +853,7 @@ past position LIMIT; return LIMIT if nothing is found before LIMIT.  */)
 	      break;
 	  }
 
-      unbind_to (count, Qnil);
+      dynwind_end ();
     }
 
   return position;
@@ -895,7 +895,7 @@ position LIMIT; return LIMIT if nothing is found before reaching LIMIT.  */)
     }
   else
     {
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
 
       if (! NILP (object))
 	CHECK_BUFFER (object);
@@ -946,7 +946,7 @@ position LIMIT; return LIMIT if nothing is found before reaching LIMIT.  */)
 	    }
 	}
 
-      unbind_to (count, Qnil);
+      dynwind_end ();
     }
 
   return position;
@@ -1202,7 +1202,7 @@ add_text_properties_1 (Lisp_Object start, Lisp_Object end,
       do
 	{
 	  if (got >= len)
-	    RETURN_UNGCPRO (Qnil);
+	    return Qnil;
 	  len -= got;
 	  i = next_interval (i);
 	  got = LENGTH (i);

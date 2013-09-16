@@ -2618,7 +2618,7 @@ The normal messages at start and end of loading FILENAME are suppressed.  */)
 
   if (NILP (tem))
     {
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
       int nesting = 0;
 
       /* This is to make sure that loadup.el gives a clear picture
@@ -2656,8 +2656,11 @@ The normal messages at start and end of loading FILENAME are suppressed.  */)
       UNGCPRO;
 
       /* If load failed entirely, return nil.  */
-      if (NILP (tem))
-	return unbind_to (count, Qnil);
+      if (NILP (tem)){
+	
+	  dynwind_end ();
+  	return Qnil;
+	}
 
       tem = Fmemq (feature, Vfeatures);
       if (NILP (tem))
@@ -2666,7 +2669,7 @@ The normal messages at start and end of loading FILENAME are suppressed.  */)
 
       /* Once loading finishes, don't undo it.  */
       Vautoload_queue = Qt;
-      unbind_to (count, feature);
+      dynwind_end ();
     }
 
   return feature;
@@ -4280,7 +4283,7 @@ secure_hash (Lisp_Object algorithm, Lisp_Object object, Lisp_Object start,
     }
   else
     {
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
 
       record_unwind_current_buffer ();
 
@@ -4374,7 +4377,7 @@ secure_hash (Lisp_Object algorithm, Lisp_Object object, Lisp_Object start,
 	}
 
       object = make_buffer_string (b, e, 0);
-      unbind_to (count, Qnil);
+      dynwind_end ();
 
       if (STRING_MULTIBYTE (object))
 	object = code_convert_string (object, coding_system, Qnil, 1, 0, 0);

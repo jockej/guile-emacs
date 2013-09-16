@@ -1302,7 +1302,7 @@ Internal use only, use `play-sound' instead.  */)
   (Lisp_Object sound)
 {
   Lisp_Object attrs[SOUND_ATTR_SENTINEL];
-  ptrdiff_t count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
 #ifndef WINDOWSNT
   Lisp_Object file;
@@ -1412,7 +1412,7 @@ Internal use only, use `play-sound' instead.  */)
 
 #endif /* WINDOWSNT */
 
-  unbind_to (count, Qnil);
+  dynwind_end ();
   return Qnil;
 }
 
