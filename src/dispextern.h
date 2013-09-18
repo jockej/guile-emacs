@@ -3323,8 +3323,6 @@ int image_ascent (struct image *, struct face *, struct glyph_slice *);
 /* Defined in sysdep.c */
 
 void get_tty_size (int, int *, int *);
-void request_sigio (void);
-void unrequest_sigio (void);
 bool tabs_safe_p (int);
 void init_baud_rate (int);
 void init_sigio (int);

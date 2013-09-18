@@ -616,45 +616,6 @@ reset_sigio (int fd)
 #endif
 
 void
-request_sigio (void)
-{
-#ifdef USABLE_SIGIO
-  sigset_t unblocked;
-
-  if (noninteractive)
-    return;
-
-  sigemptyset (&unblocked);
-# ifdef SIGWINCH
-  sigaddset (&unblocked, SIGWINCH);
-# endif
-  sigaddset (&unblocked, SIGIO);
-  pthread_sigmask (SIG_UNBLOCK, &unblocked, 0);
-
-  interrupts_deferred = 0;
-#endif
-}
-
-void
-unrequest_sigio (void)
-{
-#ifdef USABLE_SIGIO
-  sigset_t blocked;
-
-  if (noninteractive)
-    return;
-
-  sigemptyset (&blocked);
-# ifdef SIGWINCH
-  sigaddset (&blocked, SIGWINCH);
-# endif
-  sigaddset (&blocked, SIGIO);
-  pthread_sigmask (SIG_BLOCK, &blocked, 0);
-  interrupts_deferred = 1;
-#endif
-}
-
-void
 ignore_sigio (void)
 {
 #ifdef USABLE_SIGIO

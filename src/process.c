@@ -3384,8 +3384,6 @@ usage: (make-network-process &rest ARGS)  */)
   p->outfd = outch;
 
   dynwind_end ();
-
-  /* Unwind bind_polling_period and request_sigio.  */
   dynwind_end ();
 
   if (is_server && socktype != SOCK_DGRAM)

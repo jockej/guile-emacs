@@ -2057,7 +2057,6 @@ shut_down_emacs (int sig, Lisp_Object stuff)
 
   /* There is a tendency for a SIGIO signal to arrive within exit,
      and cause a SIGHUP because the input descriptor is already closed.  */
-  unrequest_sigio ();
   ignore_sigio ();
 
   /* Do this only if terminating normally, we want glyph matrices
