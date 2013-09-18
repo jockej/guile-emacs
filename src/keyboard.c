@@ -1973,11 +1973,6 @@ safe_run_hooks (Lisp_Object hook)
 }
 
 
-/* Nonzero means polling for input is temporarily suppressed.  */
-
-int poll_suppress_count;
-
-
 #ifdef POLL_FOR_INPUT
 
 /* Asynchronous timer for polling.  */
@@ -1999,8 +1994,6 @@ poll_for_input_1 (void)
 static void
 poll_for_input (struct atimer *timer)
 {
-  if (poll_suppress_count == 0)
-    pending_signals = 1;
 }
 
 #endif /* POLL_FOR_INPUT */
@@ -2035,10 +2028,6 @@ start_polling (void)
 	  poll_timer = start_atimer (ATIMER_CONTINUOUS, interval,
 				     poll_for_input, NULL);
 	}
-
-      /* Let the timer's callback function poll for input
-	 if this becomes zero.  */
-      --poll_suppress_count;
     }
 #endif
 }
@@ -2058,40 +2047,6 @@ input_polling_used (void)
 #endif
 }
 
-/* Turn off polling.  */
-
-void
-stop_polling (void)
-{
-#ifdef POLL_FOR_INPUT
-  /* XXX This condition was (read_socket_hook && !interrupt_input),
-     but read_socket_hook is not global anymore.  Let's pretend that
-     it's always set.  */
-  if (!interrupt_input)
-    ++poll_suppress_count;
-#endif
-}
-
-/* Set the value of poll_suppress_count to COUNT
-   and start or stop polling accordingly.  */
-
-void
-set_poll_suppress_count (int count)
-{
-#ifdef POLL_FOR_INPUT
-  if (count == 0 && poll_suppress_count != 0)
-    {
-      poll_suppress_count = 1;
-      start_polling ();
-    }
-  else if (count != 0 && poll_suppress_count == 0)
-    {
-      stop_polling ();
-    }
-  poll_suppress_count = count;
-#endif
-}
-
 /* Bind polling_period to a value at least N.
    But don't decrease it.  */
 
@@ -2099,13 +2054,12 @@ void
 bind_polling_period (int n)
 {
 #ifdef POLL_FOR_INPUT
-  EMACS_INT new = polling_period;
+  EMACS_INT new = max (polling_period, new);
 
   if (n > new)
     new = n;
 
   stop_other_atimers (poll_timer);
-  stop_polling ();
   specbind (Qpolling_period, make_number (new));
   /* Start a new alarm with the new period.  */
   start_polling ();
@@ -2232,14 +2186,6 @@ read_char_help_form_unwind (void)
   if (!NILP (window_config))
     Fset_window_configuration (window_config);
 }
-
-#define STOP_POLLING					\
-do { if (! polling_stopped_here) stop_polling ();	\
-       polling_stopped_here = 1; } while (0)
-
-#define RESUME_POLLING					\
-do { if (polling_stopped_here) start_polling ();	\
-       polling_stopped_here = 0; } while (0)
 
 static Lisp_Object
 read_event_from_main_queue (struct timespec *end_time,
@@ -2971,8 +2917,6 @@ read_char_1 (bool jump, volatile struct read_char_state *state)
 
  wrong_kboard:
 
-  STOP_POLLING;
-
   if (NILP (c))
     {
       c = read_decoded_event_from_main_queue (end_time, local_getcjmp,
@@ -2996,7 +2940,6 @@ read_char_1 (bool jump, volatile struct read_char_state *state)
 
   if (!end_time)
     timer_stop_idle ();
-  RESUME_POLLING;
 
   if (NILP (c))
     {
@@ -3310,7 +3253,6 @@ read_char_1 (bool jump, volatile struct read_char_state *state)
     }
 
  exit:
-  RESUME_POLLING;
   RETURN_UNGCPRO (c);
 #undef commandflag
 #undef map
@@ -3746,7 +3688,6 @@ kbd_buffer_store_event_hold (register struct input_event *event,
           hold_keyboard_input ();
           if (!noninteractive)
             ignore_sigio ();
-          stop_polling ();
         }
 #endif	/* subprocesses */
     }
@@ -3910,7 +3851,6 @@ kbd_buffer_get_event (KBOARD **kbp,
       /* Start reading input again because we have processed enough to
          be able to accept new events again.  */
       unhold_keyboard_input ();
-      start_polling ();
     }
 #endif	/* subprocesses */
 
@@ -6871,16 +6811,7 @@ record_asynch_buffer_change (void)
       event.arg = Qnil;
 
       /* Make sure no interrupt happens while storing the event.  */
-#ifdef USABLE_SIGIO
-      if (interrupt_input)
-	kbd_buffer_store_event (&event);
-      else
-#endif
-	{
-	  stop_polling ();
-	  kbd_buffer_store_event (&event);
-	  start_polling ();
-	}
+      kbd_buffer_store_event (&event);
     }
 }
 
@@ -10570,9 +10501,6 @@ See also `current-input-mode'.  */)
 
   if (new_interrupt_input != interrupt_input)
     {
-#ifdef POLL_FOR_INPUT
-      stop_polling ();
-#endif
 #ifndef DOS_NT
       /* this causes startup screen to be restored and messes with the mouse */
       reset_all_sys_modes ();
@@ -10583,7 +10511,6 @@ See also `current-input-mode'.  */)
 #endif
 
 #ifdef POLL_FOR_INPUT
-      poll_suppress_count = 1;
       start_polling ();
 #endif
     }
@@ -10993,7 +10920,6 @@ init_keyboard (void)
 
 #ifdef POLL_FOR_INPUT
   poll_timer = NULL;
-  poll_suppress_count = 1;
   start_polling ();
 #endif
 }

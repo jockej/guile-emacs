@@ -9003,15 +9003,7 @@ x_make_frame_visible (struct frame *f)
 	   that the handler isn't always enabled here.  This is
 	   probably a bug.  */
 	if (input_polling_used ())
-	  {
-	    /* It could be confusing if a real alarm arrives while
-	       processing the fake one.  Turn it off and let the
-	       handler reset it.  */
-	    int old_poll_suppress_count = poll_suppress_count;
-	    poll_suppress_count = 1;
-	    poll_for_input_1 ();
-	    poll_suppress_count = old_poll_suppress_count;
-	  }
+          poll_for_input_1 ();
 
 	if (XPending (FRAME_X_DISPLAY (f)))
 	  {

@@ -231,9 +231,6 @@ extern KBOARD *current_kboard;
 /* Total number of times read_char has returned, modulo UINTMAX_MAX + 1.  */
 extern uintmax_t num_input_events;
 
-/* Nonzero means polling for input is temporarily suppressed.  */
-extern int poll_suppress_count;
-
 /* Vector holding the key sequence that invoked the current command.
    It is reused for each command, and it may be longer than the current
    sequence; this_command_key_count indicates how many elements
@@ -456,8 +453,6 @@ extern void temporarily_switch_to_single_kboard (struct frame *);
 extern void record_asynch_buffer_change (void);
 extern void input_poll_signal (int);
 extern void start_polling (void);
-extern void stop_polling (void);
-extern void set_poll_suppress_count (int);
 extern int gobble_input (void);
 extern bool input_polling_used (void);
 extern void clear_input_pending (void);

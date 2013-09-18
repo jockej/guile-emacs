@@ -6665,7 +6665,6 @@ wait_reading_process_output (intmax_t time_limit, int nsecs, int read_kbd,
   /* Turn off periodic alarms (in case they are in use)
      and then turn off any other atimers,
      because the select emulator uses alarms.  */
-  stop_polling ();
   turn_on_atimers (0);
 
   while (1)
@@ -6824,7 +6823,7 @@ wait_reading_process_output (intmax_t time_limit, int nsecs, int read_kbd,
 	break;
     }
 
-  start_polling ();
+  turn_on_atimers (1);
 
   return -1;
 }
