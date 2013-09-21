@@ -5156,19 +5156,19 @@ Each element has the form:
     [NUMERIC-VALUE SYMBOLIC-NAME ALIAS-NAME ...]
 NUMERIC-VALUE is an integer, and SYMBOLIC-NAME and ALIAS-NAME are symbols. */);
   Vfont_weight_table = BUILD_STYLE_TABLE (weight_table);
-  XSYMBOL (intern_c_string ("font-weight-table"))->constant = 1;
+  SET_SYMBOL_CONSTANT (XSYMBOL (intern_c_string ("font-weight-table")), 1);
 
   DEFVAR_LISP_NOPRO ("font-slant-table", Vfont_slant_table,
 	       doc: /*  Vector of font slant symbols vs the corresponding numeric values.
 See `font-weight-table' for the format of the vector. */);
   Vfont_slant_table = BUILD_STYLE_TABLE (slant_table);
-  XSYMBOL (intern_c_string ("font-slant-table"))->constant = 1;
+  SET_SYMBOL_CONSTANT (XSYMBOL (intern_c_string ("font-slant-table")), 1);
 
   DEFVAR_LISP_NOPRO ("font-width-table", Vfont_width_table,
 	       doc: /*  Alist of font width symbols vs the corresponding numeric values.
 See `font-weight-table' for the format of the vector. */);
   Vfont_width_table = BUILD_STYLE_TABLE (width_table);
-  XSYMBOL (intern_c_string ("font-width-table"))->constant = 1;
+  SET_SYMBOL_CONSTANT (XSYMBOL (intern_c_string ("font-width-table")), 1);
 
   staticpro (&font_style_table);
   font_style_table = make_uninit_vector (3);

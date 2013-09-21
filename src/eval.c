@@ -622,18 +622,18 @@ then the value of BASE-VARIABLE is set to that of NEW-ALIAS.
 The return value is BASE-VARIABLE.  */)
   (Lisp_Object new_alias, Lisp_Object base_variable, Lisp_Object docstring)
 {
-  struct Lisp_Symbol *sym;
+  sym_t sym;
 
   CHECK_SYMBOL (new_alias);
   CHECK_SYMBOL (base_variable);
 
   sym = XSYMBOL (new_alias);
 
-  if (sym->constant)
+  if (SYMBOL_CONSTANT (sym))
     /* Not sure why, but why not?  */
     error ("Cannot make a constant an alias");
 
-  switch (sym->redirect)
+  switch (SYMBOL_REDIRECT (sym))
     {
     case SYMBOL_FORWARDED:
       error ("Cannot make an internal variable an alias");
@@ -657,11 +657,11 @@ The return value is BASE-VARIABLE.  */)
 	error ("Don't know how to make a let-bound variable an alias");
   }
 
-  sym->declared_special = 1;
-  XSYMBOL (base_variable)->declared_special = 1;
-  sym->redirect = SYMBOL_VARALIAS;
+  SET_SYMBOL_DECLARED_SPECIAL (sym, 1);
+  SET_SYMBOL_DECLARED_SPECIAL (XSYMBOL (base_variable), 1);
+  SET_SYMBOL_REDIRECT (sym, SYMBOL_VARALIAS);
   SET_SYMBOL_ALIAS (sym, XSYMBOL (base_variable));
-  sym->constant = SYMBOL_CONSTANT_P (base_variable);
+  SET_SYMBOL_CONSTANT (sym, SYMBOL_CONSTANT_P (base_variable));
   LOADHIST_ATTACH (new_alias);
   /* Even if docstring is nil: remove old docstring.  */
   Fput (new_alias, Qvariable_documentation, docstring);
@@ -755,7 +755,7 @@ usage: (defvar SYMBOL &optional INITVALUE DOCSTRING)  */)
       tem = Fdefault_boundp (sym);
 
       /* Do it before evaluating the initial value, for self-references.  */
-      XSYMBOL (sym)->declared_special = 1;
+      SET_SYMBOL_DECLARED_SPECIAL (XSYMBOL (sym), 1);
 
       if (NILP (tem))
 	Fset_default (sym, eval_sub (XCAR (tail)));
@@ -779,7 +779,7 @@ usage: (defvar SYMBOL &optional INITVALUE DOCSTRING)  */)
       LOADHIST_ATTACH (sym);
     }
   else if (!NILP (Vinternal_interpreter_environment)
-	   && !XSYMBOL (sym)->declared_special)
+	   && ! SYMBOL_DECLARED_SPECIAL (XSYMBOL (sym)))
     /* A simple (defvar foo) with lexical scoping does "nothing" except
        declare that var to be dynamically scoped *locally* (i.e. within
        the current file or let-block).  */
@@ -823,7 +823,7 @@ usage: (defconst SYMBOL INITVALUE [DOCSTRING])  */)
   if (!NILP (Vpurify_flag))
     tem = Fpurecopy (tem);
   Fset_default (sym, tem);
-  XSYMBOL (sym)->declared_special = 1;
+  SET_SYMBOL_DECLARED_SPECIAL (XSYMBOL (sym), 1);
   tem = Fcar (XCDR (XCDR (args)));
   if (!NILP (tem))
     {
@@ -843,7 +843,7 @@ DEFUN ("internal-make-var-non-special", Fmake_var_non_special,
      (Lisp_Object symbol)
 {
   CHECK_SYMBOL (symbol);
-  XSYMBOL (symbol)->declared_special = 0;
+  SET_SYMBOL_DECLARED_SPECIAL (XSYMBOL (symbol), 0);
   return Qnil;
 }
 
@@ -885,7 +885,7 @@ usage: (let* VARLIST BODY...)  */)
 	}
 
       if (!NILP (lexenv) && SYMBOLP (var)
-	  && !XSYMBOL (var)->declared_special
+	  && ! SYMBOL_DECLARED_SPECIAL (XSYMBOL (var))
 	  && NILP (Fmemq (var, Vinternal_interpreter_environment)))
 	/* Lexically bind VAR by adding it to the interpreter's binding
 	   alist.  */
@@ -964,7 +964,7 @@ usage: (let VARLIST BODY...)  */)
       tem = temps[argnum++];
 
       if (!NILP (lexenv) && SYMBOLP (var)
-	  && !XSYMBOL (var)->declared_special
+	  && ! SYMBOL_DECLARED_SPECIAL (XSYMBOL (var))
 	  && NILP (Fmemq (var, Vinternal_interpreter_environment)))
 	/* Lexically bind VAR by adding it to the lexenv alist.  */
 	lexenv = Fcons (Fcons (var, tem), lexenv);
@@ -3000,7 +3000,7 @@ DEFUN ("fetch-bytecode", Ffetch_bytecode, Sfetch_bytecode,
    which was made in the buffer that is now current.  */
 
 bool
-let_shadows_buffer_binding_p (struct Lisp_Symbol *symbol)
+let_shadows_buffer_binding_p (sym_t symbol)
 {
   union specbinding *p;
   Lisp_Object buf = Fcurrent_buffer ();
@@ -3008,8 +3008,8 @@ let_shadows_buffer_binding_p (struct Lisp_Symbol *symbol)
   for (p = specpdl_ptr; p > specpdl; )
     if ((--p)->kind > SPECPDL_LET)
       {
-	struct Lisp_Symbol *let_bound_symbol = XSYMBOL (specpdl_symbol (p));
-	eassert (let_bound_symbol->redirect != SYMBOL_VARALIAS);
+	sym_t let_bound_symbol = XSYMBOL (specpdl_symbol (p));
+	eassert (SYMBOL_REDIRECT (let_bound_symbol) != SYMBOL_VARALIAS);
 	if (symbol == let_bound_symbol
 	    && EQ (specpdl_where (p), buf))
 	  return 1;
@@ -3045,13 +3045,13 @@ let_shadows_global_binding_p (Lisp_Object symbol)
 void
 specbind (Lisp_Object symbol, Lisp_Object value)
 {
-  struct Lisp_Symbol *sym;
+  sym_t sym;
 
   CHECK_SYMBOL (symbol);
   sym = XSYMBOL (symbol);
 
  start:
-  switch (sym->redirect)
+  switch (SYMBOL_REDIRECT (sym))
     {
     case SYMBOL_VARALIAS:
       sym = indirect_variable (sym); XSETSYMBOL (symbol, sym); goto start;
@@ -3062,7 +3062,7 @@ specbind (Lisp_Object symbol, Lisp_Object value)
       specpdl_ptr->let.symbol = symbol;
       specpdl_ptr->let.old_value = SYMBOL_VAL (sym);
       grow_specpdl ();
-      if (!sym->constant)
+      if (! SYMBOL_CONSTANT (sym))
 	SET_SYMBOL_VAL (sym, value);
       else
 	set_internal (symbol, value, Qnil, 1);
@@ -3078,10 +3078,10 @@ specbind (Lisp_Object symbol, Lisp_Object value)
 	specpdl_ptr->let.old_value = ovalue;
 	specpdl_ptr->let.where = Fcurrent_buffer ();
 
-	eassert (sym->redirect != SYMBOL_LOCALIZED
+	eassert (SYMBOL_REDIRECT (sym) != SYMBOL_LOCALIZED
 		 || (EQ (SYMBOL_BLV (sym)->where, Fcurrent_buffer ())));
 
-	if (sym->redirect == SYMBOL_LOCALIZED)
+	if (SYMBOL_REDIRECT (sym) == SYMBOL_LOCALIZED)
 	  {
 	    if (!blv_found (SYMBOL_BLV (sym)))
 	      specpdl_ptr->let.kind = SPECPDL_LET_DEFAULT;
@@ -3197,8 +3197,8 @@ unbind_once (void *ignore)
       { /* If variable has a trivial value (no forwarding), we can
            just set it.  No need to check for constant symbols here,
            since that was already done by specbind.  */
-        struct Lisp_Symbol *sym = XSYMBOL (specpdl_symbol (specpdl_ptr));
-        if (sym->redirect == SYMBOL_PLAINVAL)
+        sym_t sym = XSYMBOL (specpdl_symbol (specpdl_ptr));
+        if (SYMBOL_REDIRECT (sym) == SYMBOL_PLAINVAL)
           {
             SET_SYMBOL_VAL (sym, specpdl_old_value (specpdl_ptr));
             break;
@@ -3248,7 +3248,7 @@ context where binding is lexical by default.  */)
   (Lisp_Object symbol)
 {
    CHECK_SYMBOL (symbol);
-   return XSYMBOL (symbol)->declared_special ? Qt : Qnil;
+   return SYMBOL_DECLARED_SPECIAL (XSYMBOL (symbol)) ? Qt : Qnil;
 }
 
 
@@ -3397,8 +3397,8 @@ backtrace_eval_unrewind (int distance)
 	  { /* If variable has a trivial value (no forwarding), we can
 	       just set it.  No need to check for constant symbols here,
 	       since that was already done by specbind.  */
-	    struct Lisp_Symbol *sym = XSYMBOL (specpdl_symbol (tmp));
-	    if (sym->redirect == SYMBOL_PLAINVAL)
+	    sym_t sym = XSYMBOL (specpdl_symbol (tmp));
+	    if (SYMBOL_REDIRECT (sym) == SYMBOL_PLAINVAL)
 	      {
 		Lisp_Object old_value = specpdl_old_value (tmp);
 		set_specpdl_old_value (tmp, SYMBOL_VAL (sym));

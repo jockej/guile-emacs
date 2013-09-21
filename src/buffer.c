@@ -1182,7 +1182,7 @@ buffer_local_value (Lisp_Object variable, Lisp_Object buffer)
 {
   register struct buffer *buf;
   register Lisp_Object result;
-  struct Lisp_Symbol *sym;
+  sym_t sym;
 
   CHECK_SYMBOL (variable);
   CHECK_BUFFER (buffer);
@@ -1190,7 +1190,7 @@ buffer_local_value (Lisp_Object variable, Lisp_Object buffer)
   sym = XSYMBOL (variable);
 
  start:
-  switch (sym->redirect)
+  switch (SYMBOL_REDIRECT (sym))
     {
     case SYMBOL_VARALIAS: sym = indirect_variable (sym); goto start;
     case SYMBOL_PLAINVAL: result = SYMBOL_VAL (sym); break;
@@ -2159,8 +2159,8 @@ set_buffer_internal_1 (register struct buffer *b)
       for (tail = BVAR (b, local_var_alist); CONSP (tail); tail = XCDR (tail))
 	{
 	  Lisp_Object var = XCAR (XCAR (tail));
-	  struct Lisp_Symbol *sym = XSYMBOL (var);
-	  if (sym->redirect == SYMBOL_LOCALIZED /* Just to be sure.  */
+	  sym_t sym = XSYMBOL (var);
+	  if (SYMBOL_REDIRECT (sym) == SYMBOL_LOCALIZED /* Just to be sure.  */
 	      && SYMBOL_BLV (sym)->fwd)
 	    /* Just reference the variable
 	       to cause it to become set for this buffer.  */
@@ -2801,7 +2801,7 @@ swap_out_buffer_local_variables (struct buffer *b)
   for (alist = oalist; CONSP (alist); alist = XCDR (alist))
     {
       Lisp_Object sym = XCAR (XCAR (alist));
-      eassert (XSYMBOL (sym)->redirect == SYMBOL_LOCALIZED);
+      eassert (SYMBOL_REDIRECT (XSYMBOL (sym)) == SYMBOL_LOCALIZED);
       /* Need not do anything if some other buffer's binding is
 	 now cached.  */
       if (EQ (SYMBOL_BLV (XSYMBOL (sym))->where, buffer))
@@ -5403,7 +5403,7 @@ static void
 defvar_per_buffer (struct Lisp_Buffer_Objfwd *bo_fwd, const char *namestring,
 		   Lisp_Object *address, Lisp_Object predicate)
 {
-  struct Lisp_Symbol *sym;
+  sym_t sym;
   int offset;
 
   sym = XSYMBOL (intern (namestring));
@@ -5412,8 +5412,8 @@ defvar_per_buffer (struct Lisp_Buffer_Objfwd *bo_fwd, const char *namestring,
   bo_fwd->type = Lisp_Fwd_Buffer_Obj;
   bo_fwd->offset = offset;
   bo_fwd->predicate = predicate;
-  sym->declared_special = 1;
-  sym->redirect = SYMBOL_FORWARDED;
+  SET_SYMBOL_DECLARED_SPECIAL (sym, 1);
+  SET_SYMBOL_REDIRECT (sym, SYMBOL_FORWARDED);
   SET_SYMBOL_FWD (sym, (union Lisp_Fwd *) bo_fwd);
   XSETSYMBOL (PER_BUFFER_SYMBOL (offset), sym);
 
@@ -5737,7 +5737,7 @@ file I/O and the behavior of various editing commands.
 This variable is buffer-local but you cannot set it directly;
 use the function `set-buffer-multibyte' to change a buffer's representation.
 See also Info node `(elisp)Text Representations'.  */);
-  XSYMBOL (intern_c_string ("enable-multibyte-characters"))->constant = 1;
+  SET_SYMBOL_CONSTANT (XSYMBOL (intern_c_string ("enable-multibyte-characters")), 1);
 
   DEFVAR_PER_BUFFER ("buffer-file-coding-system",
 		     &BVAR (current_buffer, buffer_file_coding_system), Qnil,

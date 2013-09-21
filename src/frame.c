@@ -2109,14 +2109,14 @@ store_frame_param (struct frame *f, Lisp_Object prop, Lisp_Object val)
      without messing up the symbol's status.  */
   if (SYMBOLP (prop))
     {
-      struct Lisp_Symbol *sym = XSYMBOL (prop);
+      sym_t sym = XSYMBOL (prop);
     start:
-      switch (sym->redirect)
+      switch (SYMBOL_REDIRECT (sym))
 	{
 	case SYMBOL_VARALIAS: sym = indirect_variable (sym); goto start;
 	case SYMBOL_PLAINVAL: case SYMBOL_FORWARDED: break;
 	case SYMBOL_LOCALIZED:
-	  { struct Lisp_Buffer_Local_Value *blv = sym->val.blv;
+	  { struct Lisp_Buffer_Local_Value *blv = SYMBOL_BLV (sym);
 	    if (blv->frame_local && blv_found (blv) && XFRAME (blv->where) == f)
 	      swap_in_global_binding (sym);
 	    break;
