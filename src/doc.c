@@ -647,15 +647,17 @@ the same file name is found in the `doc-directory'.  */)
                 }
             }
 
-	  sym = oblookup (Vobarray, p + 2,
-			  multibyte_chars_in_text ((unsigned char *) p + 2,
-						   end - p - 2),
-			  end - p - 2);
+	  Lisp_Object tem = Ffind_symbol (make_specified_string (p + 2,
+                                                                 -1,
+                                                                 end - p - 2,
+                                                                 true),
+                                          Qnil);
+          sym = scm_c_value_ref (tem, 0);
 	  /* Check skip_file so that when a function is defined several
 	     times in different files (typically, once in xterm, once in
 	     w32term, ...), we only pay attention to the one that
 	     matters.  */
-	  if (! skip_file && SYMBOLP (sym))
+	  if (! skip_file && ! NILP (scm_c_value_ref (tem, 1)))
 	    {
 	      /* Attach a docstring to a variable?  */
 	      if (p[1] == 'V')

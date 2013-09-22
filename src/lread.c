@@ -3786,30 +3786,39 @@ check_obarray (Lisp_Object obarray)
 Lisp_Object
 intern_1 (const char *str, ptrdiff_t len)
 {
-  Lisp_Object obarray = check_obarray (Vobarray);
-  Lisp_Object tem = oblookup (obarray, str, len, len);
-
-  return SYMBOLP (tem) ? tem : Fintern (make_string (str, len), obarray);
+  return Fintern (make_string (str, len), Qnil);
 }
 
 Lisp_Object
 intern_c_string_1 (const char *str, ptrdiff_t len)
 {
-  Lisp_Object obarray = check_obarray (Vobarray);
-  Lisp_Object tem = oblookup (obarray, str, len, len);
-
-  if (SYMBOLP (tem))
-    return tem;
-
-  if (NILP (Vpurify_flag))
-    /* Creating a non-pure string from a string literal not
-       implemented yet.  We could just use make_string here and live
-       with the extra copy.  */
-    emacs_abort ();
-
-  return Fintern (make_pure_c_string (str, len), obarray);
+  return Fintern (make_pure_c_string (str, len), Qnil);
 }
 
+DEFUN ("find-symbol", Ffind_symbol, Sfind_symbol, 1, 2, 0,
+       doc: /* find-symbol */)
+     (Lisp_Object string, Lisp_Object obarray)
+{
+  Lisp_Object tem, sstring, found;
+
+  obarray = check_obarray (NILP (obarray) ? Vobarray : obarray);
+  CHECK_STRING (string);
+
+  sstring = scm_from_utf8_stringn (SSDATA (string), SBYTES (string));
+  tem = scm_find_symbol (sstring, obhash (obarray));
+  if (scm_is_true (tem)
+      && scm_is_true (scm_module_variable (symbol_module, tem)))
+    {
+      if (EQ (tem, Qnil_))
+        tem = Qnil;
+      else if (EQ (tem, Qt_))
+        tem = Qt;
+      return scm_values (scm_list_2 (tem, Qt));
+    }
+  else
+    return scm_values (scm_list_2 (Qnil, Qnil));
+}
+
 DEFUN ("intern", Fintern, Sintern, 1, 2, 0,
        doc: /* Return the canonical symbol whose name is STRING.
 If there is none, one is created by this function and returned.
@@ -3824,14 +3833,9 @@ it defaults to the value of `obarray'.  */)
 
   CHECK_STRING (string);
 
-  tem = oblookup (obarray, SSDATA (string),
-		  SCHARS (string),
-		  SBYTES (string));
-  if (SYMBOLP (tem))
-    return tem;
-
-  if (!NILP (Vpurify_flag))
-    string = Fpurecopy (string);
+  tem = Ffind_symbol (string, obarray);
+  if (! NILP (scm_c_value_ref (tem, 1)))
+    return scm_c_value_ref (tem, 0);
 
   sym = scm_intern (scm_from_utf8_stringn (SSDATA (string),
                                            SBYTES (string)),
@@ -3846,9 +3850,7 @@ it defaults to the value of `obarray'.  */)
       SET_SYMBOL_VAL (XSYMBOL (sym), sym);
     }
 
-  return scm_intern (scm_from_utf8_stringn (SSDATA (string),
-                                          SBYTES (string)),
-                     obhash (obarray));
+  return sym;
 }
 
 DEFUN ("intern-soft", Fintern_soft, Sintern_soft, 1, 2, 0,
@@ -3859,40 +3861,17 @@ A second optional argument specifies the obarray to use;
 it defaults to the value of `obarray'.  */)
   (Lisp_Object name, Lisp_Object obarray)
 {
-  register Lisp_Object tem, string;
+  register Lisp_Object tem, string, mv, found;
 
-  if (NILP (obarray)) obarray = Vobarray;
-  obarray = check_obarray (obarray);
+  string = SYMBOLP (name) ? SYMBOL_NAME (name) : name;
+  mv = Ffind_symbol (string, obarray);
+  tem = scm_c_value_ref (mv, 0);
+  found = scm_c_value_ref (mv, 1);
 
-  if (!SYMBOLP (name))
-    {
-      CHECK_STRING (name);
-      string = name;
-    }
-  else
-    string = SYMBOL_NAME (name);
-
-  tem = oblookup (obarray, SSDATA (string), SCHARS (string), SBYTES (string));
-  if (INTEGERP (tem) || (SYMBOLP (name) && !EQ (name, tem)))
+  if (NILP (found) || (SYMBOLP (name) && !EQ (name, tem)))
     return Qnil;
   else
     return tem;
-}
-
-DEFUN ("find-symbol", Ffind_symbol, Sfind_symbol, 1, 2, 0,
-       doc: /* find-symbol */)
-     (Lisp_Object string, Lisp_Object obarray)
-{
-  Lisp_Object tem;
-
-  obarray = check_obarray (NILP (obarray) ? Vobarray : obarray);
-  CHECK_STRING (string);
-
-  tem = oblookup (obarray, SSDATA (string), SCHARS (string), SBYTES (string));
-  if (INTEGERP (tem))
-    return scm_values (scm_list_2 (Qnil, Qnil));
-  else
-    return scm_values (scm_list_2 (tem, Qt));
 }
 
 DEFUN ("unintern", Funintern, Sunintern, 1, 2, 0,
@@ -3927,35 +3906,6 @@ usage: (unintern NAME OBARRAY)  */)
     }
 
   return (scm_is_true (scm_unintern (name, obhash (obarray))) ? Qt : Qnil);
-}
-
-/* Return the symbol in OBARRAY whose names matches the string
-   of SIZE characters (SIZE_BYTE bytes) at PTR.
-   If there is no such symbol, return the integer bucket number of
-   where the symbol would be if it were present.
-
-   Also store the bucket number in oblookup_last_bucket_number.  */
-
-Lisp_Object
-oblookup (Lisp_Object obarray, register const char *ptr, ptrdiff_t size, ptrdiff_t size_byte)
-{
-  Lisp_Object sym;
-  Lisp_Object string2 = scm_from_utf8_stringn (ptr, size_byte);
-
-  obarray = check_obarray (obarray);
-  sym = scm_find_symbol (string2, obhash (obarray));
-  if (scm_is_true (sym)
-      && scm_is_true (scm_module_variable (symbol_module, sym)))
-    {
-      if (EQ (sym, Qnil_))
-        return Qnil;
-      else if (EQ (sym, Qt_))
-        return Qt;
-      else
-        return sym;
-    }
-  else
-    return make_number (0);
 }
 
 void
