@@ -803,9 +803,10 @@ Value, if non-nil, is a list \(interactive SPEC).  */)
 
   if (scm_is_true (scm_procedure_p (fun)))
     {
-      Lisp_Object tem = scm_procedure_property (fun, Qinteractive_form);
-      if (scm_is_true (tem))
-        return list2 (Qinteractive, tem);
+      Lisp_Object tem = scm_assq (Qinteractive_form,
+                                  scm_procedure_properties (fun));
+      if (scm_is_pair (tem))
+        return list2 (Qinteractive, scm_cdr (tem));
     }
   else if (COMPILEDP (fun))
     {
@@ -2190,7 +2191,7 @@ bool-vector.  IDX starts at 0.  */)
 	      unsigned char *str = SAFE_ALLOCA (nbytes);
 
 	      memcpy (str, SDATA (array), nbytes);
-	      allocate_string_data (XSTRING (array), nchars,
+	      allocate_string_data (array, nchars,
 				    nbytes + new_bytes - prev_bytes);
 	      memcpy (SDATA (array), str, idxval_byte);
 	      p1 = SDATA (array) + idxval_byte;

@@ -444,14 +444,10 @@ init_strings (void)
 
 /* Return a new Lisp_String.  */
 
-static struct Lisp_String *
+static Lisp_Object
 allocate_string (void)
 {
-  struct Lisp_String *p;
-
-  p = xmalloc (sizeof *p);
-  SCM_NEWSMOB (p->self, lisp_string_tag, p);
-  return p;
+  return scm_make_smob (lisp_string_tag);
 }
 
 
@@ -462,9 +458,10 @@ allocate_string (void)
    S->data if it was initially non-null.  */
 
 void
-allocate_string_data (struct Lisp_String *s,
+allocate_string_data (Lisp_Object string,
 		      EMACS_INT nchars, EMACS_INT nbytes)
 {
+  struct Lisp_String *s = (void *) SCM_SMOB_DATA (string);
   unsigned char *data;
 
   if (STRING_BYTES_BOUND < nbytes)
@@ -487,11 +484,9 @@ static Lisp_Object
 make_empty_string (int multibyte)
 {
   Lisp_Object string;
-  struct Lisp_String *s;
 
-  s = allocate_string ();
-  allocate_string_data (s, 0, 0);
-  XSETSTRING (string, s);
+  string = allocate_string ();
+  allocate_string_data (string, 0, 0);
   if (! multibyte)
     STRING_SET_UNIBYTE (string);
 
@@ -734,17 +729,15 @@ Lisp_Object
 make_uninit_multibyte_string (EMACS_INT nchars, EMACS_INT nbytes)
 {
   Lisp_Object string;
-  struct Lisp_String *s;
 
   if (nchars < 0)
     emacs_abort ();
   if (!nbytes)
     return empty_multibyte_string;
 
-  s = allocate_string ();
-  s->intervals = NULL;
-  allocate_string_data (s, nchars, nbytes);
-  XSETSTRING (string, s);
+  string = allocate_string ();
+  ((struct Lisp_String *) SCM_SMOB_DATA (string))->intervals = NULL;
+  allocate_string_data (string, nchars, nbytes);
   return string;
 }
 
@@ -1621,7 +1614,8 @@ void
 init_alloc_once (void)
 {
   lisp_misc_tag = scm_make_smob_type ("elisp-misc", 0);
-  lisp_string_tag = scm_make_smob_type ("elisp-string", 0);
+  lisp_string_tag = scm_make_smob_type ("elisp-string",
+                                        sizeof (struct Lisp_String));
   lisp_vectorlike_tag = scm_make_smob_type ("elisp-vectorlike", 0);
 
   /* Used to do Vpurify_flag = Qt here, but Qt isn't set up yet!  */
