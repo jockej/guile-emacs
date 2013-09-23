@@ -1165,22 +1165,6 @@ usage: (make-byte-code ARGLIST BYTE-CODE CONSTANTS DEPTH &optional DOCSTRING INT
 			   Symbol Allocation
  ***********************************************************************/
 
-void
-initialize_symbol (Lisp_Object val, Lisp_Object name)
-{
-  sym_t p;
-
-  scm_module_define (symbol_module, val, scm_c_make_vector (5, SCM_BOOL_F));
-  p = XSYMBOL (val);
-  SET_SYMBOL_SELF (p, val);
-  scm_module_define (plist_module, val, Qnil);
-  SET_SYMBOL_REDIRECT (p, SYMBOL_PLAINVAL);
-  SET_SYMBOL_VAL (p, Qunbound);
-  scm_module_define (function_module, val, Qnil);
-  SET_SYMBOL_CONSTANT (p, 0);
-  SET_SYMBOL_DECLARED_SPECIAL (p, false);
-}
-
 DEFUN ("make-symbol", Fmake_symbol, Smake_symbol, 1, 1, 0,
        doc: /* Return a newly allocated uninterned symbol whose name is NAME.
 Its value is void, and its function definition and property list are nil.  */)
@@ -1192,7 +1176,6 @@ Its value is void, and its function definition and property list are nil.  */)
 
   val = scm_make_symbol (scm_from_utf8_stringn (SSDATA (name),
                                                 SBYTES (name)));
-  initialize_symbol (val, name);
   return val;
 }
 

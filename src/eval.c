@@ -351,58 +351,6 @@ do_debug_on_call (Lisp_Object code)
   call_debugger (list1 (code));
 }
 
-/* NOTE!!! Every function that can call EVAL must protect its args
-   and temporaries from garbage collection while it needs them.
-   The definition of `For' shows what you have to do.  */
-
-DEFUN ("or", For, Sor, 0, UNEVALLED, 0,
-       doc: /* Eval args until one of them yields non-nil, then return that value.
-The remaining args are not evalled at all.
-If all args return nil, return nil.
-usage: (or CONDITIONS...)  */)
-  (Lisp_Object args)
-{
-  register Lisp_Object val = Qnil;
-  struct gcpro gcpro1;
-
-  GCPRO1 (args);
-
-  while (CONSP (args))
-    {
-      val = eval_sub (XCAR (args));
-      if (!NILP (val))
-	break;
-      args = XCDR (args);
-    }
-
-  UNGCPRO;
-  return val;
-}
-
-DEFUN ("and", Fand, Sand, 0, UNEVALLED, 0,
-       doc: /* Eval args until one of them yields nil, then return nil.
-The remaining args are not evalled at all.
-If no arg yields nil, return the last arg's value.
-usage: (and CONDITIONS...)  */)
-  (Lisp_Object args)
-{
-  register Lisp_Object val = Qt;
-  struct gcpro gcpro1;
-
-  GCPRO1 (args);
-
-  while (CONSP (args))
-    {
-      val = eval_sub (XCAR (args));
-      if (NILP (val))
-	break;
-      args = XCDR (args);
-    }
-
-  UNGCPRO;
-  return val;
-}
-
 DEFUN ("if", Fif, Sif, 2, UNEVALLED, 0,
        doc: /* If COND yields non-nil, do THEN, else do ELSE...
 Returns the value of THEN or the value of the last of the ELSE's.
@@ -421,39 +369,6 @@ usage: (if COND THEN ELSE...)  */)
   if (!NILP (cond))
     return eval_sub (Fcar (XCDR (args)));
   return Fprogn (XCDR (XCDR (args)));
-}
-
-DEFUN ("cond", Fcond, Scond, 0, UNEVALLED, 0,
-       doc: /* Try each clause until one succeeds.
-Each clause looks like (CONDITION BODY...).  CONDITION is evaluated
-and, if the value is non-nil, this clause succeeds:
-then the expressions in BODY are evaluated and the last one's
-value is the value of the cond-form.
-If a clause has one element, as in (CONDITION), then the cond-form
-returns CONDITION's value, if that is non-nil.
-If no clause succeeds, cond returns nil.
-usage: (cond CLAUSES...)  */)
-  (Lisp_Object args)
-{
-  Lisp_Object val = args;
-  struct gcpro gcpro1;
-
-  GCPRO1 (args);
-  while (CONSP (args))
-    {
-      Lisp_Object clause = XCAR (args);
-      val = eval_sub (Fcar (clause));
-      if (!NILP (val))
-	{
-	  if (!NILP (XCDR (clause)))
-	    val = Fprogn (XCDR (clause));
-	  break;
-	}
-      args = XCDR (args);
-    }
-  UNGCPRO;
-
-  return val;
 }
 
 DEFUN ("progn", Fprogn, Sprogn, 0, UNEVALLED, 0,
@@ -483,44 +398,6 @@ void
 unwind_body (Lisp_Object body)
 {
   Fprogn (body);
-}
-
-DEFUN ("prog1", Fprog1, Sprog1, 1, UNEVALLED, 0,
-       doc: /* Eval FIRST and BODY sequentially; return value from FIRST.
-The value of FIRST is saved during the evaluation of the remaining args,
-whose values are discarded.
-usage: (prog1 FIRST BODY...)  */)
-  (Lisp_Object args)
-{
-  Lisp_Object val;
-  Lisp_Object args_left;
-  struct gcpro gcpro1, gcpro2;
-
-  args_left = args;
-  val = args;
-  GCPRO2 (args, val);
-
-  val = eval_sub (XCAR (args_left));
-  while (CONSP (args_left = XCDR (args_left)))
-    eval_sub (XCAR (args_left));
-
-  UNGCPRO;
-  return val;
-}
-
-DEFUN ("prog2", Fprog2, Sprog2, 2, UNEVALLED, 0,
-       doc: /* Eval FORM1, FORM2 and BODY sequentially; return value from FORM2.
-The value of FORM2 is saved during the evaluation of the
-remaining args, whose values are discarded.
-usage: (prog2 FORM1 FORM2 BODY...)  */)
-  (Lisp_Object args)
-{
-  struct gcpro gcpro1;
-
-  GCPRO1 (args);
-  eval_sub (XCAR (args));
-  UNGCPRO;
-  return Fprog1 (XCDR (args));
 }
 
 DEFUN ("setq", Fsetq, Ssetq, 0, UNEVALLED, 0,
@@ -2260,18 +2137,6 @@ DEFUN ("values", Fvalues, Svalues, 0, MANY, 0,
   (ptrdiff_t nargs, Lisp_Object *args)
 {
   return scm_c_values (args, nargs);
-}
-
-DEFUN ("bind-symbol", Fbind_symbol, Sbind_symbol, 3, 3, 0,
-       doc: /* Bind symbol.  */)
-  (Lisp_Object symbol, Lisp_Object value, Lisp_Object thunk)
-{
-  Lisp_Object val;
-  dynwind_begin ();
-  specbind (symbol, value);
-  val = call0 (thunk);
-  dynwind_end ();
-  return val;
 }
 
 DEFUN ("apply", Fapply, Sapply, 1, MANY, 0,

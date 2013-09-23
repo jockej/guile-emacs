@@ -653,46 +653,10 @@ global value outside of any lexical scope.  */)
   return (EQ (valcontents, Qunbound) ? Qnil : Qt);
 }
 
-/* FIXME: Make it an alias for function-symbol!  */
-DEFUN ("fboundp", Ffboundp, Sfboundp, 1, 1, 0,
-       doc: /* Return t if SYMBOL's function definition is not void.  */)
-  (register Lisp_Object symbol)
-{
-  CHECK_SYMBOL (symbol);
-  return NILP (SYMBOL_FUNCTION (symbol)) ? Qnil : Qt;
-}
-
-DEFUN ("makunbound", Fmakunbound, Smakunbound, 1, 1, 0,
-       doc: /* Make SYMBOL's value be void.
-Return SYMBOL.  */)
-  (register Lisp_Object symbol)
-{
-  CHECK_SYMBOL (symbol);
-  if (SYMBOL_CONSTANT_P (symbol))
-    xsignal1 (Qsetting_constant, symbol);
-  Fset (symbol, Qunbound);
-  return symbol;
-}
-
-DEFUN ("fmakunbound", Ffmakunbound, Sfmakunbound, 1, 1, 0,
-       doc: /* Make SYMBOL's function definition be nil.
-Return SYMBOL.  */)
-  (register Lisp_Object symbol)
-{
-  CHECK_SYMBOL (symbol);
-  if (NILP (symbol) || EQ (symbol, Qt))
-    xsignal1 (Qsetting_constant, symbol);
-  set_symbol_function (symbol, Qnil);
-  return symbol;
-}
-
-DEFUN ("symbol-function", Fsymbol_function, Ssymbol_function, 1, 1, 0,
-       doc: /* Return SYMBOL's function definition, or nil if that is void.  */)
-  (register Lisp_Object symbol)
-{
-  CHECK_SYMBOL (symbol);
-  return SYMBOL_FUNCTION (symbol);
-}
+WRAP1 (Ffboundp, "fboundp")
+WRAP1 (Fmakunbound, "makunbound")
+WRAP1 (Ffmakunbound, "fmakunbound")
+WRAP1 (Fsymbol_function, "symbol-function")
 
 DEFUN ("symbol-plist", Fsymbol_plist, Ssymbol_plist, 1, 1, 0,
        doc: /* Return SYMBOL's property list.  */)
@@ -713,30 +677,7 @@ DEFUN ("symbol-name", Fsymbol_name, Ssymbol_name, 1, 1, 0,
   return name;
 }
 
-DEFUN ("fset", Ffset, Sfset, 2, 2, 0,
-       doc: /* Set SYMBOL's function definition to DEFINITION, and return DEFINITION.  */)
-  (register Lisp_Object symbol, Lisp_Object definition)
-{
-  register Lisp_Object function;
-  CHECK_SYMBOL (symbol);
-
-  function = SYMBOL_FUNCTION (symbol);
-
-  if (!NILP (Vautoload_queue) && !NILP (function))
-    Vautoload_queue = Fcons (Fcons (symbol, function), Vautoload_queue);
-
-  if (AUTOLOADP (function))
-    Fput (symbol, Qautoload, XCDR (function));
-
-  /* Convert to eassert or remove after GC bug is found.  In the
-     meantime, check unconditionally, at a slight perf hit.  */
-  if (valid_lisp_object_p (definition) < 1)
-    emacs_abort ();
-
-  set_symbol_function (symbol, definition);
-
-  return definition;
-}
+WRAP2 (Ffset, "fset")
 
 DEFUN ("defalias", Fdefalias, Sdefalias, 2, 3, 0,
        doc: /* Set SYMBOL's function definition to DEFINITION.
@@ -3395,6 +3336,18 @@ A is a bool vector, B is t or nil, and I is an index into A.  */)
   return make_number (count);
 }
 
+
+DEFUN ("bind-symbol", Fbind_symbol, Sbind_symbol, 3, 3, 0,
+       doc: /* Bind symbol.  */)
+  (Lisp_Object symbol, Lisp_Object value, Lisp_Object thunk)
+{
+  Lisp_Object val;
+  dynwind_begin ();
+  specbind (symbol, value);
+  val = call0 (thunk);
+  dynwind_end ();
+  return val;
+}
 
 void
 syms_of_data (void)

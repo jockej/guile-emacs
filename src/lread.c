@@ -3806,8 +3806,7 @@ DEFUN ("find-symbol", Ffind_symbol, Sfind_symbol, 1, 2, 0,
 
   sstring = scm_from_utf8_stringn (SSDATA (string), SBYTES (string));
   tem = scm_find_symbol (sstring, obhash (obarray));
-  if (scm_is_true (tem)
-      && scm_is_true (scm_module_variable (symbol_module, tem)))
+  if (scm_is_true (tem))
     {
       if (EQ (tem, Qnil_))
         tem = Qnil;
@@ -3840,7 +3839,6 @@ it defaults to the value of `obarray'.  */)
   sym = scm_intern (scm_from_utf8_stringn (SSDATA (string),
                                            SBYTES (string)),
                     obhash (obarray));
-  initialize_symbol (sym, string);
 
   if ((SREF (string, 0) == ':')
       && EQ (obarray, initial_obarray))
@@ -3972,7 +3970,7 @@ init_obarray (void)
   SET_SYMBOL_CONSTANT (XSYMBOL (Qt_), 1);
   SET_SYMBOL_DECLARED_SPECIAL (XSYMBOL (Qt_), 1);
 
-  Qunbound = Fmake_symbol (build_pure_c_string ("unbound"));
+  Qunbound = scm_c_public_ref ("language elisp runtime", "unbound");
   SET_SYMBOL_VAL (XSYMBOL (Qunbound), Qunbound);
 
   /* Qt is correct even if CANNOT_DUMP.  loadup.el will set to nil at end.  */

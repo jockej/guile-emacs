@@ -654,16 +654,7 @@ extern Lisp_Object Qt, Qnil, Qt_, Qnil_;
 
 typedef Lisp_Object sym_t;
 
-INLINE sym_t
-XSYMBOL (Lisp_Object a)
-{
-  Lisp_Object tem;
-  if (EQ (a, Qt)) a = Qt_;
-  if (EQ (a, Qnil)) a = Qnil_;
-  eassert (SYMBOLP (a));
-  tem = scm_variable_ref (scm_module_lookup (symbol_module, a));
-  return tem;
-}
+INLINE sym_t XSYMBOL (Lisp_Object a);
 
 /* Pseudovector types.  */
 
@@ -1350,9 +1341,7 @@ SET_SYMBOL_FWD (sym_t sym, union Lisp_Fwd *v)
 INLINE Lisp_Object
 SYMBOL_NAME (Lisp_Object sym)
 {
-  if (EQ (sym, Qnil)) sym = Qnil_;
-  if (EQ (sym, Qt)) sym = Qt_;
-  return build_string (scm_to_locale_string (scm_symbol_to_string (sym)));
+  return build_string (scm_to_locale_string (scm_call_1 (scm_c_public_ref ("language elisp runtime", "symbol-name"), sym)));
 }
 
 /* Value is true if SYM is an interned symbol.  */
@@ -1360,17 +1349,15 @@ SYMBOL_NAME (Lisp_Object sym)
 INLINE bool
 SYMBOL_INTERNED_P (Lisp_Object sym)
 {
-  if (EQ (sym, Qnil)) sym = Qnil_;
-  if (EQ (sym, Qt)) sym = Qt_;
+  if (EQ (sym, Qnil)) return true;
+  if (EQ (sym, Qt)) return true;
   return scm_is_true (scm_symbol_interned_p (sym));
 }
 
 INLINE Lisp_Object
 SYMBOL_FUNCTION (Lisp_Object sym)
 {
-  if (EQ (sym, Qnil)) sym = Qnil_;
-  if (EQ (sym, Qt)) sym = Qt_;
-  return scm_variable_ref (scm_module_lookup (function_module, sym));
+  return scm_call_1 (scm_c_public_ref ("elisp-functions", "symbol-function"), sym);
 }
 
 /* Value is non-zero if symbol is considered a constant, i.e. its
@@ -2403,6 +2390,9 @@ CHECK_NUMBER_CDR (Lisp_Object x)
 #define DEFUN_ARGS_8	(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, \
 			 Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
 
+#define WRAP1(cfn, lfn) Lisp_Object cfn (Lisp_Object a) { return call1 (intern (lfn), a); }
+#define WRAP2(cfn, lfn) Lisp_Object cfn (Lisp_Object a, Lisp_Object b) { return call2 (intern (lfn), a, b); }
+
 /* True if OBJ is a Lisp function.  */
 INLINE bool
 FUNCTIONP (Lisp_Object obj)
@@ -2755,25 +2745,22 @@ set_hash_value_slot (struct Lisp_Hash_Table *h, ptrdiff_t idx, Lisp_Object val)
 INLINE void
 set_symbol_function (Lisp_Object sym, Lisp_Object function)
 {
-  if (EQ (sym, Qnil)) sym = Qnil_;
-  if (EQ (sym, Qt)) sym = Qt_;
-  scm_variable_set_x (scm_module_lookup (function_module, sym), function);
+  scm_call_2 (scm_c_public_ref ("language elisp runtime", "set-symbol-function!"),
+              sym, function);
 }
 
 INLINE Lisp_Object
 symbol_plist (Lisp_Object sym)
 {
-  if (EQ (sym, Qnil)) sym = Qnil_;
-  if (EQ (sym, Qt)) sym = Qt_;
-  return scm_variable_ref (scm_module_lookup (plist_module, sym));
+  return scm_call_1 (scm_c_public_ref ("language elisp runtime", "symbol-plist"),
+                     sym);
 }
 
 INLINE void
 set_symbol_plist (Lisp_Object sym, Lisp_Object plist)
 {
-  if (EQ (sym, Qnil)) sym = Qnil_;
-  if (EQ (sym, Qt)) sym = Qt_;
-  scm_variable_set_x (scm_module_lookup (plist_module, sym), plist);
+  scm_call_2 (scm_c_public_ref ("language elisp runtime", "set-symbol-plist!"),
+              sym, plist);
 }
 
 /* Buffer-local (also frame-local) variable access functions.  */
@@ -4016,6 +4003,13 @@ functionp (Lisp_Object object)
       Lisp_Object car = XCAR (object);
       return EQ (car, Qlambda) || EQ (car, Qclosure);
     }
+}
+
+INLINE sym_t
+XSYMBOL (Lisp_Object a)
+{
+  return scm_call_1 (scm_c_public_ref ("language elisp runtime", "symbol-desc"),
+                     a);
 }
 
 INLINE_HEADER_END

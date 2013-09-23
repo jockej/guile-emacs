@@ -700,6 +700,16 @@ close_output_streams (void)
      _exit (EXIT_FAILURE);
 }
 
+static Lisp_Object
+string_from_scheme (Lisp_Object scheme_string)
+{
+  size_t nbytes;
+  char *c_string = scm_to_utf8_stringn (scheme_string, &nbytes);
+  return make_string_from_bytes (c_string,
+                                 scm_c_string_length (scheme_string),
+                                 nbytes);
+}
+
 static int main2 (void *, int, char **);
 
 int
@@ -1168,23 +1178,21 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
 
   if (!initialized)
     {
-      symbol_module = scm_call (scm_c_public_ref ("guile", "define-module*"),
-                                scm_list_1 (scm_from_utf8_symbol ("elisp-symbols")),
-                                scm_from_locale_keyword ("pure"),
-                                SCM_BOOL_T,
-                                SCM_UNDEFINED);
-      function_module = scm_call (scm_c_public_ref ("guile", "define-module*"),
-                                  scm_list_1 (scm_from_utf8_symbol ("elisp-functions")),
-                                  scm_from_locale_keyword ("pure"),
-                                  SCM_BOOL_T,
-                                  SCM_UNDEFINED);
-      plist_module = scm_call (scm_c_public_ref ("guile", "define-module*"),
-                                  scm_list_1 (scm_from_utf8_symbol ("elisp-plists")),
-                                  scm_from_locale_keyword ("pure"),
-                                  SCM_BOOL_T,
-                                  SCM_UNDEFINED);
+      /* scm_c_module_define (scm_c_resolve_module ("language elisp lexer"), */
+      /*                      "make-lisp-string", */
+      /*                      scm_c_make_gsubr ("make-lisp-string", 1, 0, 0, */
+      /*                                        string_from_scheme)); */
+      (void *) scm_c_resolve_module ("language elisp spec");
+      symbol_module = scm_c_resolve_module ("elisp-symbols");
+      function_module = scm_c_resolve_module ("elisp-functions");
+      plist_module = scm_c_resolve_module ("elisp-plists");
+      scm_set_current_module (scm_c_resolve_module ("guile-user"));
 
       init_alloc_once ();
+      scm_c_module_define (scm_c_resolve_module ("language elisp lexer"),
+                           "make-lisp-string",
+                           scm_c_make_gsubr ("make-lisp-string", 1, 0, 0,
+                                             string_from_scheme));
       init_guile ();
       init_fns_once ();
       init_obarray ();
@@ -1202,6 +1210,15 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
          Qerror_condition.  Called before other symbol-initialization
          functions because it sets up symbols used by defsubr.  */
       syms_of_data ();
+
+      scm_call_7 (scm_c_public_ref ("language elisp runtime", "emacs!"),
+                  SYMBOL_FUNCTION (intern ("symbol-value")),
+                  SYMBOL_FUNCTION (intern ("set")),
+                  SYMBOL_FUNCTION (intern ("boundp")),
+                  SYMBOL_FUNCTION (intern ("default-value")),
+                  SYMBOL_FUNCTION (intern ("set-default")),
+                  SYMBOL_FUNCTION (intern ("default-boundp")),
+                  SYMBOL_FUNCTION (intern ("bind-symbol")));
 
       /* Call syms_of_xfaces before init_window_once because that
 	 function creates Vterminal_frame.  Termcap frames now use
