@@ -354,15 +354,7 @@ string is passed through `substitute-command-keys'.  */)
       && (EQ (XCAR (fun), Qmacro)
           || EQ (XCAR (fun), Qspecial_operator)))
     fun = XCDR (fun);
-  if (scm_is_true (scm_procedure_p (fun)))
-    {
-      Lisp_Object tem = scm_procedure_property (fun, intern ("emacs-documentation"));
-      if (scm_is_true (tem))
-        doc = tem;
-      else
-        return Qnil;
-    }
-  else if (COMPILEDP (fun))
+  if (COMPILEDP (fun))
     {
       if ((ASIZE (fun) & PSEUDOVECTOR_SIZE_MASK) <= COMPILED_DOC_STRING)
 	return Qnil;
@@ -376,6 +368,14 @@ string is passed through `substitute-command-keys'.  */)
 	  else
 	    return Qnil;
 	}
+    }
+  else if (scm_is_true (scm_procedure_p (fun)))
+    {
+      Lisp_Object tem = scm_procedure_property (fun, intern ("emacs-documentation"));
+      if (scm_is_true (tem))
+        doc = tem;
+      else
+        return Qnil;
     }
   else if (STRINGP (fun) || VECTORP (fun))
     {

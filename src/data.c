@@ -801,17 +801,17 @@ Value, if non-nil, is a list \(interactive SPEC).  */)
 	fun = Fsymbol_function (fun);
     }
 
-  if (scm_is_true (scm_procedure_p (fun)))
+  if (COMPILEDP (fun))
+    {
+      if ((ASIZE (fun) & PSEUDOVECTOR_SIZE_MASK) > COMPILED_INTERACTIVE)
+	return list2 (Qinteractive, AREF (fun, COMPILED_INTERACTIVE));
+    }
+  else if (scm_is_true (scm_procedure_p (fun)))
     {
       Lisp_Object tem = scm_assq (Qinteractive_form,
                                   scm_procedure_properties (fun));
       if (scm_is_pair (tem))
         return list2 (Qinteractive, scm_cdr (tem));
-    }
-  else if (COMPILEDP (fun))
-    {
-      if ((ASIZE (fun) & PSEUDOVECTOR_SIZE_MASK) > COMPILED_INTERACTIVE)
-	return list2 (Qinteractive, AREF (fun, COMPILED_INTERACTIVE));
     }
   else if (AUTOLOADP (fun))
     return Finteractive_form (Fautoload_do_load (fun, cmd, Qnil));
