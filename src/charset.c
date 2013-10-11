@@ -222,7 +222,7 @@ struct charset_map_entries
   struct {
     unsigned from, to;
     int c;
-  } entry[0x10000];
+  } *entry; /* [0x10000] */
   struct charset_map_entries *next;
 };
 
@@ -511,8 +511,8 @@ load_charset_map_from_file (struct charset *charset, Lisp_Object mapfile,
   /* Use record, as `charset_map_entries' is large (larger than
      MAX_ALLOCA).  */
   head = xmalloc (sizeof *head);
+  head->entry = xmalloc_atomic (0x10000 * sizeof (*head->entry));
   entries = head;
-  memset (entries, 0, sizeof (struct charset_map_entries));
 
   n_entries = 0;
   while (1)
@@ -542,8 +542,8 @@ load_charset_map_from_file (struct charset *charset, Lisp_Object mapfile,
       if (n_entries == 0x10000)
 	{
 	  entries->next = xmalloc (sizeof *entries->next);
+          entries->next->entry = xmalloc_atomic (0x10000 * (sizeof *entries->next));
 	  entries = entries->next;
-	  memset (entries, 0, sizeof (struct charset_map_entries));
 	  n_entries = 0;
 	}
       idx = n_entries;
@@ -579,6 +579,7 @@ load_charset_map_from_vector (struct charset *charset, Lisp_Object vec, int cont
   /* Use SAFE_ALLOCA instead of alloca, as `charset_map_entries' is
      large (larger than MAX_ALLOCA).  */
   head = SAFE_ALLOCA (sizeof *head);
+  head->entry = xmalloc_atomic (0x10000 * (sizeof *head->entry));
   entries = head;
   memset (entries, 0, sizeof (struct charset_map_entries));
 
