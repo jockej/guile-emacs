@@ -2511,7 +2511,6 @@ typedef jmp_buf sys_jmp_buf;
    union specbinding.  But only eval.c should access it.  */
 
 enum specbind_tag {
-  SPECPDL_BACKTRACE,		/* An element of the backtrace.  */
   SPECPDL_LET,			/* A plain and simple dynamic let-binding.  */
   /* Tags greater than SPECPDL_LET must be "subkinds" of LET.  */
   SPECPDL_LET_LOCAL,		/* A buffer-local let-binding.  */
@@ -3400,11 +3399,7 @@ extern Lisp_Object safe_call2 (Lisp_Object, Lisp_Object, Lisp_Object);
 extern void init_eval (void);
 extern void syms_of_eval (void);
 extern void unwind_body (Lisp_Object);
-extern void record_in_backtrace (Lisp_Object function,
-				 Lisp_Object *args, ptrdiff_t nargs);
 extern void mark_specpdl (void);
-extern void get_backtrace (Lisp_Object array);
-Lisp_Object backtrace_top_function (void);
 extern bool let_shadows_buffer_binding_p (sym_t symbol);
 extern bool let_shadows_global_binding_p (Lisp_Object symbol);
 extern _Noreturn SCM abort_to_prompt (SCM, SCM);
