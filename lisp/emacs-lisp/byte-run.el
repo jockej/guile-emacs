@@ -193,9 +193,9 @@ The return value is undefined.
 			  (message "Warning: Unknown macro property %S in %S"
 				   (car x) name))))
 		  decls)))
-	   (if declarations
-	       (cons 'prog1 (cons def declarations))
-	     def))))))
+           (if declarations
+               (cons 'prog1 (cons def declarations))
+             def))))))
 
 ;; Now that we defined defmacro we can use it!
 (defmacro defun (name arglist &optional docstring &rest body)
@@ -249,10 +249,15 @@ The return value is undefined.
                      (list 'function
                            (cons 'lambda
                                  (cons arglist body))))))
-      (if declarations
-          (cons 'prog1 (cons def declarations))
-          def))))
-
+      (list 'prog1
+            (if declarations
+                (cons 'prog1 (cons def declarations))
+              def)
+            (list 'funcall
+                  (list '@ '(guile) 'set-procedure-property!)
+                  (list 'symbol-function (list 'quote name))
+                  (list 'quote 'name)
+                  (list 'quote name))))))
 
 ;; Redefined in byte-optimize.el.
 ;; This is not documented--it's not clear that we should promote it.
