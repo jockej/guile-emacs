@@ -276,15 +276,6 @@ That buffer should be current already."
 	(print-length 50))
     (backtrace))
   (goto-char (point-min))
-  (delete-region (point)
-		 (progn
-		   (search-forward "\n  debug(")
-		   (forward-line (if (eq (car args) 'debug)
-                                     ;; Remove debug--implement-debug-on-entry
-                                     ;; and the advice's `apply' frame.
-				     3
-				   1))
-		   (point)))
   (insert "Debugger entered")
   ;; lambda is for debug-on-call when a function call is next.
   ;; debug is for debug-on-entry function called.
