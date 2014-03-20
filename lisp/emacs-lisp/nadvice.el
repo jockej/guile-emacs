@@ -38,34 +38,44 @@
 
 ;;;; Lightweight advice/hook
 (defvar advice--where-alist
-  '((:around "\300\301\302\003#\207" 5)
-    (:before "\300\301\002\"\210\300\302\002\"\207" 4)
-    (:after "\300\302\002\"\300\301\003\"\210\207" 5)
-    (:override "\300\301\"\207" 4)
-    (:after-until "\300\302\002\"\206\013\000\300\301\002\"\207" 4)
-    (:after-while "\300\302\002\"\205\013\000\300\301\002\"\207" 4)
-    (:before-until "\300\301\002\"\206\013\000\300\302\002\"\207" 4)
-    (:before-while "\300\301\002\"\205\013\000\300\302\002\"\207" 4)
-    (:filter-args "\300\302\301!\"\207" 5)
-    (:filter-return "\301\300\302\"!\207" 5))
-  "List of descriptions of how to add a function.
-Each element has the form (WHERE BYTECODE STACK) where:
-  WHERE is a keyword indicating where the function is added.
-  BYTECODE is the corresponding byte-code that will be used.
-  STACK is the amount of stack space needed by the byte-code.")
+  '((:around . (apply function main args))
+    (:before . (progn
+               (apply function args)
+               (apply main args)))
+    (:after . (prog1 (apply main args)
+              (apply function args)))
+    (:override . (apply function args))
+    (:after-until . (or (apply main args) (apply function args)))
+    (:after-while . (and (apply main args) (apply function args)))
+    (:before-until . (or (apply function args) (apply main args)))
+    (:before-while . (and (apply function args) (apply main args)))
+    (:filter-args . (apply main (apply function args)))
+    (:filter-return . (funcall function (apply main args))))
+  "List of descriptions of how to add a function.")
 
-(defvar advice--bytecodes (mapcar #'cadr advice--where-alist))
+(setq advice--where-alist
+      (mapcar #'(lambda (tem)
+                  (cons (car tem)
+                        (eval `(lambda (function main)
+                                 (lambda (&rest args)
+                                   ,(cdr tem))))))
+              advice--where-alist))
 
 (defun advice--p (object)
-  (and (byte-code-function-p object)
-       (eq 128 (aref object 0))
-       (memq (length object) '(5 6))
-       (memq (aref object 1) advice--bytecodes)
-       (eq #'apply (aref (aref object 2) 0))))
+  (when (funcall (@ (guile) procedure?) object)
+    (funcall (@ (guile) procedure-property) object 'advice)))
 
-(defsubst advice--car   (f) (aref (aref f 2) 1))
-(defsubst advice--cdr   (f) (aref (aref f 2) 2))
-(defsubst advice--props (f) (aref (aref f 2) 3))
+(defun advice--car (f)
+  (when (funcall (@ (guile) procedure?) f)
+    (funcall (@ (guile) procedure-property) f 'advice-car)))
+
+(defun advice--cdr (f)
+  (when (funcall (@ (guile) procedure?) f)
+    (funcall (@ (guile) procedure-property) f 'advice-cdr)))
+
+(defun advice--props (f)
+  (when (funcall (@ (guile) procedure?) f)
+    (funcall (@ (guile) procedure-property) f 'advice-props)))
 
 (defun advice--cd*r (f)
   (while (advice--p f)
@@ -88,7 +98,7 @@ Each element has the form (WHERE BYTECODE STACK) where:
         ;; object instead!  So here we try to undo the damage.
         (if (integerp doc) (setq docfun flist))
         (dolist (elem advice--where-alist)
-          (if (eq bytecode (cadr elem)) (setq where (car elem))))
+          (if (eq bytecode (cdr elem)) (setq where (car elem))))
         (setq docstring
               (concat
                docstring
@@ -152,15 +162,24 @@ Each element has the form (WHERE BYTECODE STACK) where:
         `(funcall ',fspec ',(cadr ifm))
       (cadr (or iff ifm)))))
 
-(defun advice--make-1 (byte-code stack-depth function main props)
+(defun advice--make-1 (type make-wrapper function main props)
   "Build a function value that adds FUNCTION to MAIN."
   (let ((adv-sig (gethash main advertised-signature-table))
         (advice
-         (apply #'make-byte-code 128 byte-code
-                (vector #'apply function main props) stack-depth nil
-                (and (or (commandp function) (commandp main))
-                     (list (advice--make-interactive-form
-                            function main))))))
+         (funcall make-wrapper function main)))
+    (funcall (@ (guile) set-procedure-property!)
+             advice 'advice-type type)
+    (funcall (@ (guile) set-procedure-property!)
+             advice 'advice-car function)
+    (funcall (@ (guile) set-procedure-property!)
+             advice 'advice-cdr main)
+    (funcall (@ (guile) set-procedure-property!)
+             advice 'advice-props props)
+    (when (or (commandp function) (commandp main))
+      (funcall (@ (guile) set-procedure-property!)
+               advice
+               'interactive-form
+               (advice--make-interactive-form function main)))
     (when adv-sig (puthash advice adv-sig advertised-signature-table))
     advice))
 
@@ -177,7 +196,7 @@ WHERE is a symbol to select an entry in `advice--where-alist'."
                           (advice--car main) rest (advice--props main)))
       (let ((desc (assq where advice--where-alist)))
         (unless desc (error "Unknown add-function location `%S'" where))
-        (advice--make-1 (nth 1 desc) (nth 2 desc)
+        (advice--make-1 (car desc) (cdr desc)
                         function main props)))))
 
 (defun advice--member-p (function use-name definition)
