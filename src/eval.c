@@ -2035,32 +2035,6 @@ funcall_lambda (Lisp_Object fun, ptrdiff_t nargs,
       else
 	xsignal1 (Qinvalid_function, fun);
     }
-  else if (COMPILEDP (fun))
-    {
-      syms_left = AREF (fun, COMPILED_ARGLIST);
-      if (INTEGERP (syms_left))
-	/* A byte-code object with a non-nil `push args' slot means we
-	   shouldn't bind any arguments, instead just call the byte-code
-	   interpreter directly; it will push arguments as necessary.
-
-	   Byte-code objects with either a non-existent, or a nil value for
-	   the `push args' slot (the default), have dynamically-bound
-	   arguments, and use the argument-binding code below instead (as do
-	   all interpreted functions, even lexically bound ones).  */
-	{
-	  /* If we have not actually read the bytecode string
-	     and constants vector yet, fetch them from the file.  */
-	  if (CONSP (AREF (fun, COMPILED_BYTECODE)))
-	    Ffetch_bytecode (fun);
-	  dynwind_end ();
-	  return exec_byte_code (AREF (fun, COMPILED_BYTECODE),
-				 AREF (fun, COMPILED_CONSTANTS),
-				 AREF (fun, COMPILED_STACK_DEPTH),
-				 syms_left,
-				 nargs, arg_vector);
-	}
-      lexenv = Qnil;
-    }
   else
     emacs_abort ();
 
@@ -2111,19 +2085,7 @@ funcall_lambda (Lisp_Object fun, ptrdiff_t nargs,
     /* Instantiate a new lexical environment.  */
     specbind (Qinternal_interpreter_environment, lexenv);
 
-  if (CONSP (fun))
-    val = Fprogn (XCDR (XCDR (fun)));
-  else
-    {
-      /* If we have not actually read the bytecode string
-	 and constants vector yet, fetch them from the file.  */
-      if (CONSP (AREF (fun, COMPILED_BYTECODE)))
-	Ffetch_bytecode (fun);
-      val = exec_byte_code (AREF (fun, COMPILED_BYTECODE),
-			    AREF (fun, COMPILED_CONSTANTS),
-			    AREF (fun, COMPILED_STACK_DEPTH),
-			    Qnil, 0, 0);
-    }
+  val = Fprogn (XCDR (XCDR (fun)));
 
   dynwind_end ();
   return val;

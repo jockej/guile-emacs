@@ -361,7 +361,7 @@ base_obj = dispnew.o frame.o scroll.o xdisp.o menu.o $(XMENU_OBJ) window.o \
 	cmds.o casetab.o casefiddle.o indent.o search.o regex.o undo.o \
 	alloc.o data.o doc.o editfns.o callint.o \
 	eval.o floatfns.o fns.o font.o print.o lread.o \
-	syntax.o $(UNEXEC_OBJ) bytecode.o \
+	syntax.o $(UNEXEC_OBJ) \
 	process.o gnutls.o callproc.o \
 	region-cache.o sound.o atimer.o \
 	doprnt.o intervals.o textprop.o composite.o xml.o $(NOTIFY_OBJ) \
@@ -648,7 +648,6 @@ bootstrap-emacs$(EXEEXT): temacs$(EXEEXT)
 
 alloc.o: alloc.x
 buffer.o: buffer.x
-bytecode.o: bytecode.x
 callint.o: callint.x
 callproc.o: callproc.x
 casefiddle.o: casefiddle.x

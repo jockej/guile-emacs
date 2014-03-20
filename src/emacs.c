@@ -1458,7 +1458,6 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
       syms_of_floatfns ();
 
       syms_of_buffer ();
-      syms_of_bytecode ();
       syms_of_callint ();
       syms_of_casefiddle ();
       syms_of_casetab ();
