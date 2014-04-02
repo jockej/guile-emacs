@@ -1167,21 +1167,52 @@ command_loop (void)
    returned due to end of file (or end of kbd macro).  */
 
 static Lisp_Object
+command_loop_2_body (void *ignore)
+{
+  return command_loop_1 ();
+}
+
+static Lisp_Object
+command_loop_2_handler (void *ignore, SCM key, SCM args)
+{
+  return Fsignal (Qerror,
+                  list3 (build_string ("Scheme error"), key, args));
+}
+
+static Lisp_Object
+command_loop_2_inner (void)
+{
+  return scm_c_with_throw_handler (SCM_BOOL_T,
+                                   command_loop_2_body, NULL,
+                                   command_loop_2_handler, NULL,
+                                   0);
+}
+
+static Lisp_Object
 command_loop_2 (Lisp_Object ignore)
 {
   register Lisp_Object val;
 
   do
-    val = internal_condition_case (command_loop_1, Qerror, cmd_error);
+    val = internal_condition_case (command_loop_2_inner, Qerror, cmd_error);
   while (!NILP (val));
 
   return Qnil;
 }
 
 static Lisp_Object
-top_level_2 (void)
+top_level_2_body (void *ignore)
 {
   return Feval (Vtop_level, Qnil);
+}
+
+static Lisp_Object
+top_level_2 (void)
+{
+  return scm_c_with_throw_handler (SCM_BOOL_T,
+                                   top_level_2_body, NULL,
+                                   command_loop_2_handler, NULL,
+                                   0);
 }
 
 static Lisp_Object
