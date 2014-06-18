@@ -1610,12 +1610,22 @@ die (const char *msg, const char *file, int line)
 
 /* Initialization.  */
 
+static int
+print_lisp_string (SCM obj, SCM port, scm_print_state *pstate)
+{
+  scm_c_write (port, "#<elisp-string \"", 16);
+  scm_c_write (port, XSTRING (obj)->data, STRING_BYTES (XSTRING (obj)));
+  scm_c_write (port, "\">", 2);
+  return 0;
+}
+
 void
 init_alloc_once (void)
 {
   lisp_misc_tag = scm_make_smob_type ("elisp-misc", 0);
   lisp_string_tag = scm_make_smob_type ("elisp-string",
                                         sizeof (struct Lisp_String));
+  scm_set_smob_print (lisp_string_tag, print_lisp_string);
   lisp_vectorlike_tag = scm_make_smob_type ("elisp-vectorlike", 0);
 
   /* Used to do Vpurify_flag = Qt here, but Qt isn't set up yet!  */
