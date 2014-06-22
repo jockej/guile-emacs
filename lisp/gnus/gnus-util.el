@@ -1449,19 +1449,7 @@ is run."
 
 (defun gnus-byte-compile (form)
   "Byte-compile FORM if `gnus-use-byte-compile' is non-nil."
-  (if gnus-use-byte-compile
-      (progn
-	(condition-case nil
-	    ;; Work around a bug in XEmacs 21.4
-	    (require 'byte-optimize)
-	  (error))
-	(require 'bytecomp)
-	(defalias 'gnus-byte-compile
-	  (lambda (form)
-	    (let ((byte-compile-warnings '(unresolved callargs redefine)))
-	      (byte-compile form))))
-	(gnus-byte-compile form))
-    form))
+  form)
 
 (defun gnus-remassoc (key alist)
   "Delete by side effect any elements of LIST whose car is `equal' to KEY.
