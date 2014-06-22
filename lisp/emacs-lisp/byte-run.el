@@ -232,14 +232,7 @@ The return value is undefined.
                    ((and (featurep 'cl)
                          (memq (car x)  ;C.f. cl-do-proclaim.
                                '(special inline notinline optimize warn)))
-                    (push (list 'declare x)
-                          (if (stringp docstring)
-                              (if (eq (car-safe (cadr body)) 'interactive)
-                                  (cddr body)
-                                (cdr body))
-                            (if (eq (car-safe (car body)) 'interactive)
-                                (cdr body)
-                              body)))
+                    (setq body (cons (list 'declare x) body))
                     nil)
                    (t (message "Warning: Unknown defun property `%S' in %S"
                                (car x) name)))))
