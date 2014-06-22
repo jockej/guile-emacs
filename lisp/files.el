@@ -3448,25 +3448,25 @@ It is dangerous if either of these conditions are met:
   "Set local variable VAR with value VAL.
 If VAR is `mode', call `VAL-mode' as a function unless it's
 already the major mode."
-  (pcase var
-    (`mode
-     (let ((mode (intern (concat (downcase (symbol-name val))
-                                 "-mode"))))
-       (unless (eq (indirect-function mode)
-                   (indirect-function major-mode))
-         (funcall mode))))
-    (`eval
-     (pcase val
-       (`(add-hook ',hook . ,_) (hack-one-local-variable--obsolete hook)))
-     (save-excursion (eval val)))
-    (_
-     (hack-one-local-variable--obsolete var)
-     ;; Make sure the string has no text properties.
-     ;; Some text properties can get evaluated in various ways,
-     ;; so it is risky to put them on with a local variable list.
-     (if (stringp val)
-         (set-text-properties 0 (length val) nil val))
-     (set (make-local-variable var) val))))
+  (cond
+   ((eq var 'mode)
+    (let ((mode (intern (concat (downcase (symbol-name val))
+                                "-mode"))))
+      (unless (eq (indirect-function mode)
+                  (indirect-function major-mode))
+        (funcall mode))))
+   ((eq var 'eval)
+    (pcase val
+      (`(add-hook ',hook . ,_) (hack-one-local-variable--obsolete hook)))
+    (save-excursion (eval val)))
+   (t
+    (hack-one-local-variable--obsolete var)
+    ;; Make sure the string has no text properties.
+    ;; Some text properties can get evaluated in various ways,
+    ;; so it is risky to put them on with a local variable list.
+    (if (stringp val)
+        (set-text-properties 0 (length val) nil val))
+    (set (make-local-variable var) val))))
 
 ;;; Handling directory-local variables, aka project settings.
 
