@@ -3123,12 +3123,6 @@ read1 (Lisp_Object readcharfun, int *pch, bool first_in_list)
 	if (ch < 0)
 	  end_of_file_error ();
 
-	/* If purifying, and string starts with \ newline,
-	   return zero instead.  This is for doc strings
-	   that we are really going to find in etc/DOC.nn.nn.  */
-	if (!NILP (Vpurify_flag) && NILP (Vdoc_file_name) && cancel)
-	  return make_number (0);
-
 	if (! force_multibyte && force_singlebyte)
 	  {
 	    /* READ_BUFFER contains raw 8-bit bytes and no multibyte
