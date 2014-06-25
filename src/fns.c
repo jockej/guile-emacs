@@ -2743,16 +2743,13 @@ usage: (widget-apply WIDGET PROPERTY &rest ARGS)  */)
   (ptrdiff_t nargs, Lisp_Object *args)
 {
   /* This function can GC.  */
-  Lisp_Object newargs[3];
   struct gcpro gcpro1, gcpro2;
   Lisp_Object result;
 
-  newargs[0] = Fwidget_get (args[0], args[1]);
-  newargs[1] = args[0];
-  newargs[2] = Flist (nargs - 2, args + 2);
-  GCPRO2 (newargs[0], newargs[2]);
-  result = Fapply (3, newargs);
-  UNGCPRO;
+  result = call3 (intern ("apply"),
+                  Fwidget_get (args[0], args[1]),
+                  args[0],
+                  Flist (nargs - 2, args + 2));
   return result;
 }
 

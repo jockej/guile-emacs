@@ -1435,39 +1435,6 @@ for this variable.  */)
     default: emacs_abort ();
     }
 }
-
-DEFUN ("setq-default", Fsetq_default, Ssetq_default, 0, UNEVALLED, 0,
-       doc: /* Set the default value of variable VAR to VALUE.
-VAR, the variable name, is literal (not evaluated);
-VALUE is an expression: it is evaluated and its value returned.
-The default value of a variable is seen in buffers
-that do not have their own values for the variable.
-
-More generally, you can use multiple variables and values, as in
-  (setq-default VAR VALUE VAR VALUE...)
-This sets each VAR's default value to the corresponding VALUE.
-The VALUE for the Nth VAR can refer to the new default values
-of previous VARs.
-usage: (setq-default [VAR VALUE]...)  */)
-  (Lisp_Object args)
-{
-  Lisp_Object args_left, symbol, val;
-  struct gcpro gcpro1;
-
-  args_left = val = args;
-  GCPRO1 (args);
-
-  while (CONSP (args_left))
-    {
-      val = eval_sub (Fcar (XCDR (args_left)));
-      symbol = XCAR (args_left);
-      Fset_default (symbol, val);
-      args_left = Fcdr (XCDR (args_left));
-    }
-
-  UNGCPRO;
-  return val;
-}
 
 /* Lisp functions for creating and removing buffer-local variables.  */
 
