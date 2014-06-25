@@ -261,7 +261,9 @@ The return value is undefined.
 
 ;; Redefined in byte-optimize.el.
 ;; This is not documented--it's not clear that we should promote it.
-(fset 'inline 'progn)
+
+(defmacro inline (&rest body)
+  (cons 'progn body))
 
 ;;; Interface to inline functions.
 
