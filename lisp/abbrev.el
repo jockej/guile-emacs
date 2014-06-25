@@ -32,7 +32,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl-lib))
+;;(eval-when-compile (require 'cl-lib))
 
 (defgroup abbrev-mode nil
   "Word abbreviations mode."
@@ -533,7 +533,7 @@ the current abbrev table before abbrev lookup happens."
     (dotimes (i (length table))
       (aset table i 0))
     ;; Preserve the table's properties.
-    (cl-assert sym)
+    ;;(cl-assert sym)
     (let ((newsym (intern "" table)))
       (set newsym nil)	     ; Make sure it won't be confused for an abbrev.
       (setplist newsym (symbol-plist sym)))
@@ -614,7 +614,9 @@ current (if global is nil) or standard syntax table."
       (let ((badchars ())
             (pos 0))
         (while (string-match "\\W" abbrev pos)
-          (cl-pushnew (aref abbrev (match-beginning 0)) badchars)
+          (let ((x (aref abbrev (match-beginning 0))))
+            (if (not (memql x badchars))
+                (setq badchars (cons x badchars))))
           (setq pos (1+ pos)))
         (error "Some abbrev characters (%s) are not word constituents %s"
                (apply 'string (nreverse badchars))

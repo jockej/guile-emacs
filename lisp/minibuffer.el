@@ -87,7 +87,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl-lib))
+;;(eval-when-compile (require 'cl-lib))
 
 (defun minibuf-conform-representation (string basis)
   (cond
@@ -847,7 +847,7 @@ for use at QPOS."
              (qsuffix (cdr action))
              (ufull (if (zerop (length qsuffix)) ustring
                       (funcall unquote (concat string qsuffix))))
-             (_ (cl-assert (string-prefix-p ustring ufull)))
+             ;;(_ (cl-assert (string-prefix-p ustring ufull)))
              (usuffix (substring ufull (length ustring)))
              (boundaries (completion-boundaries ustring table pred usuffix))
              (qlboundary (car (funcall requote (car boundaries) string)))
@@ -997,7 +997,7 @@ for use at QPOS."
          ;;            (concat (substring ustring 0 boundary) prefix))
          ;;           t))
          (qboundary (car (funcall requote boundary string)))
-         (_ (cl-assert (<= qboundary qfullpos)))
+         ;;(_ (cl-assert (<= qboundary qfullpos)))
          ;; FIXME: this split/quote/concat business messes up the carefully
          ;; placed completions-common-part and completions-first-difference
          ;; faces.  We could try within the mapcar loop to search for the
@@ -1020,7 +1020,7 @@ for use at QPOS."
       ;; which only get quoted when needed by choose-completion.
       (nconc
        (mapcar (lambda (completion)
-                 (cl-assert (string-prefix-p prefix completion 'ignore-case) t)
+                 ;;(cl-assert (string-prefix-p prefix completion 'ignore-case) t)
                  (let* ((new (substring completion (length prefix)))
                         (qnew (funcall qfun new))
  			(qprefix
@@ -1256,12 +1256,12 @@ completing buffer and file names, respectively."
   ;; part of the string (e.g. substitute-in-file-name).
   (let ((requote
          (when (completion-metadata-get metadata 'completion--unquote-requote)
-           (cl-assert (functionp table))
+           ;;(cl-assert (functionp table))
            (let ((new (funcall table string point 'completion--unquote)))
              (setq string (pop new))
              (setq table (pop new))
              (setq point (pop new))
-	     (cl-assert (<= point (length string)))
+	     ;;(cl-assert (<= point (length string)))
              (pop new))))
         (result
          (completion--some (lambda (style)
@@ -2122,7 +2122,7 @@ variables.")
 (defun completion--done (string &optional finished message)
   (let* ((exit-fun (plist-get completion-extra-properties :exit-function))
          (pre-msg (and exit-fun (current-message))))
-    (cl-assert (memq finished '(exact sole finished unknown)))
+    ;;(cl-assert (memq finished '(exact sole finished unknown)))
     (when exit-fun
       (when (eq finished 'unknown)
         (setq finished
@@ -2296,7 +2296,7 @@ This calls the function that `completion-in-region-function' specifies
 \(passing the same four arguments that it received) to do the work,
 and returns whatever it does.  The return value should be nil
 if there was no valid completion, else t."
-  (cl-assert (<= start (point)) (<= (point) end))
+  ;;(cl-assert (<= start (point)) (<= (point) end))
   (funcall completion-in-region-function start end collection predicate))
 
 (defcustom read-file-name-completion-ignore-case
@@ -2376,7 +2376,7 @@ This respects the wrapper hook `completion-in-region-functions'."
         (unless (equal "*Completions*" (buffer-name (window-buffer)))
           (minibuffer-hide-completions)))
     ;; (add-hook 'pre-command-hook #'completion-in-region--prech)
-    (cl-assert completion-in-region-mode-predicate)
+    ;;(cl-assert completion-in-region-mode-predicate)
     (setq completion-in-region-mode--predicate
 	  completion-in-region-mode-predicate)
     (add-hook 'post-command-hook #'completion-in-region--postch)
@@ -3546,7 +3546,7 @@ the same set of elements."
                               (let ((skip (length prefix)))
                                 (mapcar (lambda (str) (substring str skip))
                                         comps))))))
-                      (cl-assert (stringp suffix))
+                      ;;(cl-assert (stringp suffix))
                       (unless (equal suffix "")
                         (push suffix res)))))
                 (setq fixed "")))))

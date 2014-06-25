@@ -195,8 +195,8 @@ LEVEL is only used internally and indicates the nesting level:
 		    list nil))
 	  ;; Otherwise, put any preceding nonspliced items into LISTS.
 	  (if list
-	      (push (backquote-listify list '(0 . nil)) lists))
-	  (push (cdr item) lists)
+              (setq lists (cons (backquote-listify list '(0 . nil)) lists)))
+          (setq lists (cons (cdr item) lists))
 	  (setq list nil))
 	 (t
 	  (setq list (cons item list))))
@@ -204,8 +204,9 @@ LEVEL is only used internally and indicates the nesting level:
       ;; Handle nonsplicing final elements, and the tail of the list
       ;; (which remains in REST).
       (if (or rest list)
-	  (push (backquote-listify list (backquote-process rest level))
-                lists))
+          (setq lists (cons (backquote-listify list
+                                               (backquote-process rest level))
+                            lists)))
       ;; Turn LISTS into a form that produces the combined list.
       (setq expression
 	    (if (or (cdr lists)

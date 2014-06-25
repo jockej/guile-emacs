@@ -150,9 +150,11 @@ except that PLACE is only evaluated once (after NEWELT)."
       (list 'setq place
             (list 'cons newelt place))
     (require 'macroexp)
-    (macroexp-let2 macroexp-copyable-p v newelt
-      (gv-letplace (getter setter) place
-        (funcall setter `(cons ,v ,getter))))))
+    (eval `(let ((newelt ',newelt)
+                 (place ',place))
+             (macroexp-let2 macroexp-copyable-p v newelt
+               (gv-letplace (getter setter) place
+                 (funcall setter (list 'cons v getter))))))))
 
 (defmacro pop (place)
   "Return the first element of PLACE's value, and remove it from the list.
@@ -188,38 +190,6 @@ value of last one, or nil if there are none.
 \(fn COND BODY...)"
   (declare (indent 1) (debug t))
   (cons 'if (cons cond (cons nil body))))
-
-(defmacro dolist (spec &rest body)
-  "Loop over a list.
-Evaluate BODY with VAR bound to each car from LIST, in turn.
-Then evaluate RESULT to get return value, default nil.
-
-\(fn (VAR LIST [RESULT]) BODY...)"
-  (declare (indent 1) (debug ((symbolp form &optional form) body)))
-  ;; It would be cleaner to create an uninterned symbol,
-  ;; but that uses a lot more space when many functions in many files
-  ;; use dolist.
-  ;; FIXME: This cost disappears in byte-compiled lexical-binding files.
-  (let ((temp '--dolist-tail--))
-    ;; This is not a reliable test, but it does not matter because both
-    ;; semantics are acceptable, tho one is slightly faster with dynamic
-    ;; scoping and the other is slightly faster (and has cleaner semantics)
-    ;; with lexical scoping.
-    (if lexical-binding
-        `(let ((,temp ,(nth 1 spec)))
-           (while ,temp
-             (let ((,(car spec) (car ,temp)))
-               ,@body
-               (setq ,temp (cdr ,temp))))
-           ,@(cdr (cdr spec)))
-      `(let ((,temp ,(nth 1 spec))
-             ,(car spec))
-         (while ,temp
-           (setq ,(car spec) (car ,temp))
-           ,@body
-           (setq ,temp (cdr ,temp)))
-         ,@(if (cdr (cdr spec))
-               `((setq ,(car spec) nil) ,@(cdr (cdr spec))))))))
 
 (defmacro dotimes (spec &rest body)
   "Loop a certain number of times.
@@ -1123,6 +1093,16 @@ pixels.  POSITION should be a list of the form returned by
 
 (declare-function scroll-bar-scale "scroll-bar" (num-denom whole))
 
+(defmacro with-current-buffer (buffer-or-name &rest body)
+  "Execute the forms in BODY with BUFFER-OR-NAME temporarily current.
+BUFFER-OR-NAME must be a buffer or the name of an existing buffer.
+The value returned is the value of the last form in BODY.  See
+also `with-temp-buffer'."
+  (declare (indent 1) (debug t))
+  `(save-current-buffer
+     (set-buffer ,buffer-or-name)
+     ,@body))
+
 (defun posn-col-row (position)
   "Return the nominal column and row in POSITION, measured in characters.
 The column and row values are approximations calculated from the x
@@ -1874,6 +1854,19 @@ and the file name is displayed in the echo area."
     file))
 
 
+(defmacro with-temp-buffer (&rest body)
+  "Create a temporary buffer, and evaluate BODY there like `progn'.
+See also `with-temp-file' and `with-output-to-string'."
+  (declare (indent 0) (debug t))
+  (let ((temp-buffer (make-symbol "temp-buffer")))
+    `(let ((,temp-buffer (generate-new-buffer " *temp*")))
+       ;; FIXME: kill-buffer can change current-buffer in some odd cases.
+       (with-current-buffer ,temp-buffer
+         (unwind-protect
+	     (progn ,@body)
+           (and (buffer-name ,temp-buffer)
+                (kill-buffer ,temp-buffer)))))))
+
 ;;;; Process stuff.
 
 (defun process-lines (program &rest args)
@@ -1998,6 +1991,49 @@ some sort of escape sequence, the ambiguity is resolved via `read-key-delay'."
 	  (aref	(catch 'read-key (read-key-sequence-vector prompt nil t)) 0))
       (cancel-timer timer)
       (use-global-map old-global-map))))
+
+(defmacro minibuffer-with-setup-hook (fun &rest body)
+  "Temporarily add FUN to `minibuffer-setup-hook' while executing BODY.
+BODY should use the minibuffer at most once.
+Recursive uses of the minibuffer are unaffected (FUN is not
+called additional times).
+
+This macro actually adds an auxiliary function that calls FUN,
+rather than FUN itself, to `minibuffer-setup-hook'."
+  (declare (indent 1) (debug t))
+  (let ((hook (make-symbol "setup-hook"))
+        (funsym (make-symbol "fun")))
+    `(let ((,funsym ,fun)
+           ,hook)
+       (setq ,hook
+	     (lambda ()
+	       ;; Clear out this hook so it does not interfere
+	       ;; with any recursive minibuffer usage.
+	       (remove-hook 'minibuffer-setup-hook ,hook)
+	       (funcall ,funsym)))
+       (unwind-protect
+	   (progn
+	     (add-hook 'minibuffer-setup-hook ,hook)
+	     ,@body)
+	 (remove-hook 'minibuffer-setup-hook ,hook)))))
+
+(defmacro save-window-excursion (&rest body)
+  "Execute BODY, then restore previous window configuration.
+This macro saves the window configuration on the selected frame,
+executes BODY, then calls `set-window-configuration' to restore
+the saved window configuration.  The return value is the last
+form in BODY.  The window configuration is also restored if BODY
+exits nonlocally.
+
+BEWARE: Most uses of this macro introduce bugs.
+E.g. it should not be used to try and prevent some code from opening
+a new window, since that window may sometimes appear in another frame,
+in which case `save-window-excursion' cannot help."
+  (declare (indent 0) (debug t))
+  (let ((c (make-symbol "wconfig")))
+    `(let ((,c (current-window-configuration)))
+       (unwind-protect (progn ,@body)
+         (set-window-configuration ,c)))))
 
 (defvar read-passwd-map
   ;; BEWARE: `defconst' would purecopy it, breaking the sharing with
@@ -2939,16 +2975,6 @@ Similar to `call-process-shell-command', but calls `process-file'."
 
 ;;;; Lisp macros to do various things temporarily.
 
-(defmacro with-current-buffer (buffer-or-name &rest body)
-  "Execute the forms in BODY with BUFFER-OR-NAME temporarily current.
-BUFFER-OR-NAME must be a buffer or the name of an existing buffer.
-The value returned is the value of the last form in BODY.  See
-also `with-temp-buffer'."
-  (declare (indent 1) (debug t))
-  `(save-current-buffer
-     (set-buffer ,buffer-or-name)
-     ,@body))
-
 (defun internal--before-with-selected-window (window)
   (let ((other-frame (window-frame window)))
     (list window (selected-window)
@@ -3017,24 +3043,6 @@ the buffer list."
 	   (select-frame ,old-frame 'norecord))
 	 (when (buffer-live-p ,old-buffer)
 	   (set-buffer ,old-buffer))))))
-
-(defmacro save-window-excursion (&rest body)
-  "Execute BODY, then restore previous window configuration.
-This macro saves the window configuration on the selected frame,
-executes BODY, then calls `set-window-configuration' to restore
-the saved window configuration.  The return value is the last
-form in BODY.  The window configuration is also restored if BODY
-exits nonlocally.
-
-BEWARE: Most uses of this macro introduce bugs.
-E.g. it should not be used to try and prevent some code from opening
-a new window, since that window may sometimes appear in another frame,
-in which case `save-window-excursion' cannot help."
-  (declare (indent 0) (debug t))
-  (let ((c (make-symbol "wconfig")))
-    `(let ((,c (current-window-configuration)))
-       (unwind-protect (progn ,@body)
-         (set-window-configuration ,c)))))
 
 (defun internal-temp-output-buffer-show (buffer)
   "Internal function for `with-output-to-temp-buffer'."
@@ -3167,19 +3175,6 @@ Use a MESSAGE of \"\" to temporarily clear the echo area."
 		  (message "%s" ,current-message)
 		(message nil)))))))
 
-(defmacro with-temp-buffer (&rest body)
-  "Create a temporary buffer, and evaluate BODY there like `progn'.
-See also `with-temp-file' and `with-output-to-string'."
-  (declare (indent 0) (debug t))
-  (let ((temp-buffer (make-symbol "temp-buffer")))
-    `(let ((,temp-buffer (generate-new-buffer " *temp*")))
-       ;; FIXME: kill-buffer can change current-buffer in some odd cases.
-       (with-current-buffer ,temp-buffer
-         (unwind-protect
-	     (progn ,@body)
-           (and (buffer-name ,temp-buffer)
-                (kill-buffer ,temp-buffer)))))))
-
 (defmacro with-silent-modifications (&rest body)
   "Execute BODY, pretending it does not modify the buffer.
 If BODY performs real modifications to the buffer's text, other
@@ -3282,7 +3277,7 @@ used is \"Error: %S\"."
                   (prog1 "Error: %S"
                     (if format (push format body))))))
     `(condition-case-unless-debug ,err
-         ,(macroexp-progn body)
+         (progn ,@body)
        (error (message ,format ,err) nil))))
 
 (defmacro combine-after-change-calls (&rest body)
@@ -4181,186 +4176,6 @@ The properties used on SYMBOL are `composefunc', `sendfunc',
   (put symbol 'abortfunc (or abortfunc 'kill-buffer))
   (put symbol 'hookvar (or hookvar 'mail-send-hook)))
 
-(defvar called-interactively-p-functions nil
-  "Special hook called to skip special frames in `called-interactively-p'.
-The functions are called with 3 arguments: (I FRAME1 FRAME2),
-where FRAME1 is a \"current frame\", FRAME2 is the next frame,
-I is the index of the frame after FRAME2.  It should return nil
-if those frames don't seem special and otherwise, it should return
-the number of frames to skip (minus 1).")
-
-(defconst internal--funcall-interactively
-  (symbol-function 'funcall-interactively))
-
-(defun called-interactively-p (&optional kind)
-  "Return t if the containing function was called by `call-interactively'.
-If KIND is `interactive', then only return t if the call was made
-interactively by the user, i.e. not in `noninteractive' mode nor
-when `executing-kbd-macro'.
-If KIND is `any', on the other hand, it will return t for any kind of
-interactive call, including being called as the binding of a key or
-from a keyboard macro, even in `noninteractive' mode.
-
-This function is very brittle, it may fail to return the intended result when
-the code is debugged, advised, or instrumented in some form.  Some macros and
-special forms (such as `condition-case') may also sometimes wrap their bodies
-in a `lambda', so any call to `called-interactively-p' from those bodies will
-indicate whether that lambda (rather than the surrounding function) was called
-interactively.
-
-Instead of using this function, it is cleaner and more reliable to give your
-function an extra optional argument whose `interactive' spec specifies
-non-nil unconditionally (\"p\" is a good way to do this), or via
-\(not (or executing-kbd-macro noninteractive)).
-
-The only known proper use of `interactive' for KIND is in deciding
-whether to display a helpful message, or how to display it.  If you're
-thinking of using it for any other purpose, it is quite likely that
-you're making a mistake.  Think: what do you want to do when the
-command is called from a keyboard macro?"
-  (declare (advertised-calling-convention (kind) "23.1"))
-  (when (not (and (eq kind 'interactive)
-                  (or executing-kbd-macro noninteractive)))
-    (let* ((i 1) ;; 0 is the called-interactively-p frame.
-           frame nextframe
-           (get-next-frame
-            (lambda ()
-              (setq frame nextframe)
-              (setq nextframe (backtrace-frame i 'called-interactively-p))
-              ;; (message "Frame %d = %S" i nextframe)
-              (setq i (1+ i)))))
-      (funcall get-next-frame) ;; Get the first frame.
-      (while
-          ;; FIXME: The edebug and advice handling should be made modular and
-          ;; provided directly by edebug.el and nadvice.el.
-          (progn
-            ;; frame    =(backtrace-frame i-2)
-            ;; nextframe=(backtrace-frame i-1)
-            (funcall get-next-frame)
-            ;; `pcase' would be a fairly good fit here, but it sometimes moves
-            ;; branches within local functions, which then messes up the
-            ;; `backtrace-frame' data we get,
-            (or
-             ;; Skip special forms (from non-compiled code).
-             (and frame (null (car frame)))
-             ;; Skip also `interactive-p' (because we don't want to know if
-             ;; interactive-p was called interactively but if it's caller was)
-             ;; and `byte-code' (idem; this appears in subexpressions of things
-             ;; like condition-case, which are wrapped in a separate bytecode
-             ;; chunk).
-             ;; FIXME: For lexical-binding code, this is much worse,
-             ;; because the frames look like "byte-code -> funcall -> #[...]",
-             ;; which is not a reliable signature.
-             (memq (nth 1 frame) '(interactive-p 'byte-code))
-             ;; Skip package-specific stack-frames.
-             (let ((skip (run-hook-with-args-until-success
-                          'called-interactively-p-functions
-                          i frame nextframe)))
-               (pcase skip
-                 (`nil nil)
-                 (`0 t)
-                 (_ (setq i (+ i skip -1)) (funcall get-next-frame)))))))
-      ;; Now `frame' should be "the function from which we were called".
-      (pcase (cons frame nextframe)
-        ;; No subr calls `interactive-p', so we can rule that out.
-        (`((,_ ,(pred (lambda (f) (subrp (indirect-function f)))) . ,_) . ,_) nil)
-        ;; In case #<subr funcall-interactively> without going through the
-        ;; `funcall-interactively' symbol (bug#3984).
-        (`(,_ . (t ,(pred (lambda (f)
-                            (eq internal--funcall-interactively
-                                (indirect-function f))))
-                   . ,_))
-         t)))))
-
-(defun interactive-p ()
-  "Return t if the containing function was run directly by user input.
-This means that the function was called with `call-interactively'
-\(which includes being called as the binding of a key)
-and input is currently coming from the keyboard (not a keyboard macro),
-and Emacs is not running in batch mode (`noninteractive' is nil).
-
-The only known proper use of `interactive-p' is in deciding whether to
-display a helpful message, or how to display it.  If you're thinking
-of using it for any other purpose, it is quite likely that you're
-making a mistake.  Think: what do you want to do when the command is
-called from a keyboard macro or in batch mode?
-
-To test whether your function was called with `call-interactively',
-either (i) add an extra optional argument and give it an `interactive'
-spec that specifies non-nil unconditionally (such as \"p\"); or (ii)
-use `called-interactively-p'."
-  (declare (obsolete called-interactively-p "23.2"))
-  (called-interactively-p 'interactive))
-
-(defun internal-push-keymap (keymap symbol)
-  (let ((map (symbol-value symbol)))
-    (unless (memq keymap map)
-      (unless (memq 'add-keymap-witness (symbol-value symbol))
-        (setq map (make-composed-keymap nil (symbol-value symbol)))
-        (push 'add-keymap-witness (cdr map))
-        (set symbol map))
-      (push keymap (cdr map)))))
-
-(defun internal-pop-keymap (keymap symbol)
-  (let ((map (symbol-value symbol)))
-    (when (memq keymap map)
-      (setf (cdr map) (delq keymap (cdr map))))
-    (let ((tail (cddr map)))
-      (and (or (null tail) (keymapp tail))
-           (eq 'add-keymap-witness (nth 1 map))
-           (set symbol tail)))))
-
-(define-obsolete-function-alias
-  'set-temporary-overlay-map 'set-transient-map "24.4")
-
-(defun set-transient-map (map &optional keep-pred on-exit)
-  "Set MAP as a temporary keymap taking precedence over other keymaps.
-Normally, MAP is used only once, to look up the very next key.
-However, if the optional argument KEEP-PRED is t, MAP stays
-active if a key from MAP is used.  KEEP-PRED can also be a
-function of no arguments: if it returns non-nil, then MAP stays
-active.
-
-Optional arg ON-EXIT, if non-nil, specifies a function that is
-called, with no arguments, after MAP is deactivated.
-
-This uses `overriding-terminal-local-map' which takes precedence over all other
-keymaps.  As usual, if no match for a key is found in MAP, the normal key
-lookup sequence then continues."
-  (let ((clearfun (make-symbol "clear-transient-map")))
-    ;; Don't use letrec, because equal (in add/remove-hook) would get trapped
-    ;; in a cycle.
-    (fset clearfun
-          (lambda ()
-            (with-demoted-errors "set-transient-map PCH: %S"
-              (unless (cond
-                       ((null keep-pred) nil)
-                       ((not (eq map (cadr overriding-terminal-local-map)))
-                        ;; There's presumably some other transient-map in
-                        ;; effect.  Wait for that one to terminate before we
-                        ;; remove ourselves.
-                        ;; For example, if isearch and C-u both use transient
-                        ;; maps, then the lifetime of the C-u should be nested
-                        ;; within isearch's, so the pre-command-hook of
-                        ;; isearch should be suspended during the C-u one so
-                        ;; we don't exit isearch just because we hit 1 after
-                        ;; C-u and that 1 exits isearch whereas it doesn't
-                        ;; exit C-u.
-                        t)
-                       ((eq t keep-pred)
-                        (eq this-command
-                            (lookup-key map (this-command-keys-vector))))
-                       (t (funcall keep-pred)))
-                (internal-pop-keymap map 'overriding-terminal-local-map)
-                (remove-hook 'pre-command-hook clearfun)
-                 (when on-exit (funcall on-exit))
-                 ;; Comment out the fset if you want to debug the GC bug.
-;;;		(fset clearfun nil)
-;;;             (set clearfun nil)
-                 ))))
-    (add-hook 'pre-command-hook clearfun)
-    (internal-push-keymap map 'overriding-terminal-local-map)))
-
 ;;;; Progress reporters.
 
 ;; Progress reporter has the following structure:

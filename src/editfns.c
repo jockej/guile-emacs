@@ -3405,13 +3405,13 @@ use `save-excursion' outermost:
     (save-excursion (save-restriction ...))
 
 usage: (save-restriction &rest BODY)  */)
-  (Lisp_Object body)
+  (Lisp_Object thunk)
 {
   register Lisp_Object val;
   dynwind_begin ();
 
   record_unwind_protect (save_restriction_restore, save_restriction_save ());
-  val = Fprogn (body);
+  val = call0 (thunk);
   dynwind_end ();
   return val;
 }

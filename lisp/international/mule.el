@@ -1416,6 +1416,9 @@ graphical terminals."
   (set-keyboard-coding-system-internal coding-system terminal)
   (setq keyboard-coding-system coding-system))
 
+(defmacro defcustom (var val &rest ignore)
+  `(defvar ,var ,val))
+
 (defcustom keyboard-coding-system nil
   "Specify coding system for keyboard input.
 If you set this on a terminal which can't distinguish Meta keys from

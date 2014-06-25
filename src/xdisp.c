@@ -13378,7 +13378,7 @@ redisplay_internal (void)
   specbind (Qinhibit_free_realized_faces, Qnil);
 
   /* Record this function, so it appears on the profiler's backtraces.  */
-  record_in_backtrace (Qredisplay_internal, &Qnil, 0);
+  /*record_in_backtrace (Qredisplay_internal, &Qnil, 0);*/
 
   FOR_EACH_FRAME (tail, frame)
     XFRAME (frame)->already_hscrolled_p = 0;

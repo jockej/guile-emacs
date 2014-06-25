@@ -376,7 +376,7 @@ compressed when writing."
 				      file-local-copy load))
 
 ;; Turn on the mode.
-(when auto-compression-mode (auto-compression-mode 1))
+;(when auto-compression-mode (auto-compression-mode 1))
 
 (provide 'jka-cmpr-hook)
 

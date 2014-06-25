@@ -28,6 +28,75 @@
 
 ;;; Code:
 
+(defun internal-push-keymap (keymap symbol)
+  (let ((map (symbol-value symbol)))
+    (unless (memq keymap map)
+      (unless (memq 'add-keymap-witness (symbol-value symbol))
+        (setq map (make-composed-keymap nil (symbol-value symbol)))
+        (push 'add-keymap-witness (cdr map))
+        (set symbol map))
+      (push keymap (cdr map)))))
+
+(defun internal-pop-keymap (keymap symbol)
+  (let ((map (symbol-value symbol)))
+    (when (memq keymap map)
+      (setf (cdr map) (delq keymap (cdr map))))
+    (let ((tail (cddr map)))
+      (and (or (null tail) (keymapp tail))
+           (eq 'add-keymap-witness (nth 1 map))
+           (set symbol tail)))))
+
+(define-obsolete-function-alias
+  'set-temporary-overlay-map 'set-transient-map "24.4")
+
+(defun set-transient-map (map &optional keep-pred on-exit)
+  "Set MAP as a temporary keymap taking precedence over other keymaps.
+Normally, MAP is used only once, to look up the very next key.
+However, if the optional argument KEEP-PRED is t, MAP stays
+active if a key from MAP is used.  KEEP-PRED can also be a
+function of no arguments: if it returns non-nil, then MAP stays
+active.
+
+Optional arg ON-EXIT, if non-nil, specifies a function that is
+called, with no arguments, after MAP is deactivated.
+
+This uses `overriding-terminal-local-map' which takes precedence over all other
+keymaps.  As usual, if no match for a key is found in MAP, the normal key
+lookup sequence then continues."
+  (let ((clearfun (make-symbol "clear-transient-map")))
+    ;; Don't use letrec, because equal (in add/remove-hook) would get trapped
+    ;; in a cycle.
+    (fset clearfun
+          (lambda ()
+            (with-demoted-errors "set-transient-map PCH: %S"
+              (unless (cond
+                       ((null keep-pred) nil)
+                       ((not (eq map (cadr overriding-terminal-local-map)))
+                        ;; There's presumably some other transient-map in
+                        ;; effect.  Wait for that one to terminate before we
+                        ;; remove ourselves.
+                        ;; For example, if isearch and C-u both use transient
+                        ;; maps, then the lifetime of the C-u should be nested
+                        ;; within isearch's, so the pre-command-hook of
+                        ;; isearch should be suspended during the C-u one so
+                        ;; we don't exit isearch just because we hit 1 after
+                        ;; C-u and that 1 exits isearch whereas it doesn't
+                        ;; exit C-u.
+                        t)
+                       ((eq t keep-pred)
+                        (eq this-command
+                            (lookup-key map (this-command-keys-vector))))
+                       (t (funcall keep-pred)))
+                (internal-pop-keymap map 'overriding-terminal-local-map)
+                (remove-hook 'pre-command-hook clearfun)
+                 (when on-exit (funcall on-exit))
+                 ;; Comment out the fset if you want to debug the GC bug.
+;;;		(fset clearfun nil)
+;;;             (set clearfun nil)
+                 ))))
+    (add-hook 'pre-command-hook clearfun)
+    (internal-push-keymap map 'overriding-terminal-local-map)))
+
 (declare-function widget-convert "wid-edit" (type &rest args))
 (declare-function shell-mode "shell" ())
 
