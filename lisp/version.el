@@ -193,8 +193,4 @@ only ask the VCS if we cannot find any information ourselves."
 		  (not (zerop (buffer-size)))
 		  (replace-regexp-in-string "\n" "" (buffer-string))))))))
 
-;; We put version info into the executable in the form that `ident' uses.
-(purecopy (concat "\n$Id: " (subst-char-in-string ?\n ?\s (emacs-version))
-		  " $\n"))
-
 ;;; version.el ends here
