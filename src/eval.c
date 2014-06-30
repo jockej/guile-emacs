@@ -1168,7 +1168,6 @@ unwind_to_catch (struct handler *catch, Lisp_Object value)
 
   eassert (handlerlist == catch);
 
-  byte_stack_list = catch->byte_stack;
   gcprolist = catch->gcpro;
 #ifdef DEBUG_GCPRO
   gcpro_level = gcprolist ? gcprolist->level + 1 : 0;
@@ -1478,8 +1477,7 @@ See also the function `condition-case'.  */)
   struct handler *h;
 
   immediate_quit = 0;
-  abort_on_gc = 0;
-  if (gc_in_progress || waiting_for_input)
+  if (waiting_for_input)
     emacs_abort ();
 
 #if 0 /* rms: I don't know why this was here,
@@ -3642,41 +3640,6 @@ NFRAMES and BASE specify the activation frame to use, as in `backtrace-frame'.  
 }
 
 
-void
-mark_specpdl (void)
-{
-  union specbinding *pdl;
-  for (pdl = specpdl; pdl != specpdl_ptr; pdl++)
-    {
-      switch (pdl->kind)
-	{
-	case SPECPDL_UNWIND:
-	  mark_object (specpdl_arg (pdl));
-	  break;
-
-	case SPECPDL_BACKTRACE:
-	  {
-	    ptrdiff_t nargs = backtrace_nargs (pdl);
-	    mark_object (backtrace_function (pdl));
-	    if (nargs == UNEVALLED)
-	      nargs = 1;
-	    while (nargs--)
-	      mark_object (backtrace_args (pdl)[nargs]);
-	  }
-	  break;
-
-	case SPECPDL_LET_DEFAULT:
-	case SPECPDL_LET_LOCAL:
-	  mark_object (specpdl_where (pdl));
-	  /* Fall through.  */
-	case SPECPDL_LET:
-	  mark_object (specpdl_symbol (pdl));
-	  mark_object (specpdl_old_value (pdl));
-	  break;
-	}
-    }
-}
-
 void
 get_backtrace (Lisp_Object array)
 {

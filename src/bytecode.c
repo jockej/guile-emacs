@@ -293,9 +293,6 @@ enum byte_code_op
     Bset_mark = 0163, /* this loser is no longer generated as of v18 */
 #endif
 };
-
-/* Whether to maintain a `top' and `bottom' field in the stack frame.  */
-#define BYTE_MAINTAIN_TOP (BYTE_CODE_SAFE || BYTE_MARK_STACK)
 
 /* Structure describing a value stack used during byte-code execution
    in Fbyte_code.  */
@@ -305,12 +302,6 @@ struct byte_stack
   /* Program counter.  This points into the byte_string below
      and is relocated when that string is relocated.  */
   const unsigned char *pc;
-
-  /* Top and bottom of stack.  The bottom points to an area of memory
-     allocated with alloca in Fbyte_code.  */
-#if BYTE_MAINTAIN_TOP
-  Lisp_Object *top, *bottom;
-#endif
 
   /* The string containing the byte-code, and its current address.
      Storing this here protects it from GC because mark_byte_stack
@@ -323,68 +314,7 @@ struct byte_stack
      this here protects it from GC because mark_byte_stack marks it.  */
   Lisp_Object constants;
 #endif
-
-  /* Next entry in byte_stack_list.  */
-  struct byte_stack *next;
 };
-
-/* A list of currently active byte-code execution value stacks.
-   Fbyte_code adds an entry to the head of this list before it starts
-   processing byte-code, and it removes the entry again when it is
-   done.  Signaling an error truncates the list analogous to
-   gcprolist.  */
-
-struct byte_stack *byte_stack_list;
-
-
-/* Mark objects on byte_stack_list.  Called during GC.  */
-
-#if BYTE_MARK_STACK
-void
-mark_byte_stack (void)
-{
-  struct byte_stack *stack;
-  Lisp_Object *obj;
-
-  for (stack = byte_stack_list; stack; stack = stack->next)
-    {
-      /* If STACK->top is null here, this means there's an opcode in
-	 Fbyte_code that wasn't expected to GC, but did.  To find out
-	 which opcode this is, record the value of `stack', and walk
-	 up the stack in a debugger, stopping in frames of Fbyte_code.
-	 The culprit is found in the frame of Fbyte_code where the
-	 address of its local variable `stack' is equal to the
-	 recorded value of `stack' here.  */
-      eassert (stack->top);
-
-      for (obj = stack->bottom; obj <= stack->top; ++obj)
-	mark_object (*obj);
-
-      mark_object (stack->byte_string);
-      mark_object (stack->constants);
-    }
-}
-#endif
-
-/* Unmark objects in the stacks on byte_stack_list.  Relocate program
-   counters.  Called when GC has completed.  */
-
-void
-unmark_byte_stack (void)
-{
-  struct byte_stack *stack;
-
-  for (stack = byte_stack_list; stack; stack = stack->next)
-    {
-      if (stack->byte_string_start != SDATA (stack->byte_string))
-	{
-	  ptrdiff_t offset = stack->pc - stack->byte_string_start;
-	  stack->byte_string_start = SDATA (stack->byte_string);
-	  stack->pc = stack->byte_string_start + offset;
-	}
-    }
-}
-
 
 /* Fetch the next byte from the bytecode stream.  */
 
@@ -422,13 +352,8 @@ unmark_byte_stack (void)
 /* Actions that must be performed before and after calling a function
    that might GC.  */
 
-#if !BYTE_MAINTAIN_TOP
 #define BEFORE_POTENTIAL_GC()	((void)0)
 #define AFTER_POTENTIAL_GC()	((void)0)
-#else
-#define BEFORE_POTENTIAL_GC()	stack.top = top
-#define AFTER_POTENTIAL_GC()	stack.top = NULL
-#endif
 
 /* Garbage collect if we have consed enough since the last time.
    We do this at every branch, to avoid loops that never GC.  */
@@ -559,12 +484,6 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
   if (MAX_ALLOCA / word_size <= XFASTINT (maxdepth))
     memory_full (SIZE_MAX);
   top = alloca ((XFASTINT (maxdepth) + 1) * sizeof *top);
-#if BYTE_MAINTAIN_TOP
-  stack.bottom = top + 1;
-  stack.top = NULL;
-#endif
-  stack.next = byte_stack_list;
-  byte_stack_list = &stack;
 
 #ifdef BYTE_CODE_SAFE
   stacke = stack.bottom - 1 + XFASTINT (maxdepth);
@@ -2018,8 +1937,6 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
     }
 
  exit:
-
-  byte_stack_list = byte_stack_list->next;
 
   /* Binds and unbinds are supposed to be compiled balanced.  */
   if (SPECPDL_INDEX () != count)

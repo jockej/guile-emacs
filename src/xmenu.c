@@ -2060,11 +2060,6 @@ x_menu_show (struct frame *f, int x, int y, int menuflags,
       return Qnil;
     }
 
-  /* Don't GC while we prepare and show the menu,
-     because we give the oldxmenu library pointers to the
-     contents of strings.  */
-  inhibit_garbage_collection ();
-
 #ifdef HAVE_X_WINDOWS
   /* Adjust coordinates to relative to the outer (window manager) window.  */
   x += FRAME_OUTER_TO_INNER_DIFF_X (f);

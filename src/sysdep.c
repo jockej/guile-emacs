@@ -1950,9 +1950,6 @@ init_signals (bool dumping)
 #ifdef SIGVTALRM
   sigaction (SIGVTALRM, &process_fatal_action, 0);
 #endif
-#ifdef SIGXCPU
-  sigaction (SIGXCPU, &process_fatal_action, 0);
-#endif
 #ifdef SIGXFSZ
   sigaction (SIGXFSZ, &process_fatal_action, 0);
 #endif

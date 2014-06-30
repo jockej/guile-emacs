@@ -1822,37 +1822,6 @@ cache_image (struct frame *f, struct image *img)
   img->prev = NULL;
   c->buckets[i] = img;
 }
-
-
-/* Call FN on every image in the image cache of frame F.  Used to mark
-   Lisp Objects in the image cache.  */
-
-/* Mark Lisp objects in image IMG.  */
-
-static void
-mark_image (struct image *img)
-{
-  mark_object (img->spec);
-  mark_object (img->dependencies);
-
-  if (!NILP (img->lisp_data))
-    mark_object (img->lisp_data);
-}
-
-
-void
-mark_image_cache (struct image_cache *c)
-{
-  if (c)
-    {
-      ptrdiff_t i;
-      for (i = 0; i < c->used; ++i)
-	if (c->images[i])
-	  mark_image (c->images[i]);
-    }
-}
-
-
 
 /***********************************************************************
 			  X / NS / W32 support code

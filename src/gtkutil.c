@@ -2170,44 +2170,6 @@ unref_cl_data (xg_menu_cb_data *cl_data)
     }
 }
 
-/* Function that marks all lisp data during GC.  */
-
-void
-xg_mark_data (void)
-{
-  xg_list_node *iter;
-  Lisp_Object rest, frame;
-
-  for (iter = xg_menu_cb_list.next; iter; iter = iter->next)
-    mark_object (((xg_menu_cb_data *) iter)->menu_bar_vector);
-
-  for (iter = xg_menu_item_cb_list.next; iter; iter = iter->next)
-    {
-      xg_menu_item_cb_data *cb_data = (xg_menu_item_cb_data *) iter;
-
-      if (! NILP (cb_data->help))
-        mark_object (cb_data->help);
-    }
-
-  FOR_EACH_FRAME (rest, frame)
-    {
-      struct frame *f = XFRAME (frame);
-
-      if (FRAME_X_P (f) && FRAME_GTK_OUTER_WIDGET (f))
-        {
-          struct xg_frame_tb_info *tbinfo
-            = g_object_get_data (G_OBJECT (FRAME_GTK_OUTER_WIDGET (f)),
-                                 TB_INFO_KEY);
-          if (tbinfo)
-            {
-              mark_object (tbinfo->last_tool_bar);
-              mark_object (tbinfo->style);
-            }
-        }
-    }
-}
-
-
 /* Callback called when a menu item is destroyed.  Used to free data.
    W is the widget that is being destroyed (not used).
    CLIENT_DATA points to the xg_menu_item_cb_data associated with the W.  */

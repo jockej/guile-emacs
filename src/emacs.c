@@ -703,9 +703,6 @@ close_output_streams (void)
 int
 main (int argc, char **argv)
 {
-#if GC_MARK_STACK
-  Lisp_Object dummy;
-#endif
   char stack_bottom_variable;
   bool do_initial_setlocale;
   bool dumping;
@@ -723,10 +720,6 @@ main (int argc, char **argv)
 
   /* If we use --chdir, this records the original directory.  */
   char *original_pwd = 0;
-
-#if GC_MARK_STACK
-  stack_base = &dummy;
-#endif
 
 #ifdef G_SLICE_ALWAYS_MALLOC
   /* This is used by the Cygwin build.  It's not needed starting with

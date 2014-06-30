@@ -69,6 +69,8 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include TERM_HEADER
 #endif /* HAVE_WINDOW_SYSTEM */
 
+#include <gc.h> /* for GC_collect_a_little */
+
 /* Variables for blockinput.h:  */
 
 /* Positive if interrupt input is blocked right now.  */
@@ -2810,7 +2812,7 @@ read_char (int commandflag, Lisp_Object map,
 
       /* If there is still no input available, ask for GC.  */
       if (!detect_input_pending_run_timers (0))
-	maybe_gc ();
+	GC_collect_a_little ();
     }
 
   /* Notify the caller if an autosave hook, or a timer, sentinel or
@@ -10352,34 +10354,18 @@ handle_interrupt (bool in_signal_handler)
 	 is used.  Note that [Enter] is not echoed by dos.  */
       cursor_to (SELECTED_FRAME (), 0, 0);
 #endif
-      /* It doesn't work to autosave while GC is in progress;
-	 the code used for auto-saving doesn't cope with the mark bit.  */
-      if (!gc_in_progress)
-	{
-	  printf ("Auto-save? (y or n) ");
-	  fflush (stdout);
-	  if (((c = getchar ()) & ~040) == 'Y')
-	    {
-	      Fdo_auto_save (Qt, Qnil);
+      printf ("Auto-save? (y or n) ");
+      fflush (stdout);
+      if (((c = getchar ()) & ~040) == 'Y')
+        {
+          Fdo_auto_save (Qt, Qnil);
 #ifdef MSDOS
-	      printf ("\r\nAuto-save done");
+          printf ("\r\nAuto-save done");
 #else /* not MSDOS */
-	      printf ("Auto-save done\n");
+          printf ("Auto-save done\n");
 #endif /* not MSDOS */
-	    }
-	  while (c != '\n') c = getchar ();
-	}
-      else
-	{
-	  /* During GC, it must be safe to reenable quitting again.  */
-	  Vinhibit_quit = Qnil;
-#ifdef MSDOS
-	  printf ("\r\n");
-#endif /* not MSDOS */
-	  printf ("Garbage collection in progress; cannot auto-save now\r\n");
-	  printf ("but will instead do a real quit after garbage collection ends\r\n");
-	  fflush (stdout);
-	}
+        }
+      while (c != '\n') c = getchar ();
 
 #ifdef MSDOS
       printf ("\r\nAbort?  (y or n) ");
@@ -11758,53 +11744,4 @@ keys_of_keyboard (void)
 			    "handle-focus-in");
   initial_define_lispy_key (Vspecial_event_map, "focus-out",
 			    "handle-focus-out");
-}
-
-/* Mark the pointers in the kboard objects.
-   Called by Fgarbage_collect.  */
-void
-mark_kboards (void)
-{
-  KBOARD *kb;
-  Lisp_Object *p;
-  for (kb = all_kboards; kb; kb = kb->next_kboard)
-    {
-      if (kb->kbd_macro_buffer)
-	for (p = kb->kbd_macro_buffer; p < kb->kbd_macro_ptr; p++)
-	  mark_object (*p);
-      mark_object (KVAR (kb, Voverriding_terminal_local_map));
-      mark_object (KVAR (kb, Vlast_command));
-      mark_object (KVAR (kb, Vreal_last_command));
-      mark_object (KVAR (kb, Vkeyboard_translate_table));
-      mark_object (KVAR (kb, Vlast_repeatable_command));
-      mark_object (KVAR (kb, Vprefix_arg));
-      mark_object (KVAR (kb, Vlast_prefix_arg));
-      mark_object (KVAR (kb, kbd_queue));
-      mark_object (KVAR (kb, defining_kbd_macro));
-      mark_object (KVAR (kb, Vlast_kbd_macro));
-      mark_object (KVAR (kb, Vsystem_key_alist));
-      mark_object (KVAR (kb, system_key_syms));
-      mark_object (KVAR (kb, Vwindow_system));
-      mark_object (KVAR (kb, Vinput_decode_map));
-      mark_object (KVAR (kb, Vlocal_function_key_map));
-      mark_object (KVAR (kb, Vdefault_minibuffer_frame));
-      mark_object (KVAR (kb, echo_string));
-    }
-  {
-    struct input_event *event;
-    for (event = kbd_fetch_ptr; event != kbd_store_ptr; event++)
-      {
-	if (event == kbd_buffer + KBD_BUFFER_SIZE)
-	  event = kbd_buffer;
-	/* These two special event types has no Lisp_Objects to mark.  */
-	if (event->kind != SELECTION_REQUEST_EVENT
-	    && event->kind != SELECTION_CLEAR_EVENT)
-	  {
-	    mark_object (event->x);
-	    mark_object (event->y);
-	    mark_object (event->frame_or_window);
-	    mark_object (event->arg);
-	  }
-      }
-  }
 }
