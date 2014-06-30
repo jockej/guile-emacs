@@ -2065,22 +2065,12 @@ XSAVE_OBJECT (Lisp_Object obj, int n)
   return XSAVE_VALUE (obj)->data[n].object;
 }
 
-/* A miscellaneous object, when it's on the free list.  */
-struct Lisp_Free
-  {
-    ENUM_BF (Lisp_Misc_Type) type : 16;	/* = Lisp_Misc_Free */
-    bool_bf gcmarkbit : 1;
-    unsigned spacer : 15;
-    union Lisp_Misc *chain;
-  };
-
 /* To get the type field of a union Lisp_Misc, use XMISCTYPE.
    It uses one of these struct subtypes to get the type field.  */
 
 union Lisp_Misc
   {
     struct Lisp_Misc_Any u_any;	   /* Supertype of all Misc types.  */
-    struct Lisp_Free u_free;
     struct Lisp_Marker u_marker;
     struct Lisp_Overlay u_overlay;
     struct Lisp_Save_Value u_save_value;
