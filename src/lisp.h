@@ -4180,6 +4180,7 @@ extern void *xmalloc (size_t) ATTRIBUTE_MALLOC_SIZE ((1));
 extern void *xzalloc (size_t) ATTRIBUTE_MALLOC_SIZE ((1));
 extern void *xrealloc (void *, size_t) ATTRIBUTE_ALLOC_SIZE ((2));
 extern void xfree (void *);
+extern void *xmalloc_unsafe (size_t) ATTRIBUTE_MALLOC_SIZE ((1));
 extern void *xnmalloc (ptrdiff_t, ptrdiff_t) ATTRIBUTE_MALLOC_SIZE ((1,2));
 extern void *xnrealloc (void *, ptrdiff_t, ptrdiff_t)
   ATTRIBUTE_ALLOC_SIZE ((2,3));
