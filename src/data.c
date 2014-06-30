@@ -206,12 +206,6 @@ wrong_type_argument (register Lisp_Object predicate, register Lisp_Object value)
 }
 
 void
-pure_write_error (Lisp_Object obj)
-{
-  xsignal2 (Qerror, build_string ("Attempt to modify read-only object"), obj);
-}
-
-void
 args_out_of_range (Lisp_Object a1, Lisp_Object a2)
 {
   xsignal2 (Qargs_out_of_range, a1, a2);
