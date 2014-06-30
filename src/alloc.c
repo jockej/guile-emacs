@@ -1200,7 +1200,6 @@ Its value is void, and its function definition and property list are nil.  */)
   SET_SYMBOL_VAL (p, Qunbound);
   set_symbol_function (val, Qnil);
   set_symbol_next (val, NULL);
-  p->gcmarkbit = false;
   p->interned = SYMBOL_UNINTERNED;
   p->constant = 0;
   p->declared_special = false;
