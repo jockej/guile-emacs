@@ -4333,7 +4333,6 @@ lookup sequence then continues."
     ;; Don't use letrec, because equal (in add/remove-hook) would get trapped
     ;; in a cycle.
     (fset clearfun
-          (suspicious-object
           (lambda ()
             (with-demoted-errors "set-transient-map PCH: %S"
               (unless (cond
@@ -4360,7 +4359,7 @@ lookup sequence then continues."
                  ;; Comment out the fset if you want to debug the GC bug.
 ;;;		(fset clearfun nil)
 ;;;             (set clearfun nil)
-                 )))))
+                 ))))
     (add-hook 'pre-command-hook clearfun)
     (internal-push-keymap map 'overriding-terminal-local-map)))
 
