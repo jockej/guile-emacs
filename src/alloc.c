@@ -232,6 +232,14 @@ xfree (void *block)
   return;
 }
 
+/* Allocate memory, but if memory is exhausted, return NULL instead of
+   signalling an error.  */
+
+void *
+xmalloc_unsafe (size_t size)
+{
+  return GC_MALLOC (size);
+}
 
 /* Other parts of Emacs pass large int values to allocator functions
    expecting ptrdiff_t.  This is portable in practice, but check it to
