@@ -232,6 +232,23 @@ xfree (void *block)
   return;
 }
 
+/* Allocate pointerless memory.  */
+
+void *
+xmalloc_atomic (size_t size)
+{
+  void *val = GC_MALLOC_ATOMIC (size);
+  if (! val && size)
+    memory_full (size);
+  return val;
+}
+
+void *
+xzalloc_atomic (size_t size)
+{
+  return xmalloc_atomic (size);
+}
+
 /* Allocate uncollectable memory.  */
 
 void *
@@ -252,6 +269,15 @@ xmalloc_unsafe (size_t size)
   return GC_MALLOC (size);
 }
 
+/* Allocate pointerless memory, but if memory is exhausted, return
+   NULL instead of signalling an error.  */
+
+void *
+xmalloc_atomic_unsafe (size_t size)
+{
+  return GC_MALLOC_ATOMIC (size);
+}
+
 /* Other parts of Emacs pass large int values to allocator functions
    expecting ptrdiff_t.  This is portable in practice, but check it to
    be safe.  */
@@ -270,6 +296,16 @@ xnmalloc (ptrdiff_t nitems, ptrdiff_t item_size)
   return xmalloc (nitems * item_size);
 }
 
+/* Like xnmalloc for pointerless objects.  */
+
+void *
+xnmalloc_atomic (ptrdiff_t nitems, ptrdiff_t item_size)
+{
+  eassert (0 <= nitems && 0 < item_size);
+  if (min (PTRDIFF_MAX, SIZE_MAX) / item_size < nitems)
+    memory_full (SIZE_MAX);
+  return xmalloc_atomic (nitems * item_size);
+}
 
 /* Reallocate an array PA to make it of NITEMS items, each of size ITEM_SIZE.
    Signal an error on memory exhaustion.  */

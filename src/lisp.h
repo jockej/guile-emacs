@@ -4182,6 +4182,10 @@ extern void *xnmalloc (ptrdiff_t, ptrdiff_t) ATTRIBUTE_MALLOC_SIZE ((1,2));
 extern void *xnrealloc (void *, ptrdiff_t, ptrdiff_t)
   ATTRIBUTE_ALLOC_SIZE ((2,3));
 extern void *xpalloc (void *, ptrdiff_t *, ptrdiff_t, ptrdiff_t, ptrdiff_t);
+extern void *xmalloc_atomic (size_t) ATTRIBUTE_MALLOC_SIZE ((1));
+extern void *xzalloc_atomic (size_t) ATTRIBUTE_MALLOC_SIZE ((1));
+extern void *xmalloc_atomic_unsafe (size_t) ATTRIBUTE_MALLOC_SIZE ((1));
+extern void *xnmalloc_atomic (ptrdiff_t, ptrdiff_t) ATTRIBUTE_MALLOC_SIZE ((1,2));
 
 extern char *xstrdup (const char *) ATTRIBUTE_MALLOC;
 extern char *xlispstrdup (Lisp_Object) ATTRIBUTE_MALLOC;
