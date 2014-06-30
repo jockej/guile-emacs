@@ -162,10 +162,6 @@ struct window
     /* An alist with parameters.  */
     Lisp_Object window_parameters;
 
-    /* No Lisp data may follow below this point without changing
-       mark_object in alloc.c.  The member current_matrix must be the
-       first non-Lisp member.  */
-
     /* Glyph matrices.  */
     struct glyph_matrix *current_matrix;
     struct glyph_matrix *desired_matrix;

@@ -759,8 +759,7 @@ void check_matrix_pointer_lossage (struct glyph_matrix *);
 			     Glyph Rows
  ***********************************************************************/
 
-/* Area in window glyph matrix.  If values are added or removed,
-   the function mark_glyph_matrix in alloc.c may need to be changed.  */
+/* Area in window glyph matrix.  */
 
 enum glyph_row_area
 {

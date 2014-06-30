@@ -3615,9 +3615,7 @@ tty_menu_show (struct frame *f, int x, int y, int menuflags,
       return Qnil;
     }
 
-  /* Don't GC while we prepare and show the menu, because we give the
-     menu functions pointers to the contents of strings.  */
-  specpdl_count = inhibit_garbage_collection ();
+  specpdl_count = SPECPDL_INDEX ();
 
   /* Avoid crashes if, e.g., another client will connect while we
      are in a menu.  */

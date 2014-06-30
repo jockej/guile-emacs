@@ -35,6 +35,7 @@ saturated_add (EMACS_INT a, EMACS_INT b)
 
 typedef struct Lisp_Hash_Table log_t;
 
+static Lisp_Object Qautomatic_gc;
 static Lisp_Object Qprofiler_backtrace_equal;
 static struct hash_table_test hashtest_profiler;
 
@@ -567,6 +568,7 @@ If the log gets full, some of the least-seen call-stacks will be evicted
 to make room for new entries.  */);
   profiler_log_size = 10000;
 
+  DEFSYM (Qautomatic_gc, "Automatic GC");
   DEFSYM (Qprofiler_backtrace_equal, "profiler-backtrace-equal");
 
   hashtest_profiler.name = Qprofiler_backtrace_equal;

@@ -3383,11 +3383,6 @@ base64_decode_1 (const char *from, char *to, ptrdiff_t length,
    key_and_value vector of the hash table.  This could be done
    if a `:linear-search t' argument is given to make-hash-table.  */
 
-
-/* The list of all weak hash tables.  Don't staticpro this one.  */
-
-static struct Lisp_Hash_Table *weak_hash_tables;
-
 /* Various symbols.  */
 
 static Lisp_Object Qhash_table_p;
@@ -3708,15 +3703,6 @@ make_hash_table (struct hash_table_test test,
   eassert (HASH_TABLE_P (table));
   eassert (XHASH_TABLE (table) == h);
 
-  /* Maybe add this hash table to the list of all weak hash tables.  */
-  if (NILP (h->weak))
-    h->next_weak = NULL;
-  else
-    {
-      h->next_weak = weak_hash_tables;
-      weak_hash_tables = h;
-    }
-
   return table;
 }
 
@@ -3737,13 +3723,6 @@ copy_hash_table (struct Lisp_Hash_Table *h1)
   h2->next = Fcopy_sequence (h1->next);
   h2->index = Fcopy_sequence (h1->index);
   XSET_HASH_TABLE (table, h2);
-
-  /* Maybe add this hash table to the list of all weak hash tables.  */
-  if (!NILP (h2->weak))
-    {
-      h2->next_weak = weak_hash_tables;
-      weak_hash_tables = h2;
-    }
 
   return table;
 }
@@ -3976,151 +3955,6 @@ hash_clear (struct Lisp_Hash_Table *h)
       h->next_free = make_number (0);
       h->count = 0;
     }
-}
-
-
-
-/************************************************************************
-			   Weak Hash Tables
- ************************************************************************/
-
-/* Sweep weak hash table H.  REMOVE_ENTRIES_P means remove
-   entries from the table that don't survive the current GC.
-   !REMOVE_ENTRIES_P means mark entries that are in use.  Value is
-   true if anything was marked.  */
-
-static bool
-sweep_weak_table (struct Lisp_Hash_Table *h, bool remove_entries_p)
-{
-  ptrdiff_t bucket, n;
-  bool marked;
-
-  n = ASIZE (h->index) & ~ARRAY_MARK_FLAG;
-  marked = 0;
-
-  for (bucket = 0; bucket < n; ++bucket)
-    {
-      Lisp_Object idx, next, prev;
-
-      /* Follow collision chain, removing entries that
-	 don't survive this garbage collection.  */
-      prev = Qnil;
-      for (idx = HASH_INDEX (h, bucket); !NILP (idx); idx = next)
-	{
-	  ptrdiff_t i = XFASTINT (idx);
-	  bool key_known_to_survive_p = survives_gc_p (HASH_KEY (h, i));
-	  bool value_known_to_survive_p = survives_gc_p (HASH_VALUE (h, i));
-	  bool remove_p;
-
-	  if (EQ (h->weak, Qkey))
-	    remove_p = !key_known_to_survive_p;
-	  else if (EQ (h->weak, Qvalue))
-	    remove_p = !value_known_to_survive_p;
-	  else if (EQ (h->weak, Qkey_or_value))
-	    remove_p = !(key_known_to_survive_p || value_known_to_survive_p);
-	  else if (EQ (h->weak, Qkey_and_value))
-	    remove_p = !(key_known_to_survive_p && value_known_to_survive_p);
-	  else
-	    emacs_abort ();
-
-	  next = HASH_NEXT (h, i);
-
-	  if (remove_entries_p)
-	    {
-	      if (remove_p)
-		{
-		  /* Take out of collision chain.  */
-		  if (NILP (prev))
-		    set_hash_index_slot (h, bucket, next);
-		  else
-		    set_hash_next_slot (h, XFASTINT (prev), next);
-
-		  /* Add to free list.  */
-		  set_hash_next_slot (h, i, h->next_free);
-		  h->next_free = idx;
-
-		  /* Clear key, value, and hash.  */
-		  set_hash_key_slot (h, i, Qnil);
-		  set_hash_value_slot (h, i, Qnil);
-		  set_hash_hash_slot (h, i, Qnil);
-
-		  h->count--;
-		}
-	      else
-		{
-		  prev = idx;
-		}
-	    }
-	  else
-	    {
-	      if (!remove_p)
-		{
-		  /* Make sure key and value survive.  */
-		  if (!key_known_to_survive_p)
-		    {
-		      mark_object (HASH_KEY (h, i));
-		      marked = 1;
-		    }
-
-		  if (!value_known_to_survive_p)
-		    {
-		      mark_object (HASH_VALUE (h, i));
-		      marked = 1;
-		    }
-		}
-	    }
-	}
-    }
-
-  return marked;
-}
-
-/* Remove elements from weak hash tables that don't survive the
-   current garbage collection.  Remove weak tables that don't survive
-   from Vweak_hash_tables.  Called from gc_sweep.  */
-
-NO_INLINE /* For better stack traces */
-void
-sweep_weak_hash_tables (void)
-{
-  struct Lisp_Hash_Table *h, *used, *next;
-  bool marked;
-
-  /* Mark all keys and values that are in use.  Keep on marking until
-     there is no more change.  This is necessary for cases like
-     value-weak table A containing an entry X -> Y, where Y is used in a
-     key-weak table B, Z -> Y.  If B comes after A in the list of weak
-     tables, X -> Y might be removed from A, although when looking at B
-     one finds that it shouldn't.  */
-  do
-    {
-      marked = 0;
-      for (h = weak_hash_tables; h; h = h->next_weak)
-	{
-	  if (h->header.size & ARRAY_MARK_FLAG)
-	    marked |= sweep_weak_table (h, 0);
-	}
-    }
-  while (marked);
-
-  /* Remove tables and entries that aren't used.  */
-  for (h = weak_hash_tables, used = NULL; h; h = next)
-    {
-      next = h->next_weak;
-
-      if (h->header.size & ARRAY_MARK_FLAG)
-	{
-	  /* TABLE is marked as used.  Sweep its contents.  */
-	  if (h->count > 0)
-	    sweep_weak_table (h, 1);
-
-	  /* Add table to the list of used weak hash tables.  */
-	  h->next_weak = used;
-	  used = h;
-	}
-    }
-
-  weak_hash_tables = used;
 }
 
 

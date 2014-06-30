@@ -10659,13 +10659,6 @@ display_echo_area (struct window *w)
 {
   int i, no_message_p, window_height_changed_p;
 
-  /* Temporarily disable garbage collections while displaying the echo
-     area.  This is done because a GC can print a message itself.
-     That message would modify the echo area buffer's contents while a
-     redisplay of the buffer is going on, and seriously confuse
-     redisplay.  */
-  ptrdiff_t count = inhibit_garbage_collection ();
-
   /* If there is no message, we must call display_echo_area_1
      nevertheless because it resizes the window.  But we will have to
      reset the echo_area_buffer in question to nil at the end because
@@ -10681,7 +10674,6 @@ display_echo_area (struct window *w)
   if (no_message_p)
     echo_area_buffer[i] = Qnil;
 
-  unbind_to (count, Qnil);
   return window_height_changed_p;
 }
 
@@ -22851,10 +22843,8 @@ decode_mode_spec (struct window *w, register int c, int field_width,
 
     case '@':
       {
-	ptrdiff_t count = inhibit_garbage_collection ();
 	Lisp_Object val = call1 (intern ("file-remote-p"),
 				 BVAR (current_buffer, directory));
-	unbind_to (count, Qnil);
 
 	if (NILP (val))
 	  return "-";
