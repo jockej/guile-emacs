@@ -10016,8 +10016,8 @@ x_term_init (Lisp_Object display_name, char *xrm_option, char *resource_name)
   if (lim - SBYTES (Vinvocation_name) < SBYTES (Vsystem_name))
     memory_full (SIZE_MAX);
   dpyinfo->x_id = ++x_display_id;
-  dpyinfo->x_id_name = xmalloc (SBYTES (Vinvocation_name)
-				+ SBYTES (Vsystem_name) + 2);
+  dpyinfo->x_id_name = xmalloc_atomic (SBYTES (Vinvocation_name)
+                                       + SBYTES (Vsystem_name) + 2);
   strcat (strcat (strcpy (dpyinfo->x_id_name, SSDATA (Vinvocation_name)), "@"),
 	  SSDATA (Vsystem_name));
 

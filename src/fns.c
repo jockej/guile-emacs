@@ -1054,7 +1054,7 @@ an error is signaled.  */)
   if (STRING_MULTIBYTE (string))
     {
       ptrdiff_t chars = SCHARS (string);
-      unsigned char *str = xmalloc (chars);
+      unsigned char *str = xmalloc_atomic (chars);
       ptrdiff_t converted = str_to_unibyte (SDATA (string), str, chars);
 
       if (converted < chars)

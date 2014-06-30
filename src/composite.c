@@ -327,7 +327,7 @@ get_composition_id (ptrdiff_t charpos, ptrdiff_t bytepos, ptrdiff_t nchars,
   cmp->method = method;
   cmp->hash_index = hash_index;
   cmp->glyph_len = glyph_len;
-  cmp->offsets = xnmalloc (glyph_len, 2 * sizeof *cmp->offsets);
+  cmp->offsets = xnmalloc_atomic (glyph_len, 2 * sizeof *cmp->offsets);
   cmp->font = NULL;
 
   if (cmp->method != COMPOSITION_WITH_RULE_ALTCHARS)

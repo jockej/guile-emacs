@@ -4209,7 +4209,7 @@ usage: (format STRING &rest OBJECTS)  */)
 
 	if (buf == initial_buffer)
 	  {
-	    buf = xmalloc (bufsize);
+	    buf = xmalloc_atomic (bufsize);
 	    sa_must_free = true;
 	    buf_save_value_index = SPECPDL_INDEX ();
 	    record_unwind_protect_ptr (xfree, buf);

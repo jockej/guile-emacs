@@ -2778,7 +2778,7 @@ read1 (Lisp_Object readcharfun, int *pch, bool first_in_list)
 
 	      if (saved_doc_string_size == 0)
 		{
-		  saved_doc_string = xmalloc (nskip + extra);
+		  saved_doc_string = xmalloc_atomic (nskip + extra);
 		  saved_doc_string_size = nskip + extra;
 		}
 	      if (nskip > saved_doc_string_size)
@@ -4079,7 +4079,7 @@ init_obarray (void)
 
   DEFSYM (Qvariable_documentation, "variable-documentation");
 
-  read_buffer = xmalloc (size);
+  read_buffer = xmalloc_atomic (size);
   read_buffer_size = size;
 }
 

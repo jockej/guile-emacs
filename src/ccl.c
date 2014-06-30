@@ -2092,7 +2092,7 @@ usage: (ccl-execute-on-string CCL-PROGRAM STATUS STRING &optional CONTINUE UNIBY
   outbufsize = (ccl.buf_magnification
 		? str_bytes * ccl.buf_magnification + 256
 		: str_bytes + 256);
-  outp = outbuf = xmalloc (outbufsize);
+  outp = outbuf = xmalloc_atomic (outbufsize);
 
   consumed_chars = consumed_bytes = 0;
   produced_chars = 0;
