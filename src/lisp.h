@@ -1185,8 +1185,7 @@ STRING_SET_CHARS (Lisp_Object string, ptrdiff_t newsize)
 struct vectorlike_header
   {
     /* The only field contains various pieces of information:
-       - The MSB (ARRAY_MARK_FLAG) holds the gcmarkbit.
-       - The next bit (PSEUDOVECTOR_FLAG) indicates whether this is a plain
+       - The second bit (PSEUDOVECTOR_FLAG) indicates whether this is a plain
          vector (0) or a pseudovector (1).
        - If PSEUDOVECTOR_FLAG is 0, the rest holds the size (number
          of slots) of the vector.
@@ -1555,8 +1554,6 @@ enum symbol_redirect
 
 struct Lisp_Symbol
 {
-  bool_bf gcmarkbit : 1;
-
   /* Indicates where the value can be found:
      0 : it's a plain var, the value is in the `value' field.
      1 : it's a varalias, the value is really in the `alias' symbol.
@@ -1854,15 +1851,11 @@ SXHASH_REDUCE (EMACS_UINT x)
 struct Lisp_Misc_Any		/* Supertype of all Misc types.  */
 {
   ENUM_BF (Lisp_Misc_Type) type : 16;		/* = Lisp_Misc_??? */
-  bool_bf gcmarkbit : 1;
-  unsigned spacer : 15;
 };
 
 struct Lisp_Marker
 {
   ENUM_BF (Lisp_Misc_Type) type : 16;		/* = Lisp_Misc_Marker */
-  bool_bf gcmarkbit : 1;
-  unsigned spacer : 13;
   /* This flag is temporarily used in the functions
      decode/encode_coding_object to record that the marker position
      must be adjusted after the conversion.  */
@@ -1915,8 +1908,6 @@ struct Lisp_Overlay
 */
   {
     ENUM_BF (Lisp_Misc_Type) type : 16;	/* = Lisp_Misc_Overlay */
-    bool_bf gcmarkbit : 1;
-    unsigned spacer : 15;
     struct Lisp_Overlay *next;
     Lisp_Object start;
     Lisp_Object end;
@@ -1993,8 +1984,7 @@ typedef void (*voidfuncptr) (void);
 struct Lisp_Save_Value
   {
     ENUM_BF (Lisp_Misc_Type) type : 16;	/* = Lisp_Misc_Save_Value */
-    bool_bf gcmarkbit : 1;
-    unsigned spacer : 32 - (16 + 1 + SAVE_TYPE_BITS);
+    unsigned spacer : 32 - (16 + SAVE_TYPE_BITS);
 
     /* V->data may hold up to SAVE_VALUE_SLOTS entries.  The type of
        V's data entries are determined by V->save_type.  E.g., if
