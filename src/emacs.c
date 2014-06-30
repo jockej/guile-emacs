@@ -1779,8 +1779,8 @@ sort_args (int argc, char **argv)
      0 for an option that takes no arguments,
      1 for an option that takes one argument, etc.
      -1 for an ordinary non-option argument.  */
-  int *options = xnmalloc (argc, sizeof *options);
-  int *priority = xnmalloc (argc, sizeof *priority);
+  int *options = xnmalloc_atomic (argc, sizeof *options);
+  int *priority = xnmalloc_atomic (argc, sizeof *priority);
   int to = 1;
   int incoming_used = 1;
   int from;

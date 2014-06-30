@@ -747,7 +747,7 @@ Otherwise, return a new string.  */)
   keymap = Voverriding_local_map;
 
   bsize = SBYTES (string);
-  bufp = buf = xmalloc (bsize);
+  bufp = buf = xmalloc_atomic (bsize);
 
   strp = SDATA (string);
   while (strp < SDATA (string) + SBYTES (string))

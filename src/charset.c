@@ -914,7 +914,7 @@ usage: (define-charset-internal ...)  */)
 
   if (! charset.code_linear_p)
     {
-      charset.code_space_mask = xzalloc (256);
+      charset.code_space_mask = xzalloc_atomic (256);
       for (i = 0; i < 4; i++)
 	for (j = charset.code_space[i * 4]; j <= charset.code_space[i * 4 + 1];
 	     j++)

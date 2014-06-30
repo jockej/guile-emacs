@@ -96,7 +96,7 @@ tparam1 (const char *string, char *outstring, int len,
 	  if (outlen == 0)
 	    {
 	      outlen = len + 40;
-	      new = xmalloc (outlen);
+	      new = xmalloc_atomic (outlen);
 	      memcpy (new, outstring, offset);
 	    }
 	  else
