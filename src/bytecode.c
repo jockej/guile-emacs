@@ -1023,48 +1023,16 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
 	  }
 
 	CASE (Bpushcatch):	/* New in 24.4.  */
-	  type = CATCHER;
-	  goto pushhandler;
+          emacs_abort ();
+          NEXT;
+
 	CASE (Bpushconditioncase): /* New in 24.4.  */
-	  {
-	    extern EMACS_INT lisp_eval_depth;
-	    extern int poll_suppress_count;
-	    extern int interrupt_input_blocked;
-	    struct handler *c;
-	    Lisp_Object tag;
-	    int dest;
-
-	    type = CONDITION_CASE;
-	  pushhandler:
-	    tag = POP;
-	    dest = FETCH2;
-
-	    PUSH_HANDLER (c, tag, type);
-	    c->bytecode_dest = dest;
-	    c->bytecode_top = top;
-
-	    if (sys_setjmp (c->jmp))
-	      {
-		struct handler *c = handlerlist;
-		int dest;
-		top = c->bytecode_top;
-		dest = c->bytecode_dest;
-		handlerlist = c->next;
-		PUSH (c->val);
-		CHECK_RANGE (dest);
-		/* Might have been re-set by longjmp!  */
-		stack.byte_string_start = SDATA (stack.byte_string);
-		stack.pc = stack.byte_string_start + dest;
-	      }
-
-	    NEXT;
-	  }
+          emacs_abort ();
+          NEXT;
 
 	CASE (Bpophandler):	/* New in 24.4.  */
-	  {
-	    handlerlist = handlerlist->next;
-	    NEXT;
-	  }
+          emacs_abort ();
+          NEXT;
 
 	CASE (Bunwind_protect):	/* FIXME: avoid closure for lexbind.  */
 	  {
