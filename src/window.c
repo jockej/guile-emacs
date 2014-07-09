@@ -6084,7 +6084,7 @@ the return value is nil.  Otherwise the value is t.  */)
       int n_leaf_windows;
       ptrdiff_t k;
       int i, n;
-      ptrdiff_t count = SPECPDL_INDEX ();
+      dynwind_begin ();
       /* If the frame has been resized since this window configuration was
 	 made, we change the frame to the size specified in the
 	 configuration, restore the configuration, and then resize it
@@ -6364,7 +6364,7 @@ the return value is nil.  Otherwise the value is t.  */)
 
       adjust_frame_glyphs (f);
       unblock_input ();
-      unbind_to (count, Qnil);
+      dynwind_end ();
 
       /* Scan dead buffer windows.  */
       for (; CONSP (dead_windows); dead_windows = XCDR (dead_windows))

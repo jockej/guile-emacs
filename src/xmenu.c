@@ -1921,7 +1921,7 @@ xw_popup_dialog (struct frame *f, Lisp_Object header, Lisp_Object contents)
   Lisp_Object title;
   const char *error_name;
   Lisp_Object selection;
-  ptrdiff_t specpdl_count = SPECPDL_INDEX ();
+  dynwind_begin ();
 
   check_window_system (f);
 
@@ -1943,7 +1943,7 @@ xw_popup_dialog (struct frame *f, Lisp_Object header, Lisp_Object contents)
   selection = x_dialog_show (f, title, header, &error_name);
   unblock_input ();
 
-  unbind_to (specpdl_count, Qnil);
+  dynwind_end ();
   discard_menu_items ();
 
   if (error_name) error ("%s", error_name);

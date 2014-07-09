@@ -844,7 +844,7 @@ Otherwise, return a new string.  */)
 	  /* This is for computing the SHADOWS arg for describe_map_tree.  */
 	  Lisp_Object active_maps = Fcurrent_active_maps (Qnil, Qnil);
 	  Lisp_Object earlier_maps;
-	  ptrdiff_t count = SPECPDL_INDEX ();
+          dynwind_begin ();
 
 	  changed = 1;
 	  strp += 2;		/* skip \{ or \< */
@@ -909,7 +909,7 @@ Otherwise, return a new string.  */)
 	  tem = Fbuffer_string ();
 	  Ferase_buffer ();
 	  set_buffer_internal (oldbuf);
-	  unbind_to (count, Qnil);
+          dynwind_end ();
 
 	subst_string:
 	  start = SDATA (tem);

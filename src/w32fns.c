@@ -4532,7 +4532,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
      could get an infloop in next_frame since the frame is not yet in
      Vframe_list.  */
   {
-    ptrdiff_t count2 = SPECPDL_INDEX ();
+    dynwind_begin ();
 
     record_unwind_protect (unwind_create_frame_1, inhibit_lisp_code);
     inhibit_lisp_code = Qt;
@@ -4560,7 +4560,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
 			 ? make_number (0) : make_number (1),
 			 NULL, NULL, RES_TYPE_NUMBER);
 
-    unbind_to (count2, Qnil);
+    dynwind_end ();
   }
 
   x_default_parameter (f, parameters, Qbuffer_predicate, Qnil,
