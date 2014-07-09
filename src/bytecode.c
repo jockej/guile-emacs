@@ -1909,15 +1909,6 @@ exec_byte_code (Lisp_Object bytestr, Lisp_Object vector, Lisp_Object maxdepth,
     }
 
  exit:
-
-  /* Binds and unbinds are supposed to be compiled balanced.  */
-  if (SPECPDL_INDEX () != count)
-    {
-      if (SPECPDL_INDEX () > count)
-	unbind_to (count, Qnil);
-      error ("binding stack not balanced (serious byte compiler bug)");
-    }
-
   return result;
 }
 /* {{coccinelle:skip_end}} */
