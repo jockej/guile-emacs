@@ -481,26 +481,6 @@ will not work - use `labels' instead" (symbol-name (car x))))
            bindings)
      ,@body))
 
-(defmacro labels (bindings &rest body)
-  "Make temporary function bindings.
-Like `cl-labels' except that the lexical scoping is handled via `lexical-let'
-rather than relying on `lexical-binding'."
-  (declare (indent 1) (debug cl-flet) (obsolete cl-labels "24.3"))
-  (let ((vars nil) (sets nil) (newenv macroexpand-all-environment))
-    (dolist (binding bindings)
-      ;; It's important that (not (eq (symbol-name var1) (symbol-name var2)))
-      ;; because these var's *names* get added to the macro-environment.
-      (let ((var (make-symbol (format "--cl-%s--" (car binding)))))
-	(push var vars)
-	(push `(cl-function (lambda . ,(cdr binding))) sets)
-	(push var sets)
-	(push (cons (car binding)
-                    `(lambda (&rest cl-labels-args)
-                       (cl-list* 'funcall ',var
-                                 cl-labels-args)))
-              newenv)))
-    (macroexpand-all `(lexical-let ,vars (setq ,@sets) ,@body) newenv)))
-
 ;; Generalized variables are provided by gv.el, but some details are
 ;; not 100% compatible: not worth the trouble to add them to cl-lib.el, but we
 ;; still need to support old users of cl.el.
