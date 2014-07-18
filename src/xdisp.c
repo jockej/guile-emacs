@@ -15775,7 +15775,6 @@ redisplay_window (Lisp_Object window, bool just_this_one_p)
      It indicates that the buffer contents and narrowing are unchanged.  */
   bool buffer_unchanged_p = false;
   int temp_scroll_step = 0;
-  dynwind_begin ();
   int rc;
   int centering_position = -1;
   int last_line_misfit = 0;
@@ -15800,6 +15799,8 @@ redisplay_window (Lisp_Object window, bool just_this_one_p)
   /* Make sure that both W's markers are valid.  */
   eassert (XMARKER (w->start)->buffer == buffer);
   eassert (XMARKER (w->pointm)->buffer == buffer);
+
+  dynwind_begin ();
 
   /* We come here again if we need to run window-text-change-functions
      below.  */
