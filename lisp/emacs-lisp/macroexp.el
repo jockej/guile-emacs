@@ -98,10 +98,8 @@ each clause."
   (condition-case err
       (apply handler form (cdr form))
     (error
-     (message "--------------------------------------------------")
-     (backtrace)
      (message "Compiler-macro error for %S: %S" (car form) err)
-           form)))
+     form)))
 
 (defun macroexp--funcall-if-compiled (_form)
   "Pseudo function used internally by macroexp to delay warnings.
