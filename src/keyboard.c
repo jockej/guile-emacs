@@ -1713,7 +1713,7 @@ Lisp_Object
 read_menu_command (void)
 {
   Lisp_Object keybuf[30];
-  scm_dynwind_begin (0);
+  dynwind_begin ();
   int i;
 
   /* We don't want to echo the keystrokes while navigating the
@@ -1723,7 +1723,7 @@ read_menu_command (void)
   i = read_key_sequence (keybuf, ARRAYELTS (keybuf),
 			 Qnil, 0, 1, 1, 1);
 
-  scm_dynwind_end ();
+  dynwind_end ();
 
   if (! FRAME_LIVE_P (XFRAME (selected_frame)))
     Fkill_emacs (Qnil);
