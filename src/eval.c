@@ -720,11 +720,13 @@ icc_lisp_handler (void *data, Lisp_Object k, Lisp_Object val)
   scm_dynwind_begin (0);
   if (!NILP (var))
     {
+#if 0
       if (!NILP (Vinternal_interpreter_environment))
         specbind (Qinternal_interpreter_environment,
                   Fcons (Fcons (var, val),
                          Vinternal_interpreter_environment));
       else
+#endif
         specbind (var, val);
     }
   tem = Fprogn (h->body);
