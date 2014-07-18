@@ -2042,10 +2042,10 @@ of strings.  (`equal' ignores text properties.)  */)
 {
   Lisp_Object tem;
 
-  scm_dynwind_begin (0);
+  dynwind_begin ();
   scm_dynwind_fluid (compare_text_properties, SCM_BOOL_T);
   tem = Fequal (o1, o2);
-  scm_dynwind_end ();
+  dynwind_end ();
   return tem;
 }
 
