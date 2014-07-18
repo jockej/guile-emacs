@@ -269,10 +269,8 @@ call_debugger (Lisp_Object arg)
   return val;
 }
 
-DEFUN ("progn", Fprogn, Sprogn, 0, UNEVALLED, 0,
-       doc: /* Eval BODY forms sequentially and return value of last one.
-usage: (progn BODY...)  */)
-  (Lisp_Object body)
+static Lisp_Object
+Fprogn (Lisp_Object body)
 {
   Lisp_Object val = Qnil;
   struct gcpro gcpro1;
