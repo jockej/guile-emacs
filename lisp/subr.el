@@ -148,6 +148,7 @@ except that PLACE is only evaluated once (after NEWELT)."
       (list 'setq place
             (list 'cons newelt place))
     (require 'macroexp)
+    (require 'gv)
     (eval `(let ((newelt ',newelt)
                  (place ',place))
              (macroexp-let2 macroexp-copyable-p v newelt
@@ -168,8 +169,10 @@ change the list."
     ,(if (symbolp place)
          ;; So we can use `pop' in the bootstrap before `gv' can be used.
          (list 'prog1 place (list 'setq place (list 'cdr place)))
-       (gv-letplace (getter setter) place
-         `(prog1 ,getter ,(funcall setter `(cdr ,getter)))))))
+       (require 'gv)
+       (eval `(let ((place ',place))
+                (gv-letplace (getter setter) place
+                  `(prog1 ,getter ,(funcall setter `(cdr ,getter)))))))))
 
 (defmacro when (cond &rest body)
   "If COND yields non-nil, do BODY, else return nil.
