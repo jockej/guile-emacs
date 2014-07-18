@@ -65,8 +65,6 @@ For more information, see Info node `(elisp)Declaring Functions'."
 
 ;;;; Basic Lisp macros.
 
-(defalias 'not 'null)
-
 (defmacro noreturn (form)
   "Evaluate FORM, expecting it not to return.
 If FORM does return, signal an error."
