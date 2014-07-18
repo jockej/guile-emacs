@@ -1952,9 +1952,6 @@ readevalloop (Lisp_Object readcharfun,
       /* Restore saved point and BEGV.  */
       dynwind_end ();
 
-      //scm_display (val, SCM_UNDEFINED);
-      //scm_newline (SCM_UNDEFINED);
-
       /* Now eval what we just read.  */
       if (!NILP (macroexpand))
         val = readevalloop_eager_expand_eval (val, macroexpand);
