@@ -203,6 +203,12 @@ Assumes the caller has bound `macroexpand-all-environment'."
                                (macroexp--all-forms body)
                                (cdr form))
                    form))
+      (`(,(and fun (or `flet `labels)) . ,(or `(,bindings . ,body) dontcare))
+       (macroexp--cons fun
+                       (macroexp--cons (macroexp--all-clauses bindings 2)
+                                       (macroexp--all-forms body)
+                                       (cdr form))
+                       form))
       (`(,(and fun `(lambda . ,_)) . ,args)
        ;; Embedded lambda in function position.
        (macroexp--cons (macroexp--all-forms fun 2)
