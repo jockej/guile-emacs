@@ -89,10 +89,11 @@
 ;; These are used by various
 ;; macro expanders to optimize the results in certain common cases.
 
-(defconst cl--simple-funcs '(car cdr nth aref elt if and or + - 1+ 1- min max
-			    car-safe cdr-safe progn prog1 prog2))
-(defconst cl--safe-funcs '(* / % length memq list vector vectorp
-			  < > <= >= = error))
+(eval-and-compile
+ (defconst cl--simple-funcs '(car cdr nth aref elt if and or + - 1+ 1- min max
+                                  car-safe cdr-safe progn prog1 prog2))
+ (defconst cl--safe-funcs '(* / % length memq list vector vectorp
+                              < > <= >= = error)))
 
 (defun cl--simple-expr-p (x &optional size)
   "Check if no side effects, and executes quickly."
@@ -113,16 +114,17 @@
     (setq xs (cdr xs)))
   (not xs))
 
-(defun cl--safe-expr-p (x)
-  "Check if no side effects."
-  (or (not (and (consp x) (not (memq (car x) '(quote function cl-function)))))
-      (and (symbolp (car x))
-	   (or (memq (car x) cl--simple-funcs)
-	       (memq (car x) cl--safe-funcs)
-	       (get (car x) 'side-effect-free))
-	   (progn
-	     (while (and (setq x (cdr x)) (cl--safe-expr-p (car x))))
-	     (null x)))))
+(eval-and-compile
+ (defun cl--safe-expr-p (x)
+   "Check if no side effects."
+   (or (not (and (consp x) (not (memq (car x) '(quote function cl-function)))))
+       (and (symbolp (car x))
+            (or (memq (car x) cl--simple-funcs)
+                (memq (car x) cl--safe-funcs)
+                (get (car x) 'side-effect-free))
+            (progn
+              (while (and (setq x (cdr x)) (cl--safe-expr-p (car x))))
+              (null x))))))
 
 ;;; Check if constant (i.e., no side effects or dependencies).
 (defun cl--const-expr-p (x)
@@ -143,20 +145,21 @@ whether X is known at compile time, macroexpand it completely in
     (if (macroexp-const-p x)
         (if (consp x) (nth 1 x) x))))
 
-(defun cl--expr-contains (x y)
-  "Count number of times X refers to Y.  Return nil for 0 times."
-  ;; FIXME: This is naive, and it will cl-count Y as referred twice in
-  ;; (let ((Y 1)) Y) even though it should be 0.  Also it is often called on
-  ;; non-macroexpanded code, so it may also miss some occurrences that would
-  ;; only appear in the expanded code.
-  (cond ((equal y x) 1)
-	((and (consp x) (not (memq (car x) '(quote function cl-function))))
-	 (let ((sum 0))
-	   (while (consp x)
-	     (setq sum (+ sum (or (cl--expr-contains (pop x) y) 0))))
-	   (setq sum (+ sum (or (cl--expr-contains x y) 0)))
-	   (and (> sum 0) sum)))
-	(t nil)))
+(eval-and-compile
+ (defun cl--expr-contains (x y)
+   "Count number of times X refers to Y.  Return nil for 0 times."
+   ;; FIXME: This is naive, and it will cl-count Y as referred twice in
+   ;; (let ((Y 1)) Y) even though it should be 0.  Also it is often called on
+   ;; non-macroexpanded code, so it may also miss some occurrences that would
+   ;; only appear in the expanded code.
+   (cond ((equal y x) 1)
+         ((and (consp x) (not (memq (car x) '(quote function cl-function))))
+          (let ((sum 0))
+            (while (consp x)
+              (setq sum (+ sum (or (cl--expr-contains (pop x) y) 0))))
+            (setq sum (+ sum (or (cl--expr-contains x y) 0)))
+            (and (> sum 0) sum)))
+         (t nil))))
 
 (defun cl--expr-contains-any (x y)
   (while (and y (not (cl--expr-contains x (car y)))) (pop y))
@@ -217,71 +220,73 @@ The name is made by appending a number to PREFIX, default \"G\"."
 
 (def-edebug-spec cl-type-spec sexp)
 
-(defconst cl--lambda-list-keywords
-  '(&optional &rest &key &allow-other-keys &aux &whole &body &environment))
+(eval-and-compile
+  (defconst cl--lambda-list-keywords
+    '(&optional &rest &key &allow-other-keys &aux &whole &body &environment))
 
-(defvar cl--bind-block) (defvar cl--bind-defs) (defvar cl--bind-enquote)
-(defvar cl--bind-inits) (defvar cl--bind-lets) (defvar cl--bind-forms)
+  (defvar cl--bind-block) (defvar cl--bind-defs) (defvar cl--bind-enquote)
+  (defvar cl--bind-inits) (defvar cl--bind-lets) (defvar cl--bind-forms))
 
-(defun cl--transform-lambda (form bind-block)
-  "Transform a function form FORM of name BIND-BLOCK.
+(eval-and-compile
+ (defun cl--transform-lambda (form bind-block)
+   "Transform a function form FORM of name BIND-BLOCK.
 BIND-BLOCK is the name of the symbol to which the function will be bound,
 and which will be used for the name of the `cl-block' surrounding the
 function's body.
 FORM is of the form (ARGS . BODY)."
-  (let* ((args (car form)) (body (cdr form)) (orig-args args)
-	 (cl--bind-block bind-block) (cl--bind-defs nil) (cl--bind-enquote nil)
-	 (cl--bind-inits nil) (cl--bind-lets nil) (cl--bind-forms nil)
-	 (header nil) (simple-args nil))
-    (while (or (stringp (car body))
-	       (memq (car-safe (car body)) '(interactive declare cl-declare)))
-      (push (pop body) header))
-    (setq args (if (listp args) (cl-copy-list args) (list '&rest args)))
-    (let ((p (last args))) (if (cdr p) (setcdr p (list '&rest (cdr p)))))
-    (if (setq cl--bind-defs (cadr (memq '&cl-defs args)))
-	(setq args (delq '&cl-defs (delq cl--bind-defs args))
-	      cl--bind-defs (cadr cl--bind-defs)))
-    (if (setq cl--bind-enquote (memq '&cl-quote args))
-	(setq args (delq '&cl-quote args)))
-    (if (memq '&whole args) (error "&whole not currently implemented"))
-    (let* ((p (memq '&environment args)) (v (cadr p))
-           (env-exp 'macroexpand-all-environment))
-      (if p (setq args (nconc (delq (car p) (delq v args))
-                              (list '&aux (list v env-exp))))))
-    (while (and args (symbolp (car args))
-		(not (memq (car args) '(nil &rest &body &key &aux)))
-		(not (and (eq (car args) '&optional)
-			  (or cl--bind-defs (consp (cadr args))))))
-      (push (pop args) simple-args))
-    (or (eq cl--bind-block 'cl-none)
-	(setq body (list `(cl-block ,cl--bind-block ,@body))))
-    (if (null args)
-	(cl-list* nil (nreverse simple-args) (nconc (nreverse header) body))
-      (if (memq '&optional simple-args) (push '&optional args))
-      (cl--do-arglist args nil (- (length simple-args)
-                                  (if (memq '&optional simple-args) 1 0)))
-      (setq cl--bind-lets (nreverse cl--bind-lets))
-      (cl-list* (and cl--bind-inits `(cl-eval-when (compile load eval)
-                                ,@(nreverse cl--bind-inits)))
-	     (nconc (nreverse simple-args)
-		    (list '&rest (car (pop cl--bind-lets))))
-	     (nconc (let ((hdr (nreverse header)))
-                      ;; Macro expansion can take place in the middle of
-                      ;; apparently harmless computation, so it should not
-                      ;; touch the match-data.
-                      (save-match-data
-                        (require 'help-fns)
-                        (cons (help-add-fundoc-usage
-                               (if (stringp (car hdr)) (pop hdr))
-                               ;; Be careful with make-symbol and (back)quote,
-                               ;; see bug#12884.
-                               (let ((print-gensym nil) (print-quoted t))
-                                 (format "%S" (cons 'fn (cl--make-usage-args
-                                                         orig-args)))))
-                              hdr)))
-		    (list `(let* ,cl--bind-lets
-                             ,@(nreverse cl--bind-forms)
-                             ,@body)))))))
+   (let* ((args (car form)) (body (cdr form)) (orig-args args)
+          (cl--bind-block bind-block) (cl--bind-defs nil) (cl--bind-enquote nil)
+          (cl--bind-inits nil) (cl--bind-lets nil) (cl--bind-forms nil)
+          (header nil) (simple-args nil))
+     (while (or (stringp (car body))
+                (memq (car-safe (car body)) '(interactive declare cl-declare)))
+       (push (pop body) header))
+     (setq args (if (listp args) (cl-copy-list args) (list '&rest args)))
+     (let ((p (last args))) (if (cdr p) (setcdr p (list '&rest (cdr p)))))
+     (if (setq cl--bind-defs (cadr (memq '&cl-defs args)))
+         (setq args (delq '&cl-defs (delq cl--bind-defs args))
+               cl--bind-defs (cadr cl--bind-defs)))
+     (if (setq cl--bind-enquote (memq '&cl-quote args))
+         (setq args (delq '&cl-quote args)))
+     (if (memq '&whole args) (error "&whole not currently implemented"))
+     (let* ((p (memq '&environment args)) (v (cadr p))
+            (env-exp 'macroexpand-all-environment))
+       (if p (setq args (nconc (delq (car p) (delq v args))
+                               (list '&aux (list v env-exp))))))
+     (while (and args (symbolp (car args))
+                 (not (memq (car args) '(nil &rest &body &key &aux)))
+                 (not (and (eq (car args) '&optional)
+                           (or cl--bind-defs (consp (cadr args))))))
+       (push (pop args) simple-args))
+     (or (eq cl--bind-block 'cl-none)
+         (setq body (list `(cl-block ,cl--bind-block ,@body))))
+     (if (null args)
+         (cl-list* nil (nreverse simple-args) (nconc (nreverse header) body))
+       (if (memq '&optional simple-args) (push '&optional args))
+       (cl--do-arglist args nil (- (length simple-args)
+                                   (if (memq '&optional simple-args) 1 0)))
+       (setq cl--bind-lets (nreverse cl--bind-lets))
+       (cl-list* (and cl--bind-inits `(cl-eval-when (compile load eval)
+                                        ,@(nreverse cl--bind-inits)))
+                 (nconc (nreverse simple-args)
+                        (list '&rest (car (pop cl--bind-lets))))
+                 (nconc (let ((hdr (nreverse header)))
+                          ;; Macro expansion can take place in the middle of
+                          ;; apparently harmless computation, so it should not
+                          ;; touch the match-data.
+                          (save-match-data
+                            (require 'help-fns)
+                            (cons (help-add-fundoc-usage
+                                   (if (stringp (car hdr)) (pop hdr))
+                                   ;; Be careful with make-symbol and (back)quote,
+                                   ;; see bug#12884.
+                                   (let ((print-gensym nil) (print-quoted t))
+                                     (format "%S" (cons 'fn (cl--make-usage-args
+                                                             orig-args)))))
+                                  hdr)))
+                        (list `(let* ,cl--bind-lets
+                                 ,@(nreverse cl--bind-forms)
+                                 ,@body))))))))
 
 ;;;###autoload
 (defmacro cl-defun (name args &rest body)
@@ -553,17 +558,18 @@ its argument list allows full Common Lisp conventions."
 	    (cl--do-arglist (pop args) nil))))
       (if args (error "Malformed argument list %s" save-args)))))
 
-(defun cl--arglist-args (args)
-  (if (nlistp args) (list args)
-    (let ((res nil) (kind nil) arg)
-      (while (consp args)
-	(setq arg (pop args))
-	(if (memq arg cl--lambda-list-keywords) (setq kind arg)
-	  (if (eq arg '&cl-defs) (pop args)
-	    (and (consp arg) kind (setq arg (car arg)))
-	    (and (consp arg) (cdr arg) (eq kind '&key) (setq arg (cadr arg)))
-	    (setq res (nconc res (cl--arglist-args arg))))))
-      (nconc res (and args (list args))))))
+(eval-and-compile
+ (defun cl--arglist-args (args)
+   (if (nlistp args) (list args)
+     (let ((res nil) (kind nil) arg)
+       (while (consp args)
+         (setq arg (pop args))
+         (if (memq arg cl--lambda-list-keywords) (setq kind arg)
+           (if (eq arg '&cl-defs) (pop args)
+             (and (consp arg) kind (setq arg (car arg)))
+             (and (consp arg) (cdr arg) (eq kind '&key) (setq arg (cadr arg)))
+             (setq res (nconc res (cl--arglist-args arg))))))
+       (nconc res (and args (list args)))))))
 
 ;;;###autoload
 (defmacro cl-destructuring-bind (args expr &rest body)
@@ -759,16 +765,17 @@ This is compatible with Common Lisp, but note that `defun' and
 
 ;;; The "cl-loop" macro.
 
-(defvar cl--loop-args) (defvar cl--loop-accum-var) (defvar cl--loop-accum-vars)
-(defvar cl--loop-bindings) (defvar cl--loop-body)
-(defvar cl--loop-finally)
-(defvar cl--loop-finish-flag)           ;Symbol set to nil to exit the loop?
-(defvar cl--loop-first-flag)
-(defvar cl--loop-initially) (defvar cl--loop-iterator-function)
-(defvar cl--loop-name)
-(defvar cl--loop-result) (defvar cl--loop-result-explicit)
-(defvar cl--loop-result-var) (defvar cl--loop-steps)
-(defvar cl--loop-symbol-macs)
+(eval-and-compile
+ (defvar cl--loop-args) (defvar cl--loop-accum-var) (defvar cl--loop-accum-vars)
+ (defvar cl--loop-bindings) (defvar cl--loop-body)
+ (defvar cl--loop-finally)
+ (defvar cl--loop-finish-flag)    ;Symbol set to nil to exit the loop?
+ (defvar cl--loop-first-flag)
+ (defvar cl--loop-initially) (defvar cl--loop-iterator-function)
+ (defvar cl--loop-name)
+ (defvar cl--loop-result) (defvar cl--loop-result-explicit)
+ (defvar cl--loop-result-var) (defvar cl--loop-steps)
+ (defvar cl--loop-symbol-macs))
 
 (defun cl--loop-set-iterator-function (kind iterator)
   (if cl--loop-iterator-function

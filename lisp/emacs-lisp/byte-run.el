@@ -193,9 +193,10 @@ The return value is undefined.
 			  (message "Warning: Unknown macro property %S in %S"
 				   (car x) name))))
 		  decls)))
-           (if declarations
-               (cons 'prog1 (cons def declarations))
-             def))))))
+           (list 'eval-when '(:compile-toplevel :load-toplevel :execute)
+            (if declarations
+                (cons 'prog1 (cons def declarations))
+              def)))))))
 
 ;; Now that we defined defmacro we can use it!
 (defmacro defun (name arglist &optional docstring &rest body)
