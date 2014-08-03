@@ -228,20 +228,6 @@ the return value (nil if RESULT is omitted).
            (setq ,(car spec) (1+ ,(car spec))))
          ,@(cdr (cdr spec))))))
 
-(defmacro declare (&rest _specs)
-  "Do not evaluate any arguments, and return nil.
-If a `declare' form appears as the first form in the body of a
-`defun' or `defmacro' form, SPECS specifies various additional
-information about the function or macro; these go into effect
-during the evaluation of the `defun' or `defmacro' form.
-
-The possible values of SPECS are specified by
-`defun-declarations-alist' and `macro-declarations-alist'.
-
-For more information, see info node `(elisp)Declare Form'."
-  ;; FIXME: edebug spec should pay attention to defun-declarations-alist.
-  nil)
-
 (defmacro ignore-errors (&rest body)
   "Execute BODY; if an error occurs, return nil.
 Otherwise, return result of last form in BODY.
