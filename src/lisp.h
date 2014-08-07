@@ -1353,10 +1353,16 @@ SYMBOL_INTERNED_P (Lisp_Object sym)
   return scm_is_true (scm_symbol_interned_p (sym));
 }
 
+extern Lisp_Object Ffboundp (Lisp_Object);
+extern Lisp_Object Fmakunbound (Lisp_Object);
+extern Lisp_Object Ffmakunbound (Lisp_Object);
+extern Lisp_Object Ffset (Lisp_Object, Lisp_Object);
+extern Lisp_Object Fsymbol_function (Lisp_Object);
+
 INLINE Lisp_Object
 SYMBOL_FUNCTION (Lisp_Object sym)
 {
-  return scm_call_1 (scm_c_public_ref ("elisp-functions", "symbol-function"), sym);
+  return Fsymbol_function (sym);
 }
 
 /* Value is non-zero if symbol is considered a constant, i.e. its
@@ -4003,13 +4009,16 @@ functionp (Lisp_Object object)
       Lisp_Object car = XCAR (object);
       return EQ (car, Qlambda) || EQ (car, Qclosure);
     }
+  else
+    return false;
 }
+
+extern Lisp_Object xsymbol_fn;
 
 INLINE sym_t
 XSYMBOL (Lisp_Object a)
 {
-  return scm_call_1 (scm_c_public_ref ("language elisp runtime", "symbol-desc"),
-                     a);
+  return scm_call_1 (xsymbol_fn, a);
 }
 
 INLINE_HEADER_END

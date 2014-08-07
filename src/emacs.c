@@ -710,6 +710,9 @@ string_from_scheme (Lisp_Object scheme_string)
                                  nbytes);
 }
 
+Lisp_Object xsymbol_fn;
+Lisp_Object symbol_function_fn;
+
 static int main2 (void *, int, char **);
 
 int
@@ -1197,6 +1200,9 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
       scm_c_module_define (scm_c_resolve_module ("language elisp runtime"),
                            "lisp-string?",
                            scm_c_make_gsubr ("stringp", 1, 0, 0, Fstringp));
+
+      xsymbol_fn = scm_c_public_ref ("language elisp runtime", "symbol-desc");
+      symbol_function_fn = scm_c_public_ref ("language elisp runtime", "symbol-function");
 
       init_guile ();
       init_fns_once ();
