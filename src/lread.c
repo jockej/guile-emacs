@@ -1813,17 +1813,7 @@ readevalloop (Lisp_Object readcharfun,
   bool whole_buffer = 0;
   /* True on the first time around.  */
   bool first_sexp = 1;
-  Lisp_Object macroexpand = intern ("internal-macroexpand-for-load");
-
-  if (NILP (Ffboundp (macroexpand))
-      /* Don't macroexpand in .elc files, since it should have been done
-	 already.  We actually don't know whether we're in a .elc file or not,
-	 so we use circumstantial evidence: .el files normally go through
-	 Vload_source_file_function -> load-with-code-conversion
-	 -> eval-buffer.  */
-      || EQ (readcharfun, Qget_file_char)
-      || EQ (readcharfun, Qget_emacs_mule_file_char))
-    macroexpand = Qnil;
+  Lisp_Object compile_fn = 0;
 
   if (MARKERP (readcharfun))
     {
@@ -1952,11 +1942,7 @@ readevalloop (Lisp_Object readcharfun,
       /* Restore saved point and BEGV.  */
       dynwind_end ();
 
-      /* Now eval what we just read.  */
-      if (!NILP (macroexpand))
-        val = readevalloop_eager_expand_eval (val, macroexpand);
-      else
-        val = eval_sub (val);
+      val = eval_sub (val);
 
       if (printflag)
 	{
