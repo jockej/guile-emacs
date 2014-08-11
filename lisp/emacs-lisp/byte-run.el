@@ -286,18 +286,6 @@ The return value is undefined.
 ;; 			 (list 'put x ''byte-optimizer nil)))
 ;; 		fns)))
 
-(defmacro defsubst (name arglist &rest body)
-  "Define an inline function.  The syntax is just like that of `defun'.
-\(fn NAME ARGLIST &optional DOCSTRING DECL &rest BODY)"
-  (declare (debug defun) (doc-string 3))
-  (or (memq (get name 'byte-optimizer)
-	    '(nil byte-compile-inline-expand))
-      (error "`%s' is a primitive" name))
-  `(prog1
-       (defun ,name ,arglist ,@body)
-     (eval-and-compile
-       (put ',name 'byte-optimizer 'byte-compile-inline-expand))))
-
 (defvar advertised-signature-table (make-hash-table :test 'eq :weakness 'key))
 
 (defun set-advertised-calling-convention (function signature _when)
