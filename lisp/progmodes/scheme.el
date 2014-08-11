@@ -588,6 +588,67 @@ indentation."
       (put 'unassigned\?-components 'scheme-indent-function 1)
       (put 'unbound\?-components 'scheme-indent-function 1)
       (put 'variable-components 'scheme-indent-function 1)))
+
+;; Scheme Interaction Mode
+
+(defun scheme-eval-defun ()
+  (interactive)
+  (let ((debug-on-error eval-expression-debug-on-error)
+        (print-length eval-expression-print-length)
+        (print-level eval-expression-print-level))
+    (let* ((value (eval-scheme (thing-at-point 'defun t)))
+           (str (eval-expression-print-format value)))
+      (prin1 value t)
+      (if str (princ str))
+      value)))
+
+(defun scheme-eval-print-last-sexp (arg)
+  (interactive "P")
+  (setq arg (or arg t))
+  (let ((standard-output (current-buffer)))
+    (terpri)
+    (let ((standard-output (if arg (current-buffer) t))
+          (form (buffer-substring-no-properties
+                 (save-excursion (backward-sexp) (point))
+                 (point))))
+      (eval-last-sexp-print-value (eval-scheme form) arg))
+    (terpri)))
+
+(defvar scheme-interaction-mode-map
+  (let ((map (make-sparse-keymap))
+	(menu-map (make-sparse-keymap "Scheme-Interaction")))
+    (set-keymap-parent map lisp-mode-shared-map)
+    (define-key map "\e\C-x" 'scheme-eval-defun)
+    (define-key map "\n" 'scheme-eval-print-last-sexp)
+    (bindings--define-key map [menu-bar scheme-interaction]
+      (cons "Scheme-Interaction" menu-map))
+    (bindings--define-key menu-map [eval-defun]
+      '(menu-item "Evaluate Defun" scheme-eval-defun
+		  :help "Evaluate the top-level form containing point, or after point"))
+    (bindings--define-key menu-map [print-last-sexp]
+      '(menu-item "Evaluate and Print" scheme-eval-print-last-sexp
+		  :help "Evaluate sexp before point; print value into current buffer"))
+    (bindings--define-key menu-map [indent-sexp]
+      '(menu-item "Indent" indent-sexp
+		  :help "Indent each line of the list starting just after point"))
+    map)
+  "Keymap for Scheme Interaction mode.
+All commands in `lisp-mode-shared-map' are inherited by this map.")
+
+(define-derived-mode scheme-interaction-mode scheme-mode "Scheme Interaction"
+  "Major mode for typing and evaluating Scheme forms.
+Like Scheme mode except that \\[scheme-eval-print-last-sexp] evals the
+Scheme expression before point, and prints its value into the
+buffer, advancing point.  Note that printing is controlled by
+`eval-expression-print-length' and `eval-expression-print-level'.
+
+Commands:
+Delete converts tabs to spaces as it moves back.
+Paragraphs are separated only by blank lines.
+Semicolons start comments.
+
+\\{scheme-interaction-mode-map}"
+  :abbrev-table nil)
 
 (provide 'scheme)
 
