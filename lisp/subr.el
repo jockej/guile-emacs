@@ -234,7 +234,12 @@ Otherwise, return result of last form in BODY.
 See also `with-demoted-errors' that does something similar
 without silencing all errors."
   (declare (debug t) (indent 0))
-  `(condition-case nil (progn ,@body) (error nil)))
+  `(condition-case nil
+       (%funcall (@ (guile) catch)
+                 t
+                 #'(lambda () ,@body)
+                 #'(lambda (&rest args) nil))
+     (error nil)))
 
 ;;;; Basic Lisp functions.
 
