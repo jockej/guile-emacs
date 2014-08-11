@@ -586,8 +586,6 @@ its argument list allows full Common Lisp conventions."
 
 ;;; The `cl-eval-when' form.
 
-(defvar cl--not-toplevel nil)
-
 ;;;###autoload
 (defmacro cl-eval-when (when &rest body)
   "Control when BODY is evaluated.
@@ -597,29 +595,7 @@ If `eval' is in WHEN, BODY is evaluated when interpreted or at non-top-level.
 
 \(fn (WHEN...) BODY...)"
   (declare (indent 1) (debug (sexp body)))
-  (if (and (fboundp 'cl--compiling-file) (cl--compiling-file)
-	   (not cl--not-toplevel) (not (boundp 'for-effect))) ;Horrible kludge.
-      (let ((comp (or (memq 'compile when) (memq :compile-toplevel when)))
-	    (cl--not-toplevel t))
-	(if (or (memq 'load when) (memq :load-toplevel when))
-	    (if comp (cons 'progn (mapcar 'cl--compile-time-too body))
-	      `(if nil nil ,@body))
-	  (progn (if comp (eval (cons 'progn body))) nil)))
-    (and (or (memq 'eval when) (memq :execute when))
-	 (cons 'progn body))))
-
-(defun cl--compile-time-too (form)
-  (or (and (symbolp (car-safe form)) (get (car-safe form) 'byte-hunk-handler))
-      (setq form (macroexpand
-		  form (cons '(cl-eval-when) byte-compile-macro-environment))))
-  (cond ((eq (car-safe form) 'progn)
-	 (cons 'progn (mapcar 'cl--compile-time-too (cdr form))))
-	((eq (car-safe form) 'cl-eval-when)
-	 (let ((when (nth 1 form)))
-	   (if (or (memq 'eval when) (memq :execute when))
-	       `(cl-eval-when (compile ,@when) ,@(cddr form))
-	     form)))
-	(t (eval form) form)))
+  `(eval-when ,when ,@body))
 
 ;;;###autoload
 (defmacro cl-load-time-value (form &optional _read-only)

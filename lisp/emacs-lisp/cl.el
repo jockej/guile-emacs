@@ -248,7 +248,6 @@
                ecase
                case
                load-time-value
-               eval-when
                destructuring-bind
                gentemp
                gensym
