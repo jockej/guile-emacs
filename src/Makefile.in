@@ -441,7 +441,7 @@ $(srcdir)/macuvs.h $(lispsource)/international/charprop.el: \
 ## since not all pieces are used on all platforms.  But DOC depends
 ## on all of $lisp, and emacs depends on DOC, so it is ok to use $lisp here.
 emacs$(EXEEXT): temacs$(EXEEXT) \
-                $(etc)/DOC $(lisp) $(leimdir)/leim-list.el \
+                $(lisp) $(leimdir)/leim-list.el \
                 $(lispsource)/international/charprop.el
 	if test "$(CANNOT_DUMP)" = "yes"; then \
 	  rm -f emacs$(EXEEXT); \
@@ -625,9 +625,6 @@ tags: TAGS ../lisp/TAGS $(lwlibdir)/TAGS
 ## but now that we require GNU make, we can simply specify
 ## bootstrap-emacs$(EXEEXT) as an order-only prerequisite.
 
-%.elc: %.el | bootstrap-emacs$(EXEEXT)
-	@$(MAKE) -C ../lisp compile-onefile THEFILE=$< EMACS="$(bootstrap_exe)"
-
 ## VCSWITNESS points to the file that holds info about the current checkout.
 ## We use it as a heuristic to decide when to rebuild loaddefs.el.
 ## If empty it is ignored; the parent makefile can set it to some other value.
@@ -648,8 +645,6 @@ bootstrap-emacs$(EXEEXT): temacs$(EXEEXT)
 	  test "X$(PAXCTL)" = X || $(PAXCTL) -zex emacs$(EXEEXT); \
 	  mv -f emacs$(EXEEXT) bootstrap-emacs$(EXEEXT); \
 	fi
-	@: Compile some files earlier to speed up further compilation.
-	$(MAKE) -C ../lisp compile-first EMACS="$(bootstrap_exe)"
 
 alloc.o: alloc.x
 buffer.o: buffer.x

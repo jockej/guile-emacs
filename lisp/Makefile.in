@@ -147,7 +147,7 @@ setwins_for_subdirs=for file in `find ${srcdir} -type d -print`; do \
 
 # cus-load and finder-inf are not explicitly requested by anything, so
 # we add them here to make sure they get built.
-all: compile-main $(lisp)/cus-load.el $(lisp)/finder-inf.el
+all: leim semantic $(lisp)/cus-load.el $(lisp)/finder-inf.el
 
 .PHONY: all custom-deps finder-data autoloads update-subdirs
 
