@@ -127,7 +127,9 @@ expression, in which case we want to handle forms differently."
         ;; (message "autoload of %S" (nth 1 form))
         `(autoload ,(nth 1 form) ,file ,doc ,interactive ,type)))
 
-     ((and expansion (memq car '(progn prog1)))
+     ((and expansion
+           (or (memq car '(progn prog1))
+               (and (eq car 'eval-when) (setq form (cdr form)))))
       (let ((end (memq :autoload-end form)))
 	(when end             ;Cut-off anything after the :autoload-end marker.
           (setq form (copy-sequence form))
