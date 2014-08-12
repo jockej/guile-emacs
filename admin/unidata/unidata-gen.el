@@ -680,7 +680,7 @@ is the character itself.")))
 ;; Return a name of CHAR.  VAL is the current value of (aref TABLE
 ;; CHAR).
 
-(defun unidata-get-name (char val table)
+(fset 'unidata-get-name '(lambda (char val table)
   (cond
    ((stringp val)
     (if (> (aref val 0) 0)
@@ -762,15 +762,15 @@ is the character itself.")))
 	    ((eq sym 'CJK\ COMPATIBILITY\ IDEOGRAPH)
 	     (format "%s-%04X" sym char))
 	    ((eq sym 'VARIATION\ SELECTOR)
-	     (format "%s-%d" sym (+ (- char #xe0100) 17))))))))
+	     (format "%s-%d" sym (+ (- char #xe0100) 17)))))))))
 
 ;; Store VAL as the name of CHAR in TABLE.
 
-(defun unidata-put-name (char val table)
+(fset 'unidata-put-name '(lambda (char val table)
   (let ((current-val (aref table char)))
     (if (and (stringp current-val) (= (aref current-val 0) 0))
 	(funcall (char-table-extra-slot table 1) char current-val table))
-    (aset table char val)))
+    (aset table char val))))
 
 (defun unidata-get-decomposition (char val table)
   (cond
@@ -1004,15 +1004,9 @@ is the character itself.")))
 		      idx (1+ i)))))
 	(nreverse (cons (intern (substring str idx)) l))))))
 
-(defun unidata--ensure-compiled (&rest funcs)
-  (dolist (fun funcs)
-    (or (byte-code-function-p (symbol-function fun))
-	(byte-compile fun))))
-
 (defun unidata-gen-table-name (prop &rest ignore)
   (let* ((table (unidata-gen-table-word-list prop 'unidata-split-name))
 	 (word-tables (char-table-extra-slot table 4)))
-    (unidata--ensure-compiled 'unidata-get-name 'unidata-put-name)
     (set-char-table-extra-slot table 1 (symbol-function 'unidata-get-name))
     (set-char-table-extra-slot table 2 (symbol-function 'unidata-put-name))
 
@@ -1050,8 +1044,6 @@ is the character itself.")))
 (defun unidata-gen-table-decomposition (prop &rest ignore)
   (let* ((table (unidata-gen-table-word-list prop 'unidata-split-decomposition))
 	 (word-tables (char-table-extra-slot table 4)))
-    (unidata--ensure-compiled 'unidata-get-decomposition
-			      'unidata-put-decomposition)
     (set-char-table-extra-slot table 1
 			       (symbol-function 'unidata-get-decomposition))
     (set-char-table-extra-slot table 2
@@ -1061,7 +1053,8 @@ is the character itself.")))
 
 
 
-(defun unidata-describe-general-category (val)
+(fset
+  'unidata-describe-general-category '(lambda (val)
   (cdr (assq val
 	     '((nil . "Uknown")
 	       (Lu . "Letter, Uppercase")
@@ -1093,9 +1086,9 @@ is the character itself.")))
 	       (Cf . "Other, Format")
 	       (Cs . "Other, Surrogate")
 	       (Co . "Other, Private Use")
-	       (Cn . "Other, Not Assigned")))))
+	       (Cn . "Other, Not Assigned"))))))
 
-(defun unidata-describe-canonical-combining-class (val)
+(fset 'unidata-describe-canonical-combining-class '(lambda (val)
   (cdr (assq val
 	     '((0 . "Spacing, split, enclosing, reordrant, and Tibetan subjoined")
 	       (1 . "Overlays and interior")
@@ -1122,9 +1115,9 @@ is the character itself.")))
 	       (232 . "Above right")
 	       (233 . "Double below")
 	       (234 . "Double above")
-	       (240 . "Below (iota subscript)")))))
+	       (240 . "Below (iota subscript)"))))))
 
-(defun unidata-describe-bidi-class (val)
+(fset 'unidata-describe-bidi-class '(lambda (val)
   (cdr (assq val
 	     '((L . "Left-to-Right")
 	       (LRE . "Left-to-Right Embedding")
@@ -1148,7 +1141,7 @@ is the character itself.")))
 	       (B . "Paragraph Separator")
 	       (S . "Segment Separator")
 	       (WS . "Whitespace")
-	       (ON . "Other Neutrals")))))
+	       (ON . "Other Neutrals"))))))
 
 (defun unidata-describe-decomposition (val)
   (mapconcat
@@ -1249,6 +1242,7 @@ is the character itself.")))
 	  (insert (format "(define-char-code-property '%S %S\n  %S)\n"
 			  prop basename docstring))
 	  (with-temp-buffer
+            (message "Using load-path %s" load-path)
 	    (message "Generating %s..." file)
 	    (when (file-exists-p file)
 	      (insert-file-contents file)
@@ -1257,7 +1251,6 @@ is the character itself.")))
 	    (setq table (funcall generator prop default-value val-list))
 	    (when describer
 	      (unless (subrp (symbol-function describer))
-		(unidata--ensure-compiled describer)
 		(setq describer (symbol-function describer)))
 	      (set-char-table-extra-slot table 3 describer))
 	    (if (bobp)
