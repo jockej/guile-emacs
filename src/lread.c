@@ -4129,7 +4129,7 @@ load_path_default (void)
   const char *loadpath = ns_load_path ();
 #endif
 
-  normal = PATH_LOADSEARCH;
+  normal = PATH_DUMPLOADSEARCH;
 #ifdef HAVE_NS
   lpath = decode_env_path (0, loadpath ? loadpath : normal, 0);
 #else
