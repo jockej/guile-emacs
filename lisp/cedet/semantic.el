@@ -1202,7 +1202,8 @@ Call `semantic-symref-hits-in-region' to identify local references." t nil)
 
 ;; Semantic-util is a part of the semantic API.  Include it last
 ;; because it depends on semantic.
-(require 'semantic/util)
+(eval-after-load 'semantic
+  '(require 'semantic/util))
 
 ;; (require 'semantic/load)
 
