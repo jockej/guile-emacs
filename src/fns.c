@@ -1074,6 +1074,23 @@ an error is signaled.  */)
   return string;
 }
 
+DEFUN ("string-to-scheme", Fstring_to_scheme, Sstring_to_scheme, 1, 1, 0, 0)
+  (Lisp_Object string)
+{
+  CHECK_STRING (string);
+  return scm_from_utf8_stringn (SSDATA (string), SBYTES (string));
+}
+
+DEFUN ("string-from-scheme", Fstring_from_scheme, Sstring_from_scheme, 1, 1, 0, 0)
+  (Lisp_Object string)
+{
+  char *s;
+  size_t lenp;
+
+  CHECK_STRING (string);
+  s = scm_to_utf8_stringn (string, &lenp);
+  return make_string (s, lenp);
+}
 
 DEFUN ("copy-alist", Fcopy_alist, Scopy_alist, 1, 1, 0,
        doc: /* Return a copy of ALIST.
