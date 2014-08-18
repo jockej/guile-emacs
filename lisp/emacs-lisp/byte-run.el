@@ -407,33 +407,6 @@ If you think you need this, you're probably making a mistake somewhere."
   (list 'eval (list 'quote (if (cdr body) (cons 'progn body) (car body)))))
 
 
-;; interface to evaluating things at compile time and/or load time
-;; these macro must come after any uses of them in this file, as their
-;; definition in the file overrides the magic definitions on the
-;; byte-compile-macro-environment.
-
-(defmacro eval-when-compile (&rest body)
-  "Like `progn', but evaluates the body at compile time if you're compiling.
-Thus, the result of the body appears to the compiler as a quoted
-constant.  In interpreted code, this is entirely equivalent to
-`progn', except that the value of the expression may be (but is
-not necessarily) computed at load time if eager macro expansion
-is enabled."
-  (declare (debug (&rest def-form)) (indent 0))
-  (list 'quote (eval (cons 'progn body) lexical-binding)))
-
-(defmacro eval-and-compile (&rest body)
-  "Like `progn', but evaluates the body at compile time and at
-load time.  In interpreted code, this is entirely equivalent to
-`progn', except that the value of the expression may be (but is
-not necessarily) computed at load time if eager macro expansion
-is enabled."
-  (declare (debug t) (indent 0))
-  ;; When the byte-compiler expands code, this macro is not used, so we're
-  ;; either about to run `body' (plain interpretation) or we're doing eager
-  ;; macroexpansion.
-  (list 'quote (eval (cons 'progn body) lexical-binding)))
-
 (defun with-no-warnings (&rest body)
   "Like `progn', but prevents compiler warnings in the body."
   (declare (indent 0))
