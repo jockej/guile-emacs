@@ -1371,8 +1371,7 @@ AC_DEFUN([EMACS_CHECK_MODULES],
       m4_default([$3], [HAVE_$1=yes])],
      [m4_default([$4], [HAVE_$1=no])])])
 
-PKG_CHECK_MODULES([GUILE], [guile-2.2], [],
-                  [PKG_CHECK_MODULES([GUILE], [guile-2.0])])
+PKG_CHECK_MODULES([GUILE], [guile-2.2])
 AC_SUBST(GUILE_CFLAGS)
 AC_SUBST(GUILE_LIBS)
 
