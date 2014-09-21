@@ -39,6 +39,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "frame.h"
 #include "termhooks.h"
 #include "blockinput.h"
+#include "guile.h"
 
 #ifdef MSDOS
 #include "msdos.h"
@@ -3886,19 +3887,34 @@ usage: (unintern NAME OBARRAY)  */)
   return (scm_is_true (scm_unintern (name, obhash (obarray))) ? Qt : Qnil);
 }
 
+struct map_obarray_data
+{
+  Lisp_Object obarray;
+  void (*fn) (Lisp_Object, Lisp_Object);
+  Lisp_Object arg;
+};
+
+static Lisp_Object
+map_obarray_inner (void *data, Lisp_Object sym)
+{
+  struct map_obarray_data *modata = data;
+
+  Lisp_Object tem = Ffind_symbol (SYMBOL_NAME (sym), modata->obarray);
+  if (scm_is_true (scm_c_value_ref (tem, 1))
+      && EQ (sym, scm_c_value_ref (tem, 0)))
+    modata->fn (sym, modata->arg);
+  return SCM_UNSPECIFIED;
+}
+
 void
 map_obarray (Lisp_Object obarray, void (*fn) (Lisp_Object, Lisp_Object), Lisp_Object arg)
 {
-  Lisp_Object proc (Lisp_Object sym)
-  {
-    Lisp_Object tem = Ffind_symbol (SYMBOL_NAME (sym), obarray);
-    if (scm_is_true (scm_c_value_ref (tem, 1))
-        && EQ (sym, scm_c_value_ref (tem, 0)))
-      fn (sym, arg);
-    return SCM_UNSPECIFIED;
-  }
+  struct map_obarray_data data = { .obarray = obarray,
+                                   .fn = fn,
+                                   .arg = arg };
+
   CHECK_VECTOR (obarray);
-  scm_obarray_for_each (scm_c_make_gsubr ("proc", 1, 0, 0, proc),
+  scm_obarray_for_each (make_c_closure (map_obarray_inner, &data, 1, 0),
                         obhash (obarray));
 }
 
