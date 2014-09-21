@@ -242,7 +242,7 @@ them, we keep a sample here against which to compare.  Each instance is
 different, but `function-equal' will hopefully ignore those differences.")
 
 (defun advice--set-buffer-local (var val)
-  (if (function-equal val advice--buffer-local-function-sample)
+  (if (equal val advice--buffer-local-function-sample)
       (kill-local-variable var)
     (set (make-local-variable var) val)))
 
