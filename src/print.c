@@ -2142,11 +2142,16 @@ print_object (Lisp_Object obj, Lisp_Object printcharfun, bool escapeflag)
 
     case Lisp_Other:
       {
+        static SCM prefix;
         SCM port = scm_open_output_string ();
+        if (SCM_UNLIKELY (!prefix))
+          prefix = scm_from_latin1_string ("#<scheme ");
+        scm_display (prefix, port);
         if (escapeflag)
           scm_display (obj, port);
         else
           scm_write (obj, port);
+        scm_display (SCM_MAKE_CHAR ('>'), port);
         strout (scm_to_locale_string (scm_get_output_string (port)),
                 -1, -1, printcharfun);
         scm_close_port (port);
