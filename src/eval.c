@@ -73,6 +73,10 @@ ptrdiff_t specpdl_size;
 
 union specbinding *specpdl;
 
+/* Pointer to the dummy entry before the specpdl.  */
+
+union specbinding *specpdl_base;
+
 /* Pointer to first unused element in specpdl.  */
 
 union specbinding *specpdl_ptr;
@@ -172,6 +176,7 @@ init_eval_once (void)
 {
   enum { size = 50 };
   union specbinding *pdlvec = xmalloc ((size + 1) * sizeof *specpdl);
+  specpdl_base = pdlvec;
   specpdl_size = size;
   specpdl = specpdl_ptr = pdlvec + 1;
   /* Don't forget to update docs (lispref node "Local Variables").  */
@@ -1460,6 +1465,7 @@ grow_specpdl (void)
 			  Qnil);
 	}
       pdlvec = xpalloc (pdlvec, &pdlvecsize, 1, max_size + 1, sizeof *specpdl);
+      specpdl_base = pdlvec;
       specpdl = pdlvec + 1;
       specpdl_size = pdlvecsize - 1;
       specpdl_ptr = specpdl + count;

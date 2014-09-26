@@ -718,8 +718,6 @@ static int main2 (void *, int, char **);
 int
 main (int argc, char **argv)
 {
-  /* Override Guile's libgc configuration. */
-  xputenv ("GC_ALL_INTERIOR_POINTERS=1");
   scm_boot_guile (argc, argv, main2, NULL);
 }
 
