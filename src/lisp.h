@@ -706,18 +706,13 @@ XBOOL_VECTOR (Lisp_Object a)
   return SMOB_PTR (a);
 }
 
-INLINE Lisp_Object
-make_lisp_proc (struct Lisp_Process *p)
-{
-  return scm_new_smob (lisp_vectorlike_tag, (scm_t_bits) p);
-}
-
 #define XSETINT(a, b) ((a) = make_number (b))
 #define XSETFASTINT(a, b) ((a) = make_natnum (b))
 #define XSETVECTOR(a, b) ((a) = (b)->header.self)
 #define XSETSTRING(a, b) ((a) = (b)->self)
 #define XSETSYMBOL(a, b) ((a) = scm_c_vector_ref (b, 0))
 #define XSETMISC(a, b) (a) = ((union Lisp_Misc *) (b))->u_any.self
+#define make_lisp_proc(p) ((p)->header.self)
 
 /* Pseudovector types.  */
 
