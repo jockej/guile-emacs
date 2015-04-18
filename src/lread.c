@@ -4679,7 +4679,7 @@ option is non-nil, it checks all suffixes and uses whichever file is
 newest.
 Note that if you customize this, obviously it will not affect files
 that are loaded before your customizations are read!  */);
-  load_prefer_newer = 0;
+  load_prefer_newer = 1;
 
   /* Vsource_directory was initialized in init_lread.  */
 
