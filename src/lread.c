@@ -4139,24 +4139,17 @@ load_path_default (void)
 {
   Lisp_Object lpath = Qnil;
   const char *normal;
+  bool initialized_or_cannot_dump;
 
 #ifdef CANNOT_DUMP
-#ifdef HAVE_NS
-  const char *loadpath = ns_load_path ();
-#endif
-
-  normal = PATH_DUMPLOADSEARCH;
-#ifdef HAVE_NS
-  lpath = decode_env_path (0, loadpath ? loadpath : normal, 0);
+  initialized_or_cannot_dump = true;
+  normal = PATH_LOADSEARCH;
 #else
-  lpath = decode_env_path (0, normal, 0);
+  initialized_or_cannot_dump = initialized;
+  normal = NILP (Vpurify_flag) ? PATH_LOADSEARCH : PATH_DUMPLOADSEARCH;
 #endif
 
-#else  /* !CANNOT_DUMP */
-
-  normal = NILP (Vpurify_flag) ? PATH_LOADSEARCH : PATH_DUMPLOADSEARCH;
-
-  if (initialized)
+  if (initialized_or_cannot_dump)
     {
 #ifdef HAVE_NS
       const char *loadpath = ns_load_path ();
@@ -4250,7 +4243,7 @@ load_path_default (void)
 
         } /* if Vinstallation_directory */
     }
-  else                          /* !initialized */
+  else /* !initialized_or_cannot_dump */
     {
       /* NORMAL refers to PATH_DUMPLOADSEARCH, ie the lisp dir in the
          source directory.  We used to add ../lisp (ie the lisp dir in
@@ -4259,7 +4252,6 @@ load_path_default (void)
          for Makefile.  */
       lpath = decode_env_path (0, normal, 0);
     }
-#endif /* !CANNOT_DUMP */
 
   return lpath;
 }
@@ -4267,7 +4259,12 @@ load_path_default (void)
 void
 init_lread (void)
 {
-  /* First, set Vload_path.  */
+  /* Set Vsource_directory before calling load_path_default.  */
+  Vsource_directory
+    = Fexpand_file_name (build_string ("../"),
+			 Fcar (decode_env_path (0, PATH_DUMPLOADSEARCH, 0)));
+
+  /* Set Vload_path.  */
 
   /* Ignore EMACSLOADPATH when dumping.  */
 #ifdef CANNOT_DUMP
@@ -4540,9 +4537,6 @@ and is not meant for users to change.  */);
   DEFVAR_LISP ("source-directory", Vsource_directory,
 	       doc: /* Directory in which Emacs sources were found when Emacs was built.
 You cannot count on them to still be there!  */);
-  Vsource_directory
-    = Fexpand_file_name (build_string ("../"),
-			 Fcar (decode_env_path (0, PATH_DUMPLOADSEARCH, 0)));
 
   DEFVAR_LISP ("preloaded-file-list", Vpreloaded_file_list,
 	       doc: /* List of files that were preloaded (when dumping Emacs).  */);

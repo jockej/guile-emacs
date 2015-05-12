@@ -2533,7 +2533,8 @@ both `lib-src' (on MS-DOS, `info') and `etc' directories are found
 within the variable `invocation-directory' or its parent.  For example,
 this is the case when running an uninstalled Emacs executable from its
 build directory.  */);
-  Vinstallation_directory = Qnil;
+  if (!Vinstallation_directory)
+    Vinstallation_directory = Qnil;
 
   DEFVAR_LISP ("system-messages-locale", Vsystem_messages_locale,
 	       doc: /* System locale for messages.  */);
